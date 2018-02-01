@@ -1,6 +1,10 @@
 from math import *
 import random
+import simulator
+import item
+import agent
 
+map = []
 
 class State:
 
@@ -9,48 +13,40 @@ class State:
         self.sim = sim
         self.items = sim.items
         self.agents = sim.agents
-        self.mcts_agent = sim.agents[1]
-        self.astar_agent = sim.agents[0]
-        self.mcts_agent.reward = 0
+        self.sim.agents[1].reward = 0
         self.options = ['N', 'S', 'E', 'W']
 
     def Clone(self):
         state = State(self.sim)
         return state
 
-    def DoMove(self, move):
+    def DoMove(self, move, mode):
 
-        (xM, yM) = self.mcts_agent.get_position()
+        (xM, yM) = self.sim.agents[1].get_position()
 
-        self.mcts_agent.next_action = move
-        nearby_item_index = self.mcts_agent.is_item_nearby(self.items)
-
-        if nearby_item_index == -1:
-
-            (xA, yA) = self.mcts_agent.change_position_direction(10, 10)
-
-        else:
-
-            self.sim.load_item(self.mcts_agent,nearby_item_index)
-            self.mcts_agent.position = self.sim.items[nearby_item_index].get_position()
-            self.mcts_agent.reward +=1
+        self.sim.agents[1].next_action = move
+        (xA, yA) = self.sim.agents[1].change_position_direction(10, 10)
+        get_reward = False
+        self.sim.agents[1].position = (xA, yA)
+        print (xA, yA)
+        if self.sim.the_map[yA][xA] == 1:  # load item
+            nearby_item_index = self.sim.get_item_by_position(xA, yA)
+            self.sim.load_item(self.sim.agents[1],nearby_item_index)
+            self.sim.agents[1].reward += 1
+            get_reward = True
             (xA, yA) = self.sim.items[nearby_item_index].get_position()
-
-        self.sim.update_map((xM, yM), (xA, yA))
-
-        #self.sim.draw_map()
+        # else: # Move
+        self.sim.update_map_mcts((xM, yM), (xA, yA))
+        return get_reward
 
     def GetMoves(self):
         return self.options
 
     def GetResult(self):
-        return self.mcts_agent.reward
+        return self.sim.agents[1].reward
 
 
 class Node:
-    """ A node in the game tree. Note wins is always from the viewpoint of playerJustMoved.
-        Crashes if state not specified.
-    """
 
     def __init__(self, move=None, parent=None, state=None):
         self.move = move  # the move that got us to this node - "None" for the root node
@@ -58,8 +54,7 @@ class Node:
         self.childNodes = []
         self.rewards = 0
         self.visits = 0
-        self.untriedMoves = state.GetMoves()  # future child nodes
-
+        self.untriedMoves = ['N', 'S', 'E', 'W']
 
     def UCTSelectChild(self):
 
@@ -71,6 +66,7 @@ class Node:
         n = Node(move=m, parent=self, state=s)
         self.untriedMoves.remove(m)
         self.childNodes.append(n)
+
         return n
 
     def Update(self, result):
@@ -78,78 +74,88 @@ class Node:
         self.visits += 1
         self.rewards += result
 
-    def TreeToString(self, indent):
-        s = self.IndentString(indent) + str(self)
-        for c in self.childNodes:
-            s += c.TreeToString(indent + 1)
-        return s
 
-    def IndentString(self, indent):
-        s = "\n"
-        for i in range(1, indent + 1):
-            s += "| "
-        return s
+def UCT(local_sim, itermax, parameters_estimation):
 
-    def ChildrenToString(self):
-        s = ""
-        for c in self.childNodes:
-            s += str(c) + "\n"
-        return s
-
-
-def UCT(rootstate, itermax, parameters_estimation):
-
-    rootnode = Node(state=rootstate)
+    rootnode = Node()
+    node = rootnode
 
     for i in range(itermax):
-
         node = rootnode
-        state = rootstate.Clone()
-        agent = state.sim.agents[0]
+        tmp_state = State(local_sim)
 
         # Select
-       # print "********** UCT select ", i
-        while node.untriedMoves == [] and node.childNodes != []:  # node is fully expanded and non-terminal
+        # node.untriedMoves == [] ??
+
+        while node.untriedMoves == [] and node.childNodes != []:
+            # node is fully expanded and non-terminal
+            # if we try all possible moves and current node has a child then select a node to expand
+            # We will move till reaching a leaf which don't have any child and we don't
+
             node = node.UCTSelectChild()
-            state.DoMove(node.move)
+            tmp_state.DoMove(node.move,'S')
 
         # Expand
-        #print "********** UCT Expand ", i
-        #print(node.untriedMoves )
         if node.untriedMoves != []:  # if we can expand (i.e. state/node is non-terminal)
-           # print "In if of Expand ", i
             m = random.choice(node.untriedMoves)
-            state.DoMove(m)
-            node = node.AddChild(m, state)  # add child and descend tree
-       # print(state.GetMoves())
+            tmp_state.DoMove(m,'S')
+            node = node.AddChild(m, tmp_state)  # add child and descend tree
 
-       # print "********** UCT Rollout ", i
         # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
+        rollout_max = 10
+        rollout_count = 0
+        node_reward = 0
+        while rollout_count < rollout_max:  # while state is non-terminal
+            move = random.choice(tmp_state.GetMoves())
+            get_reward = tmp_state.DoMove(move,'S')
+            if get_reward:
+                node_reward += 1
 
-        while state.GetMoves() != []:  # while state is non-terminal
-            move = random.choice(state.GetMoves())
-            state.DoMove(move)
-            state.options.remove(move)
-            state.astar_agent.set_parameters(parameters_estimation[0], parameters_estimation[1], parameters_estimation[2])
-            state.sim.run_and_update(state.astar_agent)
+            rollout_count += 1
+            tmp_state.agents[0].set_parameters(parameters_estimation[0], parameters_estimation[1], parameters_estimation[2])
+            tmp_state.sim.run_and_update(tmp_state.agents[0])
 
-       # print "********** UCT Backpropagate ", i
+        # # print "********** UCT Backpropagate ", i
         # Backpropagate
+        # print("reward" , node_reward)
         while node != None:  # backpropagate from the expanded node and work back to the root node
-            node.Update(state.GetResult())
+            node.Update(node_reward)
             node = node.parentNode
-
-
 
     return sorted(rootnode.childNodes, key=lambda c: c.visits)[-1].move  # return the move that was most visited
 
 
-def move_agent(sim,parameters):
+def move_agent(agents, items, parameters):
 
-    state = State(sim)
-   # print(parameters)
-    m = UCT(rootstate=state, itermax=10, parameters_estimation =parameters  )
-  #  print "Best Move: " + str(m) + "\n"
+    local_map = []
+    row = [0] * 10
 
-    state.DoMove(m)
-    return state.sim
+    for i in range(10):
+        local_map.append(list(row))
+
+    local_items = []
+    for i in range(len(items)):
+        (item_x,item_y) = items[i].get_position()
+        local_item = item.item(item_x, item_y, 1, i)
+        local_items.append(local_item)
+        local_map[item_y][item_x] = 1
+
+    local_agents = list()
+
+    (a_agent_x,a_agent_y) = agents[0].get_position()
+    local_map[a_agent_y][a_agent_x] = 8
+    local_agent = agent.Agent(a_agent_x, a_agent_y, 'l1', 0)
+    local_agents.append(local_agent)
+
+    (m_agent_x, m_agent_y) = agents[1].get_position()
+    local_map[m_agent_y][m_agent_x] = 9
+    local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
+    local_agents.append(local_agent)
+
+
+
+    real_sim = simulator.simulator(local_map, local_items, local_agents,10, 10 )
+    next_move = UCT(real_sim, itermax=2, parameters_estimation = parameters)
+    print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" ,next_move
+    return next_move
+

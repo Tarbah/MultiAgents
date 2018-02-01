@@ -45,6 +45,18 @@ class Agent:
 					return i
 		return  -1
 
+	def is_agent_near_destination(self, item):
+
+
+		pos = self.pos
+
+		(xI, yI) = item.position.get_position()
+		#print "items position ", (xI, yI)
+		if (yI == pos[1] and abs(pos[0] - xI) == 1) or (xI == pos[0] and abs(pos[1] - yI) == 1):
+			return True
+		else:
+			return  False
+
 	def set_parameters(self, level, radius, angle):
 
 		width , hight = 10 ,10
@@ -120,7 +132,7 @@ class Agent:
 			return self.actions_probability['S']
 
 
-	def change_direction(self,dx,dy):
+	def change_direction(self , dx , dy):
 
 		if dx == -1 and dy == 0: #'E':
 			self.direction = 0 * np.pi / 2
@@ -135,7 +147,7 @@ class Agent:
 			self.direction = 3 * np.pi / 2
 
 
-	def change_position_direction(self,n,m):
+	def change_position_direction(self, n, m):
 
 		dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
 		dy = [0, 1, 0, -1]
@@ -145,21 +157,27 @@ class Agent:
 
 
 		if self.next_action == 'W':
+
 			x_diff = dx[0]
 			y_diff = dy[0]
 			self.direction = 0 * np.pi / 2
 
 		if self.next_action == 'N':
+
+
 			x_diff = dx[1]
 			y_diff = dy[1]
 			self.direction = np.pi / 2
 
 		if self.next_action == 'E':
+
 			x_diff = dx[2]
 			y_diff = dy[2]
 			self.direction = 2 *  np.pi / 2
 
 		if self.next_action == 'S':
+
+
 			x_diff = dx[3]
 			y_diff = dy[3]
 			self.direction = 3 * np.pi / 2
@@ -167,7 +185,7 @@ class Agent:
 		#print 'old position: ', self.position.x , self.position.y ,' with action: ',self.next_action ,' is changed to: ', self.position.x + x_diff, self.position.y + y_diff
 		x,y = self.get_position()
 
-		if x + x_diff < n and x + x_diff >0 and  y + y_diff < m and y + y_diff > 0:
+		if x + x_diff < n and x + x_diff >= 0 and  y + y_diff < m and y + y_diff >= 0:
 			self.pos = ( x + x_diff, y + y_diff)
 
 		return self.pos
@@ -203,9 +221,10 @@ class Agent:
 		self.visible_items = list()
 
 		for i in range (0,len(items)):
-			if self.distance (items[i]) < self.radius:
-				if  self.direction - self.angle / 2 <= self.angle_of_gradient(items[i]) <= self.direction + self.angle / 2 :
-					self.visible_items.append(items[i])
+			if not items[i].loaded:
+				if self.distance (items[i]) < self.radius:
+					if  self.direction - self.angle / 2 <= self.angle_of_gradient(items[i]) <= self.direction + self.angle / 2 :
+						self.visible_items.append(items[i])
 		
 		for i in range (0,len(agents)):
 			if self.distance (agents[i]) < self.radius:
@@ -233,7 +252,7 @@ class Agent:
 					max_distanse = self.distance (self.visible_items[i])
 					max_index = i
 
-			return self.visible_items[max_index].position
+			return self.visible_items[max_index]
 
 		#if items visible, return item with highest level below own level, 
 		# or item with highest level if none are below own level;
@@ -251,7 +270,7 @@ class Agent:
 			if max_index == -1:
 				return (0,0)
 			else:
-				return self.visible_items[max_index].position
+				return self.visible_items[max_index]
 
 		# if agents visible but no items visible, return furthest agent;
 		# if agents and items visible, return item that furthest agent would choose if it had type L1;
@@ -265,7 +284,7 @@ class Agent:
 						max_distanse = self.distance(self.visible_agents[i])
 						max_index = i
 
-				return self.visible_items[max_index].position
+				return self.visible_items[max_index]
 
 			if len(self.visible_items) > 0 and len(self.visible_agents) > 0 :
 
@@ -303,7 +322,7 @@ class Agent:
 							max_index = i
 
 
-				return self.visible_items[max_index].position
+				return self.visible_items[max_index]
 
 			if len(self.visible_items) > 0 and len(self.visible_agents) > 0 :
 				max_distanse = 0

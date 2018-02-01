@@ -2,7 +2,7 @@ import position
 
 class item:
 
-    def __init__(self, x,y,level , index):
+    def __init__(self, x,y,level, index):
          self.position = position.position(x,y)
          self.loaded = False
          self.level = level

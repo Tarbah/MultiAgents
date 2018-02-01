@@ -76,20 +76,16 @@ class ParameterEstimation:
             tmp_angle = angle_min + (1.0 *(angle_max - angle_min) / data_numbers) * i
             tmp_level = level_min + (1.0 *(level_max - level_min) / data_numbers) * i
 
-            # print "parameters for data generetion step " + str(i) + " is " + str (tmp_radius) + "," + str (tmp_angle) + "," + str(tmp_level)
-
             tmp_agent.set_parameters(tmp_level, tmp_radius, tmp_angle)
 
             tmp_agent = sim.run(tmp_agent)  # f(p)
             p_action = tmp_agent.get_action_probability(action)
 
-            # Print 'action probability',p_action , 'for action ', action , '  when running temp agent number ', i
             if p_action is not None:
                 D.append([tmp_level,tmp_radius, tmp_angle,  p_action])
 
-        #print 'gathered data :     ', D
-       # print '******End of generating data for updating parameter *******'
-       # print '*********************************************************************************'
+        # print '******End of generating data for updating parameter *******'
+        # print '*********************************************************************************'
         return D
 
     @staticmethod
