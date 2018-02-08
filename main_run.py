@@ -135,7 +135,7 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 real_sim.draw_map()
 
 t = 0
-while t < 100:
+while t < 200:
 
     print 'main run count: ', t
 
