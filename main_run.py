@@ -6,9 +6,9 @@ import parameter_estimation
 
 
 radius_max = 1
-radius_min = -1
+radius_min = 0.1
 angle_max = 1
-angle_min = -1
+angle_min = 0.1
 level_max = 1
 level_min = 0
 
@@ -52,7 +52,6 @@ def initialize_items_agents_notrandom(n,m):
     main_agent = agent.Agent(x, y,'l1',1)
     agents.append(main_agent)
     the_map[y][x] = 9
-
 
 
 def initialize_items_agents( n, m):
@@ -125,7 +124,7 @@ param_estim.estimation_initialisation()
 # true parameters
 true_radius = 0.48
 true_angle = 0.42
-true_level = 0.76
+true_level = 1
 
 true_parameters = [true_level, true_radius, true_angle]
 
@@ -139,24 +138,53 @@ t = 0
 while t < 100:
 
     print 'main run count: ', t
-    prev_sim = real_sim
+
+    local_map = []
+    row = [0] * 10
+
+    for i in range(10):
+        local_map.append(list(row))
+
+    local_items = []
+    for i in range(len(items)):
+        (item_x,item_y) = items[i].get_position()
+        local_item = item.item(item_x, item_y, 1, i)
+        local_item.loaded = items[i].loaded
+        local_items.append(local_item)
+        if not local_item.loaded:
+            local_map[item_y][item_x] = 1
+
+    local_agents = list()
+
+    (a_agent_x,a_agent_y) = agents[0].get_position()
+    local_map[a_agent_y][a_agent_x] = 8
+    local_agent = agent.Agent(a_agent_x, a_agent_y, 'l1', 0)
+    local_agents.append(local_agent)
+
+    (m_agent_x, m_agent_y) = agents[1].get_position()
+    local_map[m_agent_y][m_agent_x] = 9
+    local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
+    local_agents.append(local_agent)
+
+    prev_sim = simulator.simulator(local_map, local_items, local_agents, 10, 10)
+
     prev_position = unknown_agent.get_position()
 
     # moving the unknown agent with true parameters
     unknown_agent = real_sim.run_and_update(unknown_agent)
 
-
     # map changes after move of unknown agent
     sim_history.append(real_sim)
     t = t + 1
-    # real_sim.draw_map()
-    print("----------------------------------------")
+    #real_sim.draw_map()
+    #print("----------------------------------------")
     unknown_action_prob = unknown_agent.get_action_probability(unknown_agent.next_action)
+    #prev_sim.draw_map()
 
     new_estimated_parameters = param_estim.process_parameter_estimations(t, prev_sim, prev_position, unknown_agent.next_action)
 
-    real_sim.mcts_move(true_parameters)
-   # real_sim.draw_map()
+    real_sim.mcts_move(new_estimated_parameters)
+    real_sim.draw_map()
 
     if real_sim.items_left() == 0:
         break

@@ -78,7 +78,7 @@ class simulator:
         agents_num = len(self.agents)
         for i in range (0, agents_num):
 
-            if self.agents[i].pos == pos :
+            if self.agents[i].position == pos :
                 return i
         return -1
 
@@ -204,17 +204,14 @@ class simulator:
             self.remove_old_destination_in_map()  # Remove any destination that set by ~A_star in the previous step
 
             (xB, yB) = destination.get_position()  # Get the target position
-           # print "destination is: ", xB, yB
-
-          #
 
             # If agent is next to the target item, it should load it.
             load = unknown_agent.is_agent_near_destination(destination)
 
-            if load:  # If there is a an item nearby loading process starts
+            if load and  destination.level <= unknown_agent.level :  # If there is a an item nearby loading process starts
 
                 loaded_item_position = destination.get_position()
-               # print("Load item in position ", loaded_item_position, " with A star agent")
+                # print("Load item in position ", loaded_item_position, " with A star agent")
 
                 # load item and and update from map  and get the direction of agent when reaching the item.
                 (dx, dy) = self.load_item(unknown_agent, destination.index)
@@ -234,7 +231,7 @@ class simulator:
                 self.memory = position.position(0, 0)
 
             else:
-               # print '****** move'
+                # print '****** move'
                 self.the_map[yB][xB] = 4  # Update map with target position
                 a = a_star.a_star(self.the_map, dx, dy)  # Find the whole path  to reach the destination with A Star
 
@@ -255,13 +252,13 @@ class simulator:
 
                 self.update_map((xA, yA), new_position)
 
-           # self.draw_map()
+            # self.draw_map()
             return unknown_agent
 
 ################################################################################################################
     def mcts_move(self,parameters_estimation):
 
-       # print(" MCTS Begin")
+        # print(" MCTS Begin")
 
         next_move = MCTS.move_agent(self.agents,self.items, parameters_estimation)
 
@@ -270,19 +267,19 @@ class simulator:
         self.agents[1].next_action = next_move
         (xA, yA) = self.agents[1].change_position_direction(10, 10)
 
-        #print "agent moves from ", (xM, yM), " to ", (xA, yA), " With action ", next_move
         self.agents[1].position = (xA, yA)
         if self.the_map[yA][xA] == 1:  # load item
 
-           # print("Load item in position ", xA, yA, " with MCTS agent")
+            # print("Load item in position ", xA, yA, " with MCTS agent")
             nearby_item_index = self.get_item_by_position(xA, yA)
-            self.load_item(self.agents[1], nearby_item_index)
-            self.agents[1].reward += 1
-            (xA, yA) = self.items[nearby_item_index].get_position()
+            if self.agents[1].level >= self.items[nearby_item_index].level:
+                self.load_item(self.agents[1], nearby_item_index)
+#
+                (xA, yA) = self.items[nearby_item_index].get_position()
         # else: # Move
         self.update_map_mcts((xM, yM), (xA, yA))
 
-        #print("MCTS  End")
+        # print("MCTS  End")
         return
 
     def run(self, agent):

@@ -3,9 +3,9 @@ import agent
 from sklearn import linear_model
 
 radius_max = 1
-radius_min = -1
+radius_min = 0.1
 angle_max = 1
-angle_min = -1
+angle_min = 0.1
 level_max = 1
 level_min = 0
 
@@ -99,17 +99,20 @@ class ParameterEstimation:
        # print
         # print 'x_train:  ', x_train, '  y_train:  ', y_train
 
-        step_size = 0.5
+        step_size = 0.05
 
         reg = linear_model.LinearRegression()
 
         reg.fit(x_train, y_train)
+        print reg.coef_
 
         gradient = reg.coef_
-
+        print(old_parameter)
         new_parameters = old_parameter + gradient * step_size
-
-        return new_parameters
+        if new_parameters[0] > 1 or new_parameters[1] > 1 or new_parameters[2] > 1 or  new_parameters[0] < 0 or new_parameters[1] < 0 or new_parameters[2] < 0:
+            return old_parameter
+        else:
+            return new_parameters
 
     def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
 
@@ -131,9 +134,7 @@ class ParameterEstimation:
 
     def parameter_estimation(self,time_step, cur_agent, sim, action):
 
-        data_numbers = 100
-        #print '***********************************************************************************************'
-       # print 'Start  Updating parameter estimation'
+        data_numbers = 10
 
         D = self.generate_data_for_update_parameter(sim, cur_agent, data_numbers, action)
         #print D
@@ -144,10 +145,9 @@ class ParameterEstimation:
             return
 
         # Extract x, y train from generated data
-        for i in range(0,data_numbers):
+        for i in range(0, data_numbers):
             x_train.append(D[i][0:3])
             y_train.append(D[i][3])
-            # get the value of p in t-1
 
         last_parameters_value = 0
 
@@ -161,7 +161,8 @@ class ParameterEstimation:
             last_parameters_value = self.parameters_values_f1[time_step - 1]
 
         if cur_agent.agent_type == 'f2':
-            last_parameters_value = self.parameters_values_f2 [time_step - 1]
+            last_parameters_value = self.parameters_values_f2[time_step - 1]
+
 
         # parameters value order is : radius , angle, level
         estimated_parameters = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
@@ -188,14 +189,19 @@ class ParameterEstimation:
         t = 0
         #sim = simulator.simulator(map_history[0], initial_items, initial_agents, n, m)
 
-
-    def UCB_selection(self):
+    def UCB_selection(self, time_step):
+        # nu = 0.5
+        # n = 10
+        # parameter_diff_sum =0
+        # for i in range (3):
+        #     parameter_diff_sum += abs(self.parameters_values_l1[i] - self.parameters_values_l1 [i-1])
+        # reward = (1/nu) * parameter_diff_sum
         return ['l1']
 
-    def process_parameter_estimations(self, time_step,tmp_sim,  agent_position , action):
+    def process_parameter_estimations(self, time_step, tmp_sim,  agent_position, action):
 
         # Start parameter estimation
-        selected_types = self.UCB_selection()
+        selected_types = self.UCB_selection(time_step)
         (x, y) = agent_position
 
         for i in range(0, len(selected_types)):
