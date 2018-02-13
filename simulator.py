@@ -66,7 +66,7 @@ class simulator:
         self.the_map[y][x] = 0
 
         agent_index = self.find_agent_index(old_pos)
-        self.agents[1].pos = new_pos
+        self.agents[0].pos = new_pos
 
         (x, y) = new_pos
 
@@ -151,212 +151,29 @@ class simulator:
 
 
 ################################################################################################################
-    def run_and_update(self, agent):
-
-        # print '**** running simulator'
-        dx = [1, 0, -1, 0]  # 0:E ,  1:N , 2:w  3:S
-        dy = [0, 1, 0, -1]
-
-        unknown_agent = agent
-
-        location = unknown_agent.position  # Location of main agent
-        destination = position.position(0, 0)
-
-        # If the target is selected before we have it in memory variable and we can use it
-        if self.memory.get_position() != (0, 0) and location != self.memory:
-            #print "Get old Destination"
-            destination = self.memory
-
-        else:  # If there is no target we should choose a target based on visible items and agents.
-            #print "Find new Destination"
-            unknown_agent.visible_agents_items(self.items,self.agents)
-
-            directions = [0 * np.pi / 2,  np.pi / 2,  2 * np.pi / 2 ,  3 * np.pi / 2]
-
-            while len(directions) > 0 :
-                target = unknown_agent.choose_target(self.items,self.agents)
-                #print "Target is :", target.get_position()
-
-                if target.get_position() != (0, 0):
-                    destination = target
-                    break
-
-                else:
-
-                    unknown_agent.direction = directions.pop()
-
-            if target.get_position() == (0, 0):
-               # print("No destination is found!!!!")
-                return unknown_agent
-
-            self.memory = destination
-
-        if destination.get_position() == (0, 0):  # There is no destination
-            #print "Destination not found"
-
-            unknown_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
-            return unknown_agent
-
-        else:
-
-            (xA, yA) = unknown_agent.get_position()  # Get agent position
-
-            self.remove_old_destination_in_map()  # Remove any destination that set by ~A_star in the previous step
-
-            (xB, yB) = destination.get_position()  # Get the target position
-
-            # If agent is next to the target item, it should load it.
-            load = unknown_agent.is_agent_near_destination(destination)
-
-            if load and  destination.level <= unknown_agent.level :  # If there is a an item nearby loading process starts
-
-                loaded_item_position = destination.get_position()
-                # print("Load item in position ", loaded_item_position, " with A star agent")
-
-                # load item and and update from map  and get the direction of agent when reaching the item.
-                (dx, dy) = self.load_item(unknown_agent, destination.index)
-
-                unknown_agent.next_action = 'L'  # Current action is Load
-
-                # Set the position of agent with the position of the target item. As agent reach it and load it.
-                unknown_agent.set_position(loaded_item_position[0],loaded_item_position[1])
-
-                unknown_agent.change_direction(dx,dy)
-
-                self.agents[unknown_agent.index] = unknown_agent
-
-                new_position = loaded_item_position
-
-                # Empty the memory to choose new target
-                self.memory = position.position(0, 0)
-
-            else:
-                # print '****** move'
-                self.the_map[yB][xB] = 4  # Update map with target position
-                a = a_star.a_star(self.the_map, dx, dy)  # Find the whole path  to reach the destination with A Star
-
-                route = a.pathFind(xA, yA, xB, yB)
-
-                self.mark_route_map(route,xA, yA,dx,dy)
-
-                if len(route) == 0:
-                    return unknown_agent
-
-                action = self.get_first_action(route)  # Get first action of the path
-
-                unknown_agent.next_action = action
-                unknown_agent.set_probability_main_action()
-                new_position = unknown_agent.change_position_direction(self.n,self.m)
-                unknown_agent.set_position(new_position[0], new_position[1])
-                self.agents[unknown_agent.index] = unknown_agent
-
-                self.update_map((xA, yA), new_position)
-
-            # self.draw_map()
-            return unknown_agent
-
-################################################################################################################
-    def mcts_move(self,parameters_estimation):
+    def mcts_move(self):
 
         # print(" MCTS Begin")
 
-        next_move = MCTS.move_agent(self.agents,self.items, parameters_estimation)
+        next_move = MCTS.move_agent(self.agents,self.items)
 
-        (xM, yM) = self.agents[1].get_position()
+        (xM, yM) = self.agents[0].get_position()
 
-        self.agents[1].next_action = next_move
-        (xA, yA) = self.agents[1].change_position_direction(10, 10)
+        self.agents[0].next_action = next_move
+        (xA, yA) = self.agents[0].change_position_direction(10, 10)
 
-        self.agents[1].position = (xA, yA)
+        self.agents[0].position = (xA, yA)
         if self.the_map[yA][xA] == 1:  # load item
 
-            # print("Load item in position ", xA, yA, " with MCTS agent")
+            print("Load item in position ", xA, yA, " with MCTS agent")
             nearby_item_index = self.get_item_by_position(xA, yA)
-            if self.agents[1].level >= self.items[nearby_item_index].level:
-                self.load_item(self.agents[1], nearby_item_index)
+            if self.agents[0].level >= self.items[nearby_item_index].level:
+                self.load_item(self.agents[0], nearby_item_index)
 #
                 (xA, yA) = self.items[nearby_item_index].get_position()
         # else: # Move
         self.update_map_mcts((xM, yM), (xA, yA))
 
-        # print("MCTS  End")
+
         return
-
-    def run(self, agent):
-
-        # print '**** running simulator'
-        dx = [1, 0, -1, 0]  # 0:E ,  1:N , 2:w  3:S
-        dy = [0, 1, 0, -1]
-
-        unknown_agent = agent
-
-        location = unknown_agent.position  # Location of main agent
-        destination = position.position(0, 0)
-
-        # If the target is selected before we have it in memory variable and we can use it
-        if self.memory.get_position() != (0, 0) and location != self.memory:
-            destination = self.memory
-
-        else:  # If there is no target we should choose a target based on visible items and agents.
-            unknown_agent.visible_agents_items(self.items, self.agents)
-            directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
-
-            while len(directions) > 0:
-                target = unknown_agent.choose_target(self.items, self.agents)
-                # print "Target is :", target.get_position()
-
-                if target.get_position() != (0, 0):
-                    destination = target
-                    break
-
-                else:
-
-                    unknown_agent.direction = directions.pop()
-
-            if target.get_position() != (0, 0):
-                destination = target
-            else:
-                return unknown_agent
-
-            self.memory = destination
-
-        if destination.get_position() == (0, 0):
-
-            unknown_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
-            return unknown_agent
-
-        else:
-
-            (xA, yA) = unknown_agent.get_position()  # Get start position
-
-            self.remove_old_destination_in_map()
-
-            (xB, yB) = destination.get_position()  # Get the target position
-
-            load = unknown_agent.is_agent_near_destination(destination)
-
-            if load:  # If there is a an item nearby loading process starts
-                loaded_item_position = destination.get_position()
-                # load item and remove it from map and get the direction to reach the item.
-                (dx, dy) = self.load_item(unknown_agent, destination.index)
-                unknown_agent.next_action = 'L'
-                unknown_agent.set_probability_main_action()
-                # Empty the memory to choose new target
-                self.memory = position.position(0, 0)
-
-            else:
-                self.the_map[yB][xB] = 4
-                a = a_star.a_star(self.the_map, dx, dy)
-
-                route = a.pathFind(xA, yA, xB, yB)
-
-                if len(route) == 0:
-                    return unknown_agent
-
-                action = self.get_first_action(route)
-                #  print 'action: ' , action
-                unknown_agent.next_action = action
-                unknown_agent.set_probability_main_action()
-
-            return unknown_agent
 

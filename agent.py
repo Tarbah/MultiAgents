@@ -39,6 +39,22 @@ class Agent:
                     return i
         return -1
 
+    def find_nearest_item(self, items):
+
+        pos = self.position
+        minimum_distance = 10000
+        nearest_item_index = -1
+
+        for i in range(0, len(items)):
+            if not items[i].loaded:
+                item = items[i]
+                (xI, yI) = item.position.get_position()
+                if self.distance(item) < minimum_distance:
+                    minimum_distance = self.distance(item)
+                    nearest_item_index = i
+
+        return nearest_item_index
+
     def if_see_other_agent(self, agent):
         if self.distance(agent) < self.radius:
             print(11)

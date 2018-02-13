@@ -3,6 +3,7 @@ import random
 import simulator
 import item
 import agent
+import a_star
 
 map = []
 
@@ -14,7 +15,7 @@ class State:
         self.sim = sim
         self.items = sim.items
         self.agents = sim.agents
-        self.sim.agents[1].reward = 0
+        self.sim.agents[0].reward = 0
         self.options = ['N', 'S', 'E', 'W']
 
     def Clone(self):
@@ -23,17 +24,17 @@ class State:
 
     def DoMove(self, move):
 
-        (xM, yM) = self.sim.agents[1].get_position()
+        (xM, yM) = self.sim.agents[0].get_position()
 
-        self.sim.agents[1].next_action = move
-        (xA, yA) = self.sim.agents[1].change_position_direction(10, 10)
+        self.sim.agents[0].next_action = move
+        (xA, yA) = self.sim.agents[0].change_position_direction(10, 10)
         get_reward = False
-        self.sim.agents[1].position = (xA, yA)
+        self.sim.agents[0].position = (xA, yA)
 
         if self.sim.the_map[yA][xA] == 1:  # load item
             nearby_item_index = self.sim.get_item_by_position(xA, yA)
-            self.sim.load_item(self.sim.agents[1],nearby_item_index)
-            self.sim.agents[1].reward += 1
+            self.sim.load_item(self.sim.agents[0],nearby_item_index)
+            self.sim.agents[0].reward += 1
             get_reward = True
             (xA, yA) = self.sim.items[nearby_item_index].get_position()
         # else: # Move
@@ -44,7 +45,7 @@ class State:
         return self.options
 
     def GetResult(self):
-        return self.sim.agents[1].reward
+        return self.sim.agents[0].reward
 
 
 class Node:
@@ -94,12 +95,8 @@ def create_temp_simulator(items, agents):
 
     local_agents = list()
 
-    (a_agent_x,a_agent_y) = agents[0].get_position()
-    local_map[a_agent_y][a_agent_x] = 8
-    local_agent = agent.Agent(a_agent_x, a_agent_y, 'l1', 0)
-    local_agents.append(local_agent)
 
-    (m_agent_x, m_agent_y) = agents[1].get_position()
+    (m_agent_x, m_agent_y) = agents[0].get_position()
     local_map[m_agent_y][m_agent_x] = 9
     local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
     local_agents.append(local_agent)
@@ -108,12 +105,13 @@ def create_temp_simulator(items, agents):
     return tmp_sim
 
 
-def UCT(local_sim, itermax, parameters_estimation):
+def UCT(local_sim, itermax):
 
     rootnode = Node(level=0)
     node = rootnode
 
     for i in range(itermax):
+
         tmp_sim = create_temp_simulator(local_sim.items, local_sim.agents)
         tmp_state = State(tmp_sim)
 
@@ -125,6 +123,7 @@ def UCT(local_sim, itermax, parameters_estimation):
             # We will move till reaching a leaf which don't have any child and we don't
 
             node = node.UCTSelectChild()
+
             tmp_state.DoMove(node.move)
 
         # Expand
@@ -138,25 +137,24 @@ def UCT(local_sim, itermax, parameters_estimation):
         rollout_count = 0
         node_reward = 0
 
-        rollout_sim = create_temp_simulator(local_sim.items, local_sim.agents)
+        rollout_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents)
         rollout_state = State(rollout_sim)
 
         while rollout_count < rollout_max:  # while state is non-terminal
             move = random.choice(rollout_state.GetMoves())
             get_reward = rollout_state.DoMove(move)
             if get_reward:
-                node_reward += 1
+                node_reward += 1* (0.95 ** rollout_count)
 
             rollout_count += 1
-            rollout_state.agents[0].set_parameters(parameters_estimation[0], parameters_estimation[1], parameters_estimation[2])
-            rollout_state.sim.run_and_update(rollout_state.agents[0])
 
 
         # Backpropagate
-        # print("reward" , node_reward)
+
 
         while 1 == 1:  # backpropagate from the expanded node and work back to the root node
             node.Update(node_reward)
+    
             node = node.parentNode
             # it is root node and iteration should stop here and just update the root node
             if node.level == 0:
@@ -166,7 +164,7 @@ def UCT(local_sim, itermax, parameters_estimation):
     return sorted(rootnode.childNodes, key=lambda c: c.visits)[-1].move  # return the move that was most visited
 
 
-def move_agent(agents, items, parameters):
+def move_agent(agents, items):
 
     local_map = []
     row = [0] * 10
@@ -183,18 +181,15 @@ def move_agent(agents, items, parameters):
 
     local_agents = list()
 
-    (a_agent_x,a_agent_y) = agents[0].get_position()
-    local_map[a_agent_y][a_agent_x] = 8
-    local_agent = agent.Agent(a_agent_x, a_agent_y, 'l1', 0)
-    local_agents.append(local_agent)
-
-    (m_agent_x, m_agent_y) = agents[1].get_position()
+    (m_agent_x, m_agent_y) = agents[0].get_position()
     local_map[m_agent_y][m_agent_x] = 9
     local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
     local_agents.append(local_agent)
 
     real_sim = simulator.simulator(local_map, local_items, local_agents,10, 10 )
-    next_move = UCT(real_sim, itermax=2, parameters_estimation = parameters)
+    next_move = UCT(real_sim, itermax=10000)
+
+
 
     return next_move
 
