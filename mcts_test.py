@@ -78,7 +78,7 @@ real_sim = simulator.simulator(the_map, items, agents,n,m)
 real_sim.draw_map()
 
 t = 0
-while t < 5:
+while t < 35:
 
     print 'main run count: ', t
 

@@ -28,17 +28,19 @@ class State:
 
         self.sim.agents[0].next_action = move
         (xA, yA) = self.sim.agents[0].change_position_direction(10, 10)
-        get_reward = False
+        get_reward = 0
         self.sim.agents[0].position = (xA, yA)
 
         if self.sim.the_map[yA][xA] == 1:  # load item
             nearby_item_index = self.sim.get_item_by_position(xA, yA)
             self.sim.load_item(self.sim.agents[0],nearby_item_index)
             self.sim.agents[0].reward += 1
-            get_reward = True
+            get_reward += 1
             (xA, yA) = self.sim.items[nearby_item_index].get_position()
         # else: # Move
         self.sim.update_map_mcts((xM, yM), (xA, yA))
+
+        ## This should be the team reward, actually
         return get_reward
 
     def GetMoves(self):
@@ -50,22 +52,26 @@ class State:
 
 class Node:
 
-    def __init__(self, level, move=None, parent=None):
+    def __init__(self, level, move=None, parent=None, numItems = 0):
         self.move = move  # the move that got us to this node - "None" for the root node
         self.parentNode = parent  # "None" for the root node
         self.level = level
         self.childNodes = []
-        self.rewards = 0
+        self.cumulativeRewards = 0
+        self.immediateReward = 0
         self.visits = 0
+        self.expectedReward = 0
+        self.numItems = numItems
         self.untriedMoves = ['N', 'S', 'E', 'W']
 
     def UCTSelectChild(self):
 
-        s = sorted(self.childNodes, key=lambda c: c.rewards / c.visits + sqrt(2 * log(self.visits) / c.visits))[-1]
+        ## UCB expects mean between 0 and 1.
+        s = sorted(self.childNodes, key=lambda c: c.expectedReward/self.numItems + sqrt(2 * log(self.visits) / c.visits))[-1]
         return s
 
     def AddChild(self, m, s):
-        n = Node(move=m, parent=self, level=self.level + 1)
+        n = Node(move=m, parent=self, level=self.level + 1,numItems=self.numItems)
         self.untriedMoves.remove(m)
         self.childNodes.append(n)
 
@@ -73,7 +79,11 @@ class Node:
 
     def Update(self, result):
         self.visits += 1
-        self.rewards += 0.95 * result  # discount factor = 0.95
+        self.cumulativeRewards += result  + self.immediateReward 
+
+        self.expectedReward = self.cumulativeRewards/self.visits 
+
+        return self.expectedReward*0.95 # discount factor = 0.95
 
 
 def create_temp_simulator(items, agents):
@@ -105,11 +115,13 @@ def create_temp_simulator(items, agents):
     return tmp_sim
 
 
-def UCT(local_sim, itermax):
+def UCT(local_sim, itermax, num_items):
 
-    rootnode = Node(level=0)
+    rootnode = Node(level=0,numItems=num_items)
     node = rootnode
 
+    ##import ipdb; ipdb.set_trace()
+    
     for i in range(itermax):
 
         tmp_sim = create_temp_simulator(local_sim.items, local_sim.agents)
@@ -117,7 +129,7 @@ def UCT(local_sim, itermax):
 
         # Select
 
-        while node.untriedMoves == [] and node.childNodes != []:
+        while node.untriedMoves == [] and node.childNodes != [] and node.numItems > 0:
             # node is fully expanded and non-terminal
             # if we try all possible moves and current node has a child then select a node to expand
             # We will move till reaching a leaf which don't have any child and we don't
@@ -127,33 +139,43 @@ def UCT(local_sim, itermax):
             tmp_state.DoMove(node.move)
 
         # Expand
-        if node.untriedMoves != []:  # if we can expand (i.e. state/node is non-terminal)
+        if node.untriedMoves != [] and node.numItems > 0:  # if we can expand (i.e. state/node is non-terminal)
             m = random.choice(node.untriedMoves)
-            tmp_state.DoMove(m)
+            get_reward = tmp_state.DoMove(m)
             node = node.AddChild(m, tmp_state)  # add child and descend tree
+            node.immediateReward = get_reward
+            node.numItems -= get_reward ## I assume get_reward is the number of collected boxes, so we can use it to decrease the number of boxes available
 
-        # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
-        rollout_max = 100
-        rollout_count = 0
+            ## Nothing to do if the scenario is cleared, we created a terminal node
+            if (node.numItems == 0):
+                continue
+
         node_reward = 0
+        
+        if (node.numItems > 0): 
+            # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
+            rollout_max = 100
+            #rollout_max = 10
+            rollout_count = 0
 
-        rollout_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents)
-        rollout_state = State(rollout_sim)
+            rollout_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents)
+            rollout_state = State(rollout_sim)
 
-        while rollout_count < rollout_max:  # while state is non-terminal
-            move = random.choice(rollout_state.GetMoves())
-            get_reward = rollout_state.DoMove(move)
-            if get_reward:
-                node_reward += 1* (0.95 ** rollout_count)
+            while rollout_count < rollout_max:  # while state is non-terminal
+                move = random.choice(rollout_state.GetMoves())
+                get_reward = rollout_state.DoMove(move)
+                if get_reward:
+                    node_reward += 1* (0.95 ** rollout_count)
 
-            rollout_count += 1
+                rollout_count += 1
 
 
         # Backpropagate
-
+        ### TO CHECK: Are we handling the "no items" case correctly?
+        
 
         while 1 == 1:  # backpropagate from the expanded node and work back to the root node
-            node.Update(node_reward)
+            node_reward = node.Update(node_reward)
     
             node = node.parentNode
             # it is root node and iteration should stop here and just update the root node
@@ -161,6 +183,17 @@ def UCT(local_sim, itermax):
                 node.Update(node_reward)
                 break
 
+
+    ## N is going South, and S is going North
+    for n in rootnode.childNodes:
+        print n.move
+        print n.expectedReward/10
+        print n.cumulativeRewards
+        print n.visits
+            
+
+    ##import ipdb; ipdb.set_trace()
+        
     return sorted(rootnode.childNodes, key=lambda c: c.visits)[-1].move  # return the move that was most visited
 
 
@@ -173,11 +206,15 @@ def move_agent(agents, items):
         local_map.append(list(row))
 
     local_items = []
+    num_items = 0
     for i in range(len(items)):
         (item_x,item_y) = items[i].get_position()
         local_item = item.item(item_x, item_y, 1, i)
+        local_item.loaded = items[i].loaded
         local_items.append(local_item)
-        local_map[item_y][item_x] = 1
+        if not local_item.loaded:
+            local_map[item_y][item_x] = 1
+            num_items += 1
 
     local_agents = list()
 
@@ -187,7 +224,7 @@ def move_agent(agents, items):
     local_agents.append(local_agent)
 
     real_sim = simulator.simulator(local_map, local_items, local_agents,10, 10 )
-    next_move = UCT(real_sim, itermax=10000)
+    next_move = UCT(real_sim, itermax=10000, num_items = num_items)
 
 
 
