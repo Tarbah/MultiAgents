@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.integrate import quad
+#from scipy.integrate import quad
 import scipy.stats as st
-import parameter_estimation as est
+#import parameter_estimation as est
 
 dummy_d = [[0.0, -1.0, -1.0, 0], [0.01, -0.98, -0.98, 0], [0.02, -0.96, -0.96, 0], [0.03, -0.94, -0.94, 0],
            [0.04, -0.92, -0.92, 0], [0.05, -0.9, -0.9, 0], [0.06, -0.88, -0.88, 0], [0.07, -0.86, -0.86, 0],
@@ -58,11 +58,33 @@ class BayesianUpdate:
         self.X = X
         self.y = y
         self.degree = degree
-        self.iteration = 0
+        self.meta_values ={'parameters':['Skill', 'View Radius', 'View Angle'],
+                           'types':['Leader 1', 'Leader 2', 'Follower 1', 'Follower 2']}
+        self.initial_values = self._initialise_values()
+        self.print_values()
 
-    def initialise_values(self):
-        uniform_values = st.uniform.rvs(0, 1, size = 3)
+    def _initialise_values(self):
+        """
+        Takes three random samples from the standard uniform and sets these as the parameter's initial values.
+        :return: Array of 3 floats, corresponding to the parameters initial values.
+        """
+        print('Initialising Values...')
+        uniform_values = st.uniform.rvs(0, 1, size=3)
         return uniform_values
+
+    def print_values(self, value='parameters'):
+        """
+        Prints the values of the updating method's current parameter/type estimate
+        :param value: The specific value to be estimated. Likely to just be parameter or type
+        :return: A printed list
+        """
+        if value in list(self.meta_values.keys()):
+            print('Current {} Values (to 3.d.p):'.format(value.title()))
+            item_names = self.meta_values[value]
+            for i in range(len(item_names)):
+                print('{} : {}'.format(item_names[i], self.initial_values[i]))
+        else:
+            print('Value parameter not present.\nCorresponding values could not be found.')
 
     def fit_polynomial(self):
         """
@@ -110,7 +132,7 @@ class BayesianUpdate:
         Runs necessary in sequential order to run the ABU algorithm.
         :return: Class containing updated parameter estimates.
         """
-        if self.iteration==0:
-            weights = self.initialise_values()
         self.fit_polynomial()
         self.integrate_polynomial()
+
+b = BayesianUpdate(1,2)

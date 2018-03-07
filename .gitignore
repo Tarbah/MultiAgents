@@ -1,0 +1,4 @@
+# Ignore PyCharm generated files and folders
+*.xml
+.idea/
+__pycache__/

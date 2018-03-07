@@ -1,6 +1,7 @@
 import random
 import agent
 from sklearn import linear_model
+import numpy as np
 
 radius_max = 1
 radius_min = 0.1
@@ -114,6 +115,9 @@ class ParameterEstimation:
         else:
             return new_parameters
 
+    def bayesian_updating(self, x_train):
+        pass
+
     def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
 
         multiple_results = 1
@@ -189,38 +193,92 @@ class ParameterEstimation:
         t = 0
         #sim = simulator.simulator(map_history[0], initial_items, initial_agents, n, m)
 
-    def UCB_selection(self, time_step):
+    def nested_list_sum(self, nested_lists):
+        if type(nested_lists) == list:
+            return np.sum(self.nested_list_sum(sublist) for sublist in nested_lists)
+        else:
+            return 1
+
+    # TODO: Get UCB working, seems to error unless l1 is returned.
+    def UCB_selection(self, time_step, final = False):
+        agent_types = [self.p_type_l1,
+                       self.p_type_l2,
+                       self.p_type_f1,
+                       self.p_type_f2]
+
+        # Get the total number of probabilities
+        prob_count = self.nested_list_sum(agent_types)
+
+        # Return the mean probability for each type of bandit
+        mean_probabilities = [np.mean(i) for i in agent_types]
+
+        # Confidence intervals from standard UCB formula
+        cis = [np.sqrt((2*np.log(prob_count))/ len(agent_types[i])+0.01) for i in range(len(agent_types))]
+
+        # Sum together means and CIs
+        ucb_values = np.array(mean_probabilities) + np.array(cis)
+
+        # Get max UCB value
+        max_index = np.argmax(ucb_values)
+
+        # Determine Agent Type to return
+        try:
+            if max_index == 0:
+                return_agent = ['l1']
+            elif max_index == 1:
+                return_agent = ['l2']
+            elif max_index == 2:
+                return_agent = ['f1']
+            elif max_index == 3:
+                return_agent = ['f2']
+            else:
+                print('UCB has not worked correctly, defaulting to l1')
+                return_agent = ['l1']
+        except:
+            print('An error has occured in UCB, resorting to l1')
+            return_agent = ['l1']
+
+        print('UCB Algorithm would return {}'.format(return_agent))
+
+        if final:
+            return return_agent
+        else:
+            return ['l1']
+
         # nu = 0.5
         # n = 10
         # parameter_diff_sum =0
         # for i in range (3):
         #     parameter_diff_sum += abs(self.parameters_values_l1[i] - self.parameters_values_l1 [i-1])
         # reward = (1/nu) * parameter_diff_sum
-        return ['l1']
+        #return ['l1']
 
     def process_parameter_estimations(self, time_step, tmp_sim,  agent_position, action):
-
         # Start parameter estimation
-        selected_types = self.UCB_selection(time_step)
-        (x, y) = agent_position
+        selected_types = self.UCB_selection(time_step) #returns l1, l2, f1, f2
+        (x, y) = agent_position # Position in the world e.g. 2,3
 
-        for i in range(0, len(selected_types)):
-
-            # estimate the parameters
+        # Estimate the parameters
+        for i in range(0, len(selected_types)):  # TODO: Why is this just 1?
+            # Generates an Agent object
             tmp_agent = agent.Agent(x, y, selected_types[i], -1)
 
-            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim,   action)
+            # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
+            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
 
             # moving temp agent in previous map with new parameters
-
             tmp_agent.set_parameters(new_parameters_estimation[0], new_parameters_estimation[1], new_parameters_estimation[2])
 
+            # Runs a simulator object
             tmp_sim.run(tmp_agent)
+
+            # TODO: Always seems to return 0.01, is this right?
             action_prob = tmp_agent.get_action_probability(action)
 
-
+            # TODO: Does this do anything?
             self.update_internal_state()
 
+            # Determine which list to append new parameter estimation and action prob to
             if selected_types[i] == 'l1':
                 self.parameters_values_l1.append(new_parameters_estimation)
                 self.p_action_parameter_type_l1.append(action_prob)
