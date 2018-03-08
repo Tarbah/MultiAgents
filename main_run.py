@@ -110,7 +110,7 @@ create_empty_map(n,m)
 # initialize_items_agents(n, m)
 initialize_items_agents_notrandom(n, m)
 
-real_sim = simulator.simulator(the_map, items, agents,n,m)
+real_sim = simulator.Simulator(the_map, items, agents, n, m)
 sim_history = list()
 sim_history.append(the_map)
 
@@ -166,7 +166,7 @@ while t < 5:
     local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
     local_agents.append(local_agent)
 
-    prev_sim = simulator.simulator(local_map, local_items, local_agents, 10, 10)
+    prev_sim = simulator.Simulator(local_map, local_items, local_agents, 10, 10)
 
     prev_position = unknown_agent.get_position()
 

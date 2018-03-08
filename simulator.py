@@ -9,7 +9,7 @@ dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
 dy = [0, 1, 0, -1]
 
 
-class simulator:
+class Simulator:
     def __init__(self,the_map ,items ,agents,n,m):
         self.the_map = the_map
         self.items = items

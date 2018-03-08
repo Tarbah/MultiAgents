@@ -159,7 +159,7 @@ def generate_data_for_update_parameter(agent_type,data_numbers):
 		#tmp_angle = 0.42
 		#tmp_level = 0.76
 
-		sim = simulator.simulator.simulator(tmp_radius, tmp_angle, tmp_level)
+		sim = simulator.Simulator.simulator(tmp_radius, tmp_angle, tmp_level)
 		action_prob = sim.run() # f(p)
 		D.append([tmp_radius,tmp_angle,tmp_level,action_prob])
 		

@@ -243,7 +243,7 @@ class ParameterEstimation:
         if final:
             return return_agent
         else:
-            return ['f1']
+            return ['l2']
 
         # nu = 0.5
         # n = 10

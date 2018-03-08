@@ -104,7 +104,7 @@ def create_temp_simulator(items, agents):
     local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
     local_agents.append(local_agent)
 
-    tmp_sim = simulator.simulator(local_map, local_items, local_agents, 10, 10)
+    tmp_sim = simulator.Simulator(local_map, local_items, local_agents, 10, 10)
     return tmp_sim
 
 
@@ -193,7 +193,7 @@ def move_agent(agents, items, parameters):
     local_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
     local_agents.append(local_agent)
 
-    real_sim = simulator.simulator(local_map, local_items, local_agents,10, 10 )
+    real_sim = simulator.Simulator(local_map, local_items, local_agents, 10, 10)
     next_move = UCT(real_sim, itermax=2, parameters_estimation = parameters)
 
     return next_move
