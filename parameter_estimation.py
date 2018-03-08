@@ -238,12 +238,12 @@ class ParameterEstimation:
             print('An error has occured in UCB, resorting to l1')
             return_agent = ['l1']
 
-        print('UCB Algorithm would return {}'.format(return_agent))
+        print('UCB Algorithm returned agent of type: {}'.format(return_agent[0]))
 
         if final:
             return return_agent
         else:
-            return ['l1']
+            return ['f1']
 
         # nu = 0.5
         # n = 10
