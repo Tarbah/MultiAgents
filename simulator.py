@@ -103,7 +103,7 @@ class simulator:
 
 
     def draw_map(self):
-      #  print(self.the_map)
+      #  print(self.the_map) to console
         for y in range(self.m):
             for x in range(self.n):
                 xy = self.the_map[y][x]
@@ -154,26 +154,29 @@ class simulator:
     def mcts_move(self):
 
         # print(" MCTS Begin")
+        # Runs Monte Carlo Tree Search to detemine the next move to male
+        next_move = MCTS.move_agent(self.agents, self.items)
 
-        next_move = MCTS.move_agent(self.agents,self.items)
-
+        # Gets position of agent at present
         (xM, yM) = self.agents[0].get_position()
 
+        # Store MCTS result in the Agent's next_action method
         self.agents[0].next_action = next_move
+        # Gets angle in terms of pi for which to move
         (xA, yA) = self.agents[0].change_position_direction(10, 10)
 
+        # Store agents new position
         self.agents[0].position = (xA, yA)
-        if self.the_map[yA][xA] == 1:  # load item
-
-            print("Load item in position ", xA, yA, " with MCTS agent")
+        if self.the_map[yA][xA] == 1:  # Determines if Agent's new position coincides with an Item
+            print("Load item in position {}, {} with MCTS agent".format(xA, yA))
             nearby_item_index = self.get_item_by_position(xA, yA)
+            # Checks if the agent's level suffice to obtain the item
             if self.agents[0].level >= self.items[nearby_item_index].level:
+                # If true, loads the item and removes it from the simulation
                 self.load_item(self.agents[0], nearby_item_index)
-#
                 (xA, yA) = self.items[nearby_item_index].get_position()
         # else: # Move
         self.update_map_mcts((xM, yM), (xA, yA))
 
 
         return
-

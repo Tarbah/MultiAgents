@@ -32,7 +32,7 @@ def initialize_items_agents_notrandom(n,m):
     sf.append((5, 4))
     sf.append((9, 4))
     sf.append((2, 6))
-    sf.append((9, 9))
+    sf.append((8, 8))
 
     # creating items
     for i in range(0, 10):
@@ -43,12 +43,15 @@ def initialize_items_agents_notrandom(n,m):
 
 
     (x, y) = (1,1)
-    main_agent = agent.Agent(x, y,'l1',1)
+    main_agent = agent.Agent(x, y,'l2',1)
+    unknown_agent = agent.Agent(9,9, 'l1',1)
     agents.append(main_agent)
+    agents.append(unknown_agent)
     the_map[y][x] = 9
+    the_map[8][8] = 8
 
 
-def create_empty_map(n,m):
+def create_empty_map(n, m):
     # create the map
 
     row = [0] * n
@@ -70,20 +73,23 @@ create_empty_map(n,m)
 
 # initialize_items_agents(n, m)
 initialize_items_agents_notrandom(n, m)
-
-real_sim = simulator.simulator(the_map, items, agents,n,m)
+print('Agents: '.format(agents))
+# Creates
+real_sim = simulator.simulator(the_map, items, agents, n, m)
 
 
 # ======================================================================================================
+# Prints map to console
 real_sim.draw_map()
 
 t = 0
-while t < 35:
+while t < 5:
 
     print 'main run count: ', t
 
     t = t + 1
 
+    # Run's MCTS for the environment, moves agent forward one state and will grab an item if necessary
     real_sim.mcts_move()
     real_sim.draw_map()
 
@@ -91,4 +97,4 @@ while t < 35:
         break
     print "left items", real_sim.items_left()
 
-
+# TODO: Add new unknown agent to the map.

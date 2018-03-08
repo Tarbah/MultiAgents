@@ -6,6 +6,7 @@ from math import sqrt
 
 class Agent:
     def __init__(self, x, y, agent_type, index):
+        # TODO: what is self.index for?
         self.position = (x, y)
         self.level=1
         self.visible_agents = []
