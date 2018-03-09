@@ -7,7 +7,8 @@ from math import sqrt
 class Agent:
     def __init__(self, x, y, agent_type, index):
         self.position = (x, y)
-        self.level=1
+        self.level = 1
+        self.status = "move"
         self.visible_agents = []
         self.visible_items = []
         self.direction = np.pi / 2
@@ -39,19 +40,34 @@ class Agent:
                     return i
         return -1
 
+    def find_nearest_item(self, items):
+
+        pos = self.position
+        minimum_distance = 10000
+        nearest_item_index = -1
+
+        for i in range(0, len(items)):
+            if not items[i].loaded:
+                item = items[i]
+                (xI, yI) = item.position.get_position()
+                if self.distance(item) < minimum_distance:
+                    minimum_distance = self.distance(item)
+                    nearest_item_index = i
+
+        return nearest_item_index
+
     def if_see_other_agent(self, agent):
         if self.distance(agent) < self.radius:
-            print(11)
-            print self.direction
+
             if self.direction - self.angle / 2 <= self.angle_of_gradient(agent) <= self.direction + self.angle / 2:
               return True
         return False
 
-    def is_agent_near_destination(self, item):
+    def is_agent_near_destination(self, item_x, item_y):
 
         pos = self.position
 
-        (xI, yI) = item.position.get_position()
+        (xI, yI) = (item_x, item_y)
         if (yI == pos[1] and abs(pos[0] - xI) == 1) or (xI == pos[0] and abs(pos[1] - yI) == 1):
             return True
         else:
@@ -211,10 +227,11 @@ class Agent:
                         self.visible_items.append(items[i])
 
         for i in range(0, len(agents)):
-            if self.distance(agents[i]) < self.radius:
-                if self.direction - self.angle / 2 <= self.angle_of_gradient(
-                        agents[i]) <= self.direction + self.angle / 2:
-                    self.visible_agents.append(agents[i])
+            if self.index != i:
+                if self.distance(agents[i]) < self.radius:
+                    if self.direction - self.angle / 2 <= self.angle_of_gradient(
+                            agents[i]) <= self.direction + self.angle / 2:
+                        self.visible_agents.append(agents[i])
 
 
         return self.visible_items
@@ -252,7 +269,7 @@ class Agent:
                         max_index = i
 
             if max_index == -1:
-                return (0, 0)
+                return position.position(0, 0)
             else:
                 return self.visible_items[max_index]
 
@@ -269,7 +286,7 @@ class Agent:
 
                 return self.visible_items[max_index]
 
-            if len(self.visible_items) > 0 and len(self.visible_agents) > 0:
+            elif len(self.visible_items) > 0 and len(self.visible_agents) > 0:
 
                 for i in range(0, len(self.visible_agents)):
                     if self.distance(self.visible_agents[i]) > max_distanse:
@@ -277,19 +294,21 @@ class Agent:
                         max_index = i
 
                 furthest_agent = self.visible_agents[max_index]
-                if furthest_agent.agent_type == "l1":
+                if furthest_agent!= -1:
+                    if furthest_agent.agent_type == "l1":
 
-                    furthest_agent.visible_agents_items(items, agents)
+                        furthest_agent.visible_agents_items(items, agents)
 
-                    return furthest_agent.choose_target()
-                else:
-                    return (0, 0)
+                        return furthest_agent.choose_target()
+                    else:
+                        return position.position(0, 0)
+            else:
+                return position.position(0, 0)
 
-        # if agents visible but no items visible, return agent with highest level above own level,
-        # or furthest agent if none are above own level;
-        # if agents and items visible, select agent as  before and return item that this agent would choose if it had type L2;
+
         # else, return 0
         if self.agent_type == "f2":
+            # if agents visible but no items visible, return agent with highest level above own level,
             if len(self.visible_items) == 0 and len(self.visible_agents) > 0:
                 max_level = -1
                 for i in range(0, len(self.visible_agents)):
@@ -297,30 +316,42 @@ class Agent:
                         if self.visible_agents[i].level > self.level:
                             max_level = self.visible_agents[i].level
                             max_index = i
+                # or furthest agent if none are above own level;
                 if max_index == -1:
-                    for i in range(0, len(self.visible_items)):
-                        if self.distance(self.visible_items[i]) > max_distanse:
-                            max_distanse = self.distance(self.visible_items[i])
+                    for i in range(0, len(self.visible_agents)):
+                        if self.distance(self.visible_agents[i]) > max_distanse:
+                            max_distanse = self.distance(self.visible_agents[i])
                             max_index = i
 
                 return self.visible_items[max_index]
 
-            if len(self.visible_items) > 0 and len(self.visible_agents) > 0:
+            # if agents and items visible, select agent as before and return item that this agent would choose if it had type L2;
+
+            elif len(self.visible_items) > 0 and len(self.visible_agents) > 0:
+
+                max_level = -1
+                for i in range(0, len(self.visible_agents)):
+                    if self.visible_agents[i].level > max_level:
+                        if self.visible_agents[i].level > self.level:
+                            max_level = self.visible_agents[i].level
+                            max_index = i
+
                 max_distanse = 0
 
                 for i in range(0, len(self.visible_agents)):
                     if self.distance(self.visible_agents[i]) > max_distanse:
                         max_distanse = self.distance(self.visible_agents[i])
                         max_index = i
+                if max_index !=-1 :
+                    furthest_agent = self.visible_agents[max_index]
+                    if furthest_agent.agent_type == "l2":
 
-                furthest_agent = self.visible_agents[max_index]
-                if furthest_agent.agent_type == "l2":
+                        furthest_agent.visible_agents_items(items, agents)
 
-                    furthest_agent.visible_agents_items(items, agents)
+                        return furthest_agent.choose_target()
+                    else:
+                        return position.position(0, 0)
+            else:
+                return position.position(0, 0)
 
-                    return furthest_agent.choose_target()
-                else:
-                    return (0, 0)
-
-
-
+        return position.position(0, 0)

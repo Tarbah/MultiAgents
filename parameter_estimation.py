@@ -105,10 +105,9 @@ class ParameterEstimation:
         reg = linear_model.LinearRegression()
 
         reg.fit(x_train, y_train)
-        print reg.coef_
 
         gradient = reg.coef_
-        print(old_parameter)
+
         new_parameters = old_parameter + gradient * step_size
         if new_parameters[0] > 1 or new_parameters[1] > 1 or new_parameters[2] > 1 or  new_parameters[0] < 0 or new_parameters[1] < 0 or new_parameters[2] < 0:
             return old_parameter
@@ -132,7 +131,6 @@ class ParameterEstimation:
 
         if agent_type.agent_type == 'f2':
             self.p_action_parameter_type_f2 = []
-
 
         return
 
@@ -199,8 +197,7 @@ class ParameterEstimation:
         else:
             return 1
 
-    # TODO: Get UCB working, seems to error unless l1 is returned.
-    def UCB_selection(self, time_step, final = False):
+    def UCB_selection(self, time_step, final=False):
         agent_types = [self.p_type_l1,
                        self.p_type_l2,
                        self.p_type_f1,
@@ -213,7 +210,7 @@ class ParameterEstimation:
         mean_probabilities = [np.mean(i) for i in agent_types]
 
         # Confidence intervals from standard UCB formula
-        cis = [np.sqrt((2*np.log(prob_count))/ len(agent_types[i])+0.01) for i in range(len(agent_types))]
+        cis = [np.sqrt((2 * np.log(prob_count)) / len(agent_types[i]) + 0.01) for i in range(len(agent_types))]
 
         # Sum together means and CIs
         ucb_values = np.array(mean_probabilities) + np.array(cis)
@@ -236,14 +233,14 @@ class ParameterEstimation:
                 return_agent = ['l1']
         except:
             print('An error has occured in UCB, resorting to l1')
-            return_agent = ['l1']
+            return_agent = ['f1']
 
         print('UCB Algorithm returned agent of type: {}'.format(return_agent[0]))
 
         if final:
             return return_agent
         else:
-            return ['l2']
+            return ['f2']
 
         # nu = 0.5
         # n = 10
@@ -251,23 +248,24 @@ class ParameterEstimation:
         # for i in range (3):
         #     parameter_diff_sum += abs(self.parameters_values_l1[i] - self.parameters_values_l1 [i-1])
         # reward = (1/nu) * parameter_diff_sum
-        #return ['l1']
+        # return ['l1']
 
-    def process_parameter_estimations(self, time_step, tmp_sim,  agent_position, action):
+    def process_parameter_estimations(self, time_step, tmp_sim, agent_position, action, agent_index):
         # Start parameter estimation
-        selected_types = self.UCB_selection(time_step) #returns l1, l2, f1, f2
-        (x, y) = agent_position # Position in the world e.g. 2,3
+        selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
+        (x, y) = agent_position  # Position in the world e.g. 2,3
 
         # Estimate the parameters
         for i in range(0, len(selected_types)):  # TODO: Why is this just 1?
             # Generates an Agent object
-            tmp_agent = agent.Agent(x, y, selected_types[i], -1)
+            tmp_agent = agent.Agent(x, y, selected_types[i], agent_index)
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
             new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
 
             # moving temp agent in previous map with new parameters
-            tmp_agent.set_parameters(new_parameters_estimation[0], new_parameters_estimation[1], new_parameters_estimation[2])
+            tmp_agent.set_parameters(new_parameters_estimation[0], new_parameters_estimation[1],
+                                     new_parameters_estimation[2])
 
             # Runs a simulator object
             tmp_sim.run(tmp_agent)
@@ -295,6 +293,6 @@ class ParameterEstimation:
                 self.parameters_values_f2.append(new_parameters_estimation)
                 self.p_action_parameter_type_f2.append(action_prob)
 
-            self.update_belief(time_step ,  selected_types[i] )
+            self.update_belief(time_step, selected_types[i])
 
         return new_parameters_estimation
