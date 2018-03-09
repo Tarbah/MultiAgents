@@ -49,8 +49,8 @@ def initialize_items_agents_notrandom(n, m):
         (x, y) = sf[i]
 
         # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
-        tmp_item = item.item(x, y, ( i) / 10.0, i)
-        #tmp_item = item.item(x, y, 1, i)
+        #tmp_item = item.item(x, y, ( i) / 10.0, i)
+        tmp_item = item.item(x, y, 1, i)
         items.append(tmp_item)
         the_map[y][x] = 1
 
@@ -62,7 +62,7 @@ def initialize_items_agents_notrandom(n, m):
 
     (x, y) = (1, 1)
     main_agent = agent.Agent(x, y,'l1', 1)
-    main_agent.level =1
+    main_agent.level = 0.5
     #agents.append(main_agent)
     the_map[y][x] = 9
 
@@ -184,7 +184,7 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 #real_sim.draw_map_with_level()
 
 time_step = 0
-while time_step < 1:
+while time_step < 100:
 
     print 'main run count: ', time_step
 
@@ -203,14 +203,14 @@ while time_step < 1:
     # estimate the parameters based on agent's latest move
     unknown_action_prob = unknown_agent.get_action_probability(unknown_agent.next_action)
 
-    new_estimated_parameters = param_estim.process_parameter_estimations(time_step, prev_sim, prev_position, unknown_agent.next_action , unknown_agent.index)
+    #new_estimated_parameters = param_estim.process_parameter_estimations(time_step, prev_sim, prev_position, unknown_agent.next_action , unknown_agent.index)
 
     # Move main agent based on latest estimated parameters and with Monte Carlo Tree Search Algorithm.
     # real_sim.mcts_move(new_estimated_parameters,unknown_agent.status)
     real_sim.mcts_move(true_parameters)
 
     # real_sim.draw_map()
-    # real_sim.draw_map_with_level()
+    real_sim.draw_map_with_level()
 
     if real_sim.items_left() == 0:
         break

@@ -449,7 +449,6 @@ class simulator:
     ################################################################################################################
     def mcts_move(self, parameters_estimation):
 
-        # other_agent_status
 
         # print(" MCTS Begin")
         m_agent = self.main_agent

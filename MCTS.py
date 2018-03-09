@@ -9,7 +9,7 @@ import a_star
 class State:
 
     def __init__(self, sim):
-        self.the_map = sim.the_map  # At the root pretend the player just moved is p2 - p1 has the first move
+         # At the root pretend the player just moved is p2 - p1 has the first move
         self.sim = sim
         self.move_options = ['N', 'S', 'E', 'W']
 
@@ -37,7 +37,7 @@ class State:
         tmp_m_agent.position = (xA, yA)
 
         # If the new position of the main agent is the position of an item then do loading item.
-        if self.sim.the_map[yA][xA] == 1 or self.the_map[yA][xA] == 4:
+        if self.sim.the_map[yA][xA] == 1 or self.sim.the_map[yA][xA] == 4:
 
             # Find the index and position of item that should be loaded.
             loaded_item_index = self.sim.get_item_by_position(xA, yA)
@@ -49,19 +49,17 @@ class State:
             a_destinantion_item_index = self.sim.get_item_by_position(x, y)
             destination_agent_level = self.sim.items[a_destinantion_item_index].level
             agent_need_help = tmp_a_agent.is_agent_near_destination(x,y) and tmp_a_agent.level < destination_agent_level
-            if agent_need_help:
-                print("need heeeeeeeelp")
 
             if tmp_m_agent.level >= self.sim.items[loaded_item_index].level:
 
                 # Update the simulator and load the item.
-                self.sim.load_item(tmp_m_agent,loaded_item_index)
+                self.sim.load_item(tmp_m_agent, loaded_item_index)
 
-                if agent_need_help and a_destinantion_item_index == loaded_item_index:
-                    print "need help 1"
-                    get_reward += 100
-                else:
-                    get_reward += 1
+                # if agent_need_help and a_destinantion_item_index == loaded_item_index:
+                #
+                #     get_reward += 100
+                # else:
+                get_reward += 1
             else:
 
                 # If unknown agent is in the loading position of the same item that main agent wants to collect.
@@ -71,11 +69,11 @@ class State:
                 if a_load and tmp_m_agent.level + tmp_a_agent.level >= self.sim.items[loaded_item_index].level:
                     self.sim.load_item(tmp_m_agent, loaded_item_index)
 
-                    if agent_need_help and a_destinantion_item_index == loaded_item_index:
-                        print "need help 2"
-                        get_reward += 100
-                    else:
-                        get_reward += 1
+                    # if agent_need_help and a_destinantion_item_index == loaded_item_index:
+                    #
+                    #     get_reward += 100
+                    # else:
+                    get_reward += 1
 
                     # a_agent movement
                     new_position = (xI, yI)
@@ -86,7 +84,7 @@ class State:
 
         # Update the map
         self.sim.update_map_mcts((xM, yM), (xA, yA))
-        print get_reward
+       # print get_reward
         return get_reward
 
     def get_moves(self):
@@ -136,7 +134,7 @@ class Node:
         if y == 0:
             untriedMoves.remove('S')
 
-        if  x == m-1:
+        if x == m-1:
             untriedMoves.remove('W')
 
         if y == m-1:
@@ -179,7 +177,6 @@ def create_temp_simulator(items, agents, main_agent):
     (m_agent_x, m_agent_y) = main_agent.get_position()
     local_map[m_agent_y][m_agent_x] = 9
     local_main_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
-   # local_agents.append(local_agent)
 
     tmp_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
     return tmp_sim
@@ -187,7 +184,7 @@ def create_temp_simulator(items, agents, main_agent):
 
 def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
     print("***************monte_carlo_tree_search***************")
-    print parameters_estimation
+    #print parameters_estimation
     num_items = local_sim.items_left()
 
     node_position = local_sim.main_agent.get_position()
@@ -232,7 +229,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
         # Roll out - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
         if node.numItems > 0:
 
-            roll_out_max = 350
+            roll_out_max = 100
             roll_out_count = 0
 
             roll_out_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents,tmp_state.sim.main_agent )
@@ -240,14 +237,14 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
 
             # while state is non-terminal
             while roll_out_count < roll_out_max:
-                roll_out_state.sim.draw_map_with_level()
+               # roll_out_state.sim.draw_map_with_level()
                 move = random.choice(roll_out_state.get_moves())
                 get_reward = roll_out_state.do_move(move)
                 if get_reward == -1:
                     continue
 
                 if get_reward:
-                    node_reward += 1 * (0.95 ** roll_out_count)
+                    node_reward += get_reward * (0.95 ** roll_out_count)
 
                 roll_out_state.sim.agents[0].set_parameters(parameters_estimation[0], parameters_estimation[1], parameters_estimation[2])
                 unknown_agent = roll_out_state.sim.run_and_update(roll_out_state.sim.agents[0])
@@ -256,7 +253,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
                     node_reward += 1 * (0.95 ** roll_out_count)
 
 
-                print "reward:" , node_reward
+                #print "reward:" , node_reward
                 roll_out_count += 1
 
         # TO CHECK: Are we handling the "no items" case correctly?
@@ -287,7 +284,7 @@ def move_agent(agents, items, main_agent, parameters):
 
     real_sim = create_temp_simulator(items, agents, main_agent)
     
-    next_move = monte_carlo_tree_search(real_sim, iteration_max=1, parameters_estimation=parameters)
+    next_move = monte_carlo_tree_search(real_sim, iteration_max=100, parameters_estimation=parameters)
 
     return next_move
 
