@@ -64,7 +64,11 @@ class Node:
         self.untriedMoves = ['N', 'S', 'E', 'W']
 
     def UCTSelectChild(self):
-        ## UCB expects mean between 0 and 1.
+        """
+        Runs UCB for all child nodes.
+        UCB expects mean between 0 and 1.
+        :return: Maximumum UCB Value
+        """
         s = \
         sorted(self.childNodes, key=lambda c: c.expectedReward / self.numItems + sqrt(2 * log(self.visits) / c.visits))[
             -1]
@@ -149,9 +153,9 @@ def UCT(local_sim, itermax, num_items):
             # node is fully expanded and non-terminal
             # if we try all possible moves and current node has a child then select a node to expand
             # We will move till reaching a leaf which don't have any child and we don't
-
             node = node.UCTSelectChild()
 
+            # Moves down the tree to the node of highest UCB Value
             tmp_state.DoMove(node.move)
 
         # Expand
