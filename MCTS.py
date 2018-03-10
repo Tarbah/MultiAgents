@@ -188,7 +188,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
     num_items = local_sim.items_left()
 
     node_position = local_sim.main_agent.get_position()
-    root_node = Node(tree_level=0,position=node_position, numItems=num_items )
+    root_node = Node(tree_level=0,position=node_position, numItems=num_items)
     node = root_node
     
     for i in range(iteration_max):
@@ -202,6 +202,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
         # if we try all possible moves and current node has a child then select a node to expand
         # We will move till reaching a leaf which don't have any child and we don't
         while node.untriedMoves == [] and node.childNodes != [] and node.numItems > 0:
+            # Use UCB to determine the best action, then move the simulation into that state
             node = node.uct_select_child()
             tmp_state.do_move(node.move)
 

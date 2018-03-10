@@ -186,11 +186,11 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 time_step = 0
 while time_step < 100:
 
-    print 'main run count: ', time_step
+    print('main run count: {}'.format(time_step))
 
     # Initializing the simulator
     local_agents, local_items, local_map, local_main_agent = create_tmp_map(items, agents, main_agent)
-    prev_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
+    prev_sim = simulator.simulator(loc  al_map, local_items, local_agents, local_main_agent, 10, 10)
 
     prev_position = unknown_agent.get_position()
 
@@ -214,15 +214,15 @@ while time_step < 100:
 
     if real_sim.items_left() == 0:
         break
-    print "left items", real_sim.items_left()
+    print("left items: {}".format(real_sim.items_left()))
 
 # import_result_tofile (param_estim.parameters_values_l1)
 #real_sim.draw_map()
 
 
 
-print  time_step
-print "True parameters: ",true_level,true_radius,true_angle
+print(time_step)
+print("True parameters: {}, {}, {}".format(true_level,true_radius,true_angle))
 #print "last new_estimated_parameters", new_estimated_parameters
 
 

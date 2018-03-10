@@ -46,7 +46,7 @@ class a_star:
         # print
 
         self.n = 10 #len (the_map[0])
-        self.m = len (the_map)
+        self.m = len(the_map)
         self.the_map = the_map
         self.directions = 4
         self.dx = dx
@@ -102,8 +102,8 @@ class a_star:
 
 
             for i in range(self.directions):
-                xdx = x + self.dx[i]
-                ydy = y + self.dy[i]
+                xdx = x + self.dx
+                ydy = y + self.dy
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
                         or self.the_map[ydy][xdx] == 1 or closed_nodes_map[ydy][xdx] == 1):
 

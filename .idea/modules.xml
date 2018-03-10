@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/multiAgentsMain.iml" filepath="$PROJECT_DIR$/.idea/multiAgentsMain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/MultiAgents.iml" filepath="$PROJECT_DIR$/.idea/MultiAgents.iml" />
     </modules>
   </component>
 </project>

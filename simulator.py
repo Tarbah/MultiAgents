@@ -305,7 +305,7 @@ class simulator:
                         # self.memory = position.position(0, 0)
 
                 self.the_map[yB][xB] = 4  # Update map with target position
-                a = a_star.a_star(self.the_map)  # Find the whole path  to reach the destination with A Star
+                a = a_star.a_star(self.the_map, xB, yB)  # Find the whole path  to reach the destination with A Star
 
                 route = a.pathFind(xA, yA, xB, yB)
 

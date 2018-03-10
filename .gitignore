@@ -1,3 +1,4 @@
+# Add any file extensions or directories not relevant to GitHub here.
 # Ignore PyCharm generated files and folders
 *.xml
 .idea/
