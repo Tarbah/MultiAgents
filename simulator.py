@@ -67,16 +67,14 @@ class simulator:
     ###############################################################################################################
     def update_map_mcts(self, old_pos, new_pos):
 
-        (x, y) = old_pos
-
-        self.the_map[y][x] = 0
-
-        agent_index = self.find_agent_index(old_pos)
-
-        self.main_agent.pos = new_pos
-
         (x, y) = new_pos
 
+
+        (x, y) = old_pos
+        self.the_map[y][x] = 0
+        agent_index = self.find_agent_index(old_pos)
+        self.main_agent.pos = new_pos
+        (x, y) = new_pos
         self.the_map[y][x] = 9  # 9 demonstrate the main agent on the map
 
         return
@@ -267,6 +265,7 @@ class simulator:
 
             # If agent is next to the target item, it should load it.
             load = unknown_agent.is_agent_near_destination(xB, yB)
+            unknown_agent.next_action = 'L'
 
             if load:
 
@@ -278,7 +277,7 @@ class simulator:
                     # load item and and update from map  and get the direction of agent when reaching the item.
                     (distance_x, distance_y) = self.load_item(unknown_agent, destination.index)
 
-                    unknown_agent.next_action = 'L'  # Current action is Load
+                    # unknown_agent.next_action = 'L'  # Current action is Load
 
                     # Set the position of agent with the position of the target item. As agent reach it and load it.
                     unknown_agent.set_position(loaded_item_position[0],loaded_item_position[1])
@@ -305,7 +304,7 @@ class simulator:
                         # self.memory = position.position(0, 0)
 
                 self.the_map[yB][xB] = 4  # Update map with target position
-                a = a_star.a_star(self.the_map, xB, yB)  # Find the whole path  to reach the destination with A Star
+                a = a_star.a_star(self.the_map)  # Find the whole path  to reach the destination with A Star
 
                 route = a.pathFind(xA, yA, xB, yB)
 

@@ -4,7 +4,15 @@ import simulator
 import item
 import agent
 import a_star
+import position
 
+
+# Check if the other agent is need help
+            # (x_a_agent, y_a_agent) = self.sim.memory.get_position()
+            # a_destinantion_item_index = self.sim.get_item_by_position(x_a_agent, y_a_agent)
+            # destination_agent_level = self.sim.items[a_destinantion_item_index].level
+            # agent_need_help = tmp_a_agent.is_agent_near_destination(x_a_agent,y_a_agent) \
+            #                   and tmp_a_agent.level < destination_agent_level
 
 class State:
 
@@ -20,71 +28,72 @@ class State:
 
         # get the position of main agent
         tmp_m_agent = self.sim.main_agent
-        (xM, yM) = tmp_m_agent.get_position()
+        (x_m_agent, y_m_agent) = tmp_m_agent.get_position()
 
         # assign unknown agent
         tmp_a_agent = self.sim.agents[0]
 
-        # Set the new action to the main agent.
-        tmp_m_agent.next_action = move
+        (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
 
-        # Get new action of main agent and set it to the main agent.
-        (xA, yA) = tmp_m_agent.change_position_direction(10, 10)
+        # If there is any item near main agent.
+        if self.sim.the_map[y_new][x_new] == 1 or self.sim.the_map[y_new][x_new] == 4:
 
-        if tmp_a_agent.get_position() == (xA, yA):
-            return -1
-
-        tmp_m_agent.position = (xA, yA)
-
-        # If the new position of the main agent is the position of an item then do loading item.
-        if self.sim.the_map[yA][xA] == 1 or self.sim.the_map[yA][xA] == 4:
+            item_loaded = False
 
             # Find the index and position of item that should be loaded.
-            loaded_item_index = self.sim.get_item_by_position(xA, yA)
-            (xI, yI) = self.sim.items[loaded_item_index].get_position()
+            loaded_item_index = self.sim.get_item_by_position(x_new , y_new)
 
-            # Check if the other agent is need help
-
-            (x, y) = self.sim.memory.get_position()
-            a_destinantion_item_index = self.sim.get_item_by_position(x, y)
-            destination_agent_level = self.sim.items[a_destinantion_item_index].level
-            agent_need_help = tmp_a_agent.is_agent_near_destination(x,y) and tmp_a_agent.level < destination_agent_level
+            (x_item, y_item) = (x_new , y_new)
 
             if tmp_m_agent.level >= self.sim.items[loaded_item_index].level:
 
-                # Update the simulator and load the item.
+                # load the item.
+                tmp_m_agent.position = (x_item, y_item)
                 self.sim.load_item(tmp_m_agent, loaded_item_index)
 
-                # if agent_need_help and a_destinantion_item_index == loaded_item_index:
-                #
-                #     get_reward += 100
-                # else:
                 get_reward += 1
+                item_loaded = True
             else:
 
+                (x_a_agent, y_a_agent) = tmp_a_agent.get_position()
+
                 # If unknown agent is in the loading position of the same item that main agent wants to collect.
-                a_load = tmp_a_agent.is_agent_near_destination(xI, yI) and tmp_a_agent.next_action == 'L'
+                a_load = tmp_a_agent.is_agent_near_destination(x_item, y_item) and tmp_a_agent.next_action == 'L'
 
                 # Check if two agents can load the item together
                 if a_load and tmp_m_agent.level + tmp_a_agent.level >= self.sim.items[loaded_item_index].level:
-                    self.sim.load_item(tmp_m_agent, loaded_item_index)
 
-                    # if agent_need_help and a_destinantion_item_index == loaded_item_index:
-                    #
-                    #     get_reward += 100
-                    # else:
+                    tmp_m_agent.position = (x_item, y_item)
+                    self.sim.load_item(tmp_m_agent, loaded_item_index)
+                    test = tmp_a_agent.is_agent_near_destination(x_item, y_item)
                     get_reward += 1
 
-                    # a_agent movement
-                    new_position = (xI, yI)
-                    self.sim.memory = (0, 0)
+                    # move a agent
+                    new_position = (x_item, y_item)
+                    self.sim.memory = position.position(0, 0)
                     self.sim.update_map(tmp_a_agent.position, new_position)
 
-        self.sim.main_agent = tmp_m_agent
+                    item_loaded = True
 
-        # Update the map
-        self.sim.update_map_mcts((xM, yM), (xA, yA))
-       # print get_reward
+                    # Update the map
+
+            if item_loaded:
+                tmp_m_agent.next_action = 'L'
+                self.sim.main_agent = tmp_m_agent
+                self.sim.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
+
+        else:
+             if tmp_m_agent.get_position() != tmp_a_agent.get_position():
+
+                # Set the new action to the main agent.
+                tmp_m_agent.next_action = move
+
+                # Get new action of main agent and set it to the main agent.
+                (x_new, y_new) = tmp_m_agent.change_position_direction(10, 10)
+                self.sim.main_agent = tmp_m_agent
+                self.sim.update_map_mcts((x_m_agent, y_m_agent), (x_new, y_new))
+
+
         return get_reward
 
     def get_moves(self):
@@ -188,7 +197,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
     num_items = local_sim.items_left()
 
     node_position = local_sim.main_agent.get_position()
-    root_node = Node(tree_level=0,position=node_position, numItems=num_items)
+    root_node = Node(tree_level=0,position=node_position, numItems=num_items )
     node = root_node
     
     for i in range(iteration_max):
@@ -202,7 +211,6 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
         # if we try all possible moves and current node has a child then select a node to expand
         # We will move till reaching a leaf which don't have any child and we don't
         while node.untriedMoves == [] and node.childNodes != [] and node.numItems > 0:
-            # Use UCB to determine the best action, then move the simulation into that state
             node = node.uct_select_child()
             tmp_state.do_move(node.move)
 
@@ -212,6 +220,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
 
             # Move the agent with the selected random move and update the rewards.
             get_reward = tmp_state.do_move(m)
+            # tmp_state.sim.draw_map_with_level()
             new_position = tmp_state.sim.main_agent.get_position()
 
             # Add child with selected random move and descend tree
@@ -230,15 +239,19 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
         # Roll out - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
         if node.numItems > 0:
 
-            roll_out_max = 100
+            roll_out_max = 1000
             roll_out_count = 0
 
             roll_out_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents,tmp_state.sim.main_agent )
             roll_out_state = State(roll_out_sim)
+            # roll_out_state.sim.draw_map_with_level()
 
             # while state is non-terminal
             while roll_out_count < roll_out_max:
-               # roll_out_state.sim.draw_map_with_level()
+
+                # print "--------------------------------------"
+
+                # roll_out_state.sim.draw_map_with_level()
                 move = random.choice(roll_out_state.get_moves())
                 get_reward = roll_out_state.do_move(move)
                 if get_reward == -1:
@@ -249,12 +262,12 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
 
                 roll_out_state.sim.agents[0].set_parameters(parameters_estimation[0], parameters_estimation[1], parameters_estimation[2])
                 unknown_agent = roll_out_state.sim.run_and_update(roll_out_state.sim.agents[0])
+
                 # If next action is load and the item is loaded as well.
                 if unknown_agent.next_action == 'L' and roll_out_state.sim.memory.get_position() == (0, 0):
                     node_reward += 1 * (0.95 ** roll_out_count)
 
 
-                #print "reward:" , node_reward
                 roll_out_count += 1
 
         # TO CHECK: Are we handling the "no items" case correctly?
@@ -285,7 +298,7 @@ def move_agent(agents, items, main_agent, parameters):
 
     real_sim = create_temp_simulator(items, agents, main_agent)
     
-    next_move = monte_carlo_tree_search(real_sim, iteration_max=100, parameters_estimation=parameters)
+    next_move = monte_carlo_tree_search(real_sim, iteration_max=10000, parameters_estimation=parameters)
 
     return next_move
 

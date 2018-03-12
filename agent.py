@@ -7,7 +7,7 @@ from math import sqrt
 class Agent:
     def __init__(self, x, y, agent_type, index):
         self.position = (x, y)
-        self.level = 1
+        self.level = 0.5
         self.status = "move"
         self.visible_agents = []
         self.visible_items = []
@@ -187,6 +187,42 @@ class Agent:
             self.position = (x + x_diff, y + y_diff)
 
         return self.position
+
+    def new_position_with_given_action(self, n, m, action):
+
+        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [0, 1, 0, -1]
+
+        x_diff = 0
+        y_diff = 0
+
+        new_position = self.position
+        if action == 'W':
+            x_diff = dx[0]
+            y_diff = dy[0]
+            self.direction = 0 * np.pi / 2
+
+        if action == 'N':
+            x_diff = dx[1]
+            y_diff = dy[1]
+            self.direction = np.pi / 2
+
+        if action == 'E':
+            x_diff = dx[2]
+            y_diff = dy[2]
+            self.direction = 2 * np.pi / 2
+
+        if action == 'S':
+            x_diff = dx[3]
+            y_diff = dy[3]
+            self.direction = 3 * np.pi / 2
+
+        x, y = self.get_position()
+
+        if x + x_diff < n and x + x_diff >= 0 and y + y_diff < m and y + y_diff >= 0:
+            new_position = (x + x_diff, y + y_diff)
+
+        return new_position
 
     def set_actions_probability(self, l, n, e, s, w):
         self.actions_probability['L'] = l
