@@ -453,34 +453,65 @@ class simulator:
         m_agent = self.main_agent
         next_move = MCTS.move_agent(self.agents, self.items,  self.main_agent,parameters_estimation )
 
-        (xM, yM) = m_agent.get_position()
+        (x_m_agent, y_m_agent) = m_agent.get_position()
 
-        m_agent.next_action = next_move
-        (xA, yA) = m_agent.change_position_direction(10, 10)
+        # assign unknown agent
+        a_agent = self.agents[0]
 
-        m_agent.position = (xA, yA)
-        # If the other agent is nearby to help
+        (x_new, y_new) = m_agent.new_position_with_given_action(10, 10, next_move)
 
-        if self.the_map[yA][xA] == 1 or self.the_map[yA][xA] == 4:  # load item
+        # If there is any item near main agent.
+        if self.the_map[y_new][x_new] == 1 or self.the_map[y_new][x_new] == 4:
 
-            nearby_item_index = self.get_item_by_position(xA, yA)
-            if m_agent.level >= self.items[nearby_item_index].level:
-                self.load_item(m_agent, nearby_item_index)
-                (xA, yA) = self.items[nearby_item_index].get_position()
+            item_loaded = False
 
-            a_agent = self.agents[0]
-            a_load = a_agent.is_agent_near_destination(xA, yA)and a_agent.next_action == 'L'
+            # Find the index and position of item that should be loaded.
+            loaded_item_index = self.get_item_by_position(x_new, y_new)
 
-            if a_load and m_agent.level + a_agent.level >= self.items[nearby_item_index].level:
-                self.load_item(m_agent, nearby_item_index)
-                (xA, yA) = self.items[nearby_item_index].get_position()
+            (x_item, y_item) = (x_new, y_new)
 
-                # a_agent movement
-                new_position = (xA, yA)
-                self.memory = position.position(0, 0)
-                self.update_map(a_agent.position, new_position)
+            if m_agent.level >= self.items[loaded_item_index].level:
 
-        # else: # Move
-        self.update_map_mcts((xM, yM), (xA, yA))
+                # load the item.
+                m_agent.position = (x_item, y_item)
+                self.load_item(m_agent, loaded_item_index)
+
+                item_loaded = True
+            else:
+
+                # (x_a_agent, y_a_agent) = tmp_a_agent.get_position()
+
+                # If unknown agent is in the loading position of the same item that main agent wants to collect.
+                a_load = a_agent.is_agent_near_destination(x_new, y_new) and a_agent.next_action == 'L'
+
+                # Check if two agents can load the item together
+                if a_load and m_agent.level + a_agent.level >= self.items[loaded_item_index].level:
+                    m_agent.position = (x_item, y_item)
+                    self.load_item(m_agent, loaded_item_index)
+
+
+                    # move a agent
+                    new_position = (x_item, y_item)
+                    self.memory = position.position(0, 0)
+                    self.update_map(a_agent.position, new_position)
+
+                    item_loaded = True
+
+                    # Update the map
+
+            if item_loaded:
+                m_agent.next_action = 'L'
+                self.main_agent = m_agent
+                self.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
+
+        else:
+            if (x_new, y_new) != a_agent.get_position():
+                # Set the new action to the main agent.
+                m_agent.next_action = next_move
+
+                # Get new action of main agent and set it to the main agent.
+                (x_new, y_new) = m_agent.change_position_direction(10, 10)
+                self.main_agent = m_agent
+                self.update_map_mcts((x_m_agent, y_m_agent), (x_new, y_new))
 
         return

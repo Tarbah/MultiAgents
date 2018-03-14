@@ -63,6 +63,7 @@ def initialize_items_agents_notrandom(n, m):
     (x, y) = (1, 1)
     main_agent = agent.Agent(x, y,'l1', 1)
     main_agent.level = 0.5
+    main_agent.set_level(0.5)
     #agents.append(main_agent)
     the_map[y][x] = 9
 
@@ -96,7 +97,8 @@ def initialize_items_agents(n, m):
     the_map[x][y] = 9
 
     (x, y) = random.choice(sf)
-    main_agent = agent.Agent(x, y, 'l1', 1)
+    main_agent = agent.Agent(x, y, 'l1', -1)
+    main_agent.set_level(0.5)
     #agents.append(main_agent)
     sf.remove((x, y))
 
@@ -137,7 +139,8 @@ def create_tmp_map(items, agents, main_agent):
 
     (m_agent_x, m_agent_y) = main_agent.get_position()
     local_map[m_agent_y][m_agent_x] = 9
-    local_main_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
+    local_main_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', -1)
+    local_main_agent.set_level(main_agent.level)
     #local_agents.append(local_agent)
 
     return local_agents,local_items,local_map,local_main_agent
@@ -154,7 +157,7 @@ m = 10  # vertical size ,row
 create_empty_map(n,m)
 
 # initialize_items_agents(n, m)
-main_agent =initialize_items_agents_notrandom(n, m)
+main_agent = initialize_items_agents_notrandom(n, m)
 
 real_sim = simulator.simulator(the_map, items, agents, main_agent,n,m)
 
@@ -167,8 +170,8 @@ param_estim.estimation_initialisation()
 # ================create unknown agent  ================================================================
 
 # true parameters
-true_radius = 0.48
-true_angle = 0.42
+true_radius = 0.78
+true_angle = 0.12
 true_level = 0.5
 
 true_parameters = [true_level, true_radius, true_angle]
@@ -181,16 +184,16 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 
 
 #real_sim.draw_map()
-#real_sim.draw_map_with_level()
+real_sim.draw_map_with_level()
 
 time_step = 0
 while time_step < 100:
 
-    print('main run count: {}'.format(time_step))
+    print 'main run count: ', time_step
 
     # Initializing the simulator
     local_agents, local_items, local_map, local_main_agent = create_tmp_map(items, agents, main_agent)
-    prev_sim = simulator.simulator(loc  al_map, local_items, local_agents, local_main_agent, 10, 10)
+    prev_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
 
     prev_position = unknown_agent.get_position()
 
@@ -209,20 +212,20 @@ while time_step < 100:
     # real_sim.mcts_move(new_estimated_parameters,unknown_agent.status)
     real_sim.mcts_move(true_parameters)
 
-    # real_sim.draw_map()
-    real_sim.draw_map_with_level()
+    real_sim.draw_map()
+    # real_sim.draw_map_with_level()
 
     if real_sim.items_left() == 0:
         break
-    print("left items: {}".format(real_sim.items_left()))
+    print "left items", real_sim.items_left()
 
 # import_result_tofile (param_estim.parameters_values_l1)
 #real_sim.draw_map()
 
 
 
-print(time_step)
-print("True parameters: {}, {}, {}".format(true_level,true_radius,true_angle))
+print  time_step
+print "True parameters: ",true_level,true_radius,true_angle
 #print "last new_estimated_parameters", new_estimated_parameters
 
 

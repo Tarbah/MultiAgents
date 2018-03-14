@@ -7,15 +7,18 @@ from math import sqrt
 class Agent:
     def __init__(self, x, y, agent_type, index):
         self.position = (x, y)
-        self.level = 0.5
         self.status = "move"
         self.visible_agents = []
         self.visible_items = []
         self.direction = np.pi / 2
+        self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
+
+    def set_level(self,level):
+        self.level = level
 
     def get_position(self):
         return self.position[0], self.position[1]

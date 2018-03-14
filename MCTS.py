@@ -3,7 +3,6 @@ import random
 import simulator
 import item
 import agent
-import a_star
 import position
 
 
@@ -41,9 +40,9 @@ class State:
             item_loaded = False
 
             # Find the index and position of item that should be loaded.
-            loaded_item_index = self.sim.get_item_by_position(x_new , y_new)
+            loaded_item_index = self.sim.get_item_by_position(x_new, y_new)
 
-            (x_item, y_item) = (x_new , y_new)
+            (x_item, y_item) = (x_new, y_new)
 
             if tmp_m_agent.level >= self.sim.items[loaded_item_index].level:
 
@@ -55,17 +54,17 @@ class State:
                 item_loaded = True
             else:
 
-                (x_a_agent, y_a_agent) = tmp_a_agent.get_position()
+                # (x_a_agent, y_a_agent) = tmp_a_agent.get_position()
 
                 # If unknown agent is in the loading position of the same item that main agent wants to collect.
-                a_load = tmp_a_agent.is_agent_near_destination(x_item, y_item) and tmp_a_agent.next_action == 'L'
+                a_load = tmp_a_agent.is_agent_near_destination(x_new, y_new) and tmp_a_agent.next_action == 'L'
 
                 # Check if two agents can load the item together
                 if a_load and tmp_m_agent.level + tmp_a_agent.level >= self.sim.items[loaded_item_index].level:
 
                     tmp_m_agent.position = (x_item, y_item)
                     self.sim.load_item(tmp_m_agent, loaded_item_index)
-                    test = tmp_a_agent.is_agent_near_destination(x_item, y_item)
+
                     get_reward += 1
 
                     # move a agent
@@ -83,7 +82,7 @@ class State:
                 self.sim.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
 
         else:
-             if tmp_m_agent.get_position() != tmp_a_agent.get_position():
+             if (x_new, y_new) != tmp_a_agent.get_position():
 
                 # Set the new action to the main agent.
                 tmp_m_agent.next_action = move
@@ -186,6 +185,7 @@ def create_temp_simulator(items, agents, main_agent):
     (m_agent_x, m_agent_y) = main_agent.get_position()
     local_map[m_agent_y][m_agent_x] = 9
     local_main_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', 1)
+    local_main_agent.set_level(main_agent.level)
 
     tmp_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
     return tmp_sim
@@ -239,19 +239,18 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
         # Roll out - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
         if node.numItems > 0:
 
-            roll_out_max = 1000
+            roll_out_max = 2000
             roll_out_count = 0
 
             roll_out_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents,tmp_state.sim.main_agent )
             roll_out_state = State(roll_out_sim)
-            # roll_out_state.sim.draw_map_with_level()
+            # roll_out_state.sim.draw_map()
 
             # while state is non-terminal
             while roll_out_count < roll_out_max:
 
                 # print "--------------------------------------"
-
-                # roll_out_state.sim.draw_map_with_level()
+                # roll_out_state.sim.draw_map()
                 move = random.choice(roll_out_state.get_moves())
                 get_reward = roll_out_state.do_move(move)
                 if get_reward == -1:
@@ -298,7 +297,7 @@ def move_agent(agents, items, main_agent, parameters):
 
     real_sim = create_temp_simulator(items, agents, main_agent)
     
-    next_move = monte_carlo_tree_search(real_sim, iteration_max=10000, parameters_estimation=parameters)
+    next_move = monte_carlo_tree_search(real_sim, iteration_max=100, parameters_estimation=parameters)
 
     return next_move
 
