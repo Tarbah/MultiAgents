@@ -11,6 +11,7 @@ class Agent:
         self.visible_agents = []
         self.visible_items = []
         self.direction = np.pi / 2
+        self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
         self.next_action = None
@@ -76,6 +77,9 @@ class Agent:
         else:
             return False
 
+    def set_parameters_array(self,parameters_probabilities):
+        self.set_parameters(parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
+
     def set_parameters(self, level, radius, angle):
 
         width, hight = 10, 10
@@ -128,7 +132,42 @@ class Agent:
             self.actions_probability['W'] = 0.01
             return
 
+    def set_actions_probabilities(self,action):
+
+        if action == 'N':
+
+            self.actions_probability['N'] = 0.97
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
+
+        if action == 'W':
+
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.97
+            return
+
+        if action == 'S':
+
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.97
+            self.actions_probability['W'] = 0.01
+            return
+
+        if action == 'E':
+
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.97
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
+
     def get_action_probability(self, action):
+
         if action == 'W':
             return self.actions_probability['W']
 
@@ -143,6 +182,17 @@ class Agent:
 
         if action == 'S':
             return self.actions_probability['S']
+
+    def get_actions_probabilities(self):
+
+        actions_probabilities=[]
+        actions_probabilities.append(self.actions_probability['N'])
+        actions_probabilities.append(self.actions_probability['E'])
+        actions_probabilities.append(self.actions_probability['S'])
+        actions_probabilities.append(self.actions_probability['W'])
+        return actions_probabilities
+
+
 
     def change_direction(self, dx, dy):
         if dx == -1 and dy == 0:  # 'E':

@@ -228,7 +228,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
 
             node.immediateReward = get_reward
 
-            node.numItems = tmp_sim.items_left()
+
 
             # Nothing to do if the scenario is cleared, we created a terminal node
             if node.numItems == 0:
@@ -242,7 +242,7 @@ def monte_carlo_tree_search(local_sim, iteration_max, parameters_estimation):
             roll_out_max = 2000
             roll_out_count = 0
 
-            roll_out_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents,tmp_state.sim.main_agent )
+            roll_out_sim = create_temp_simulator(tmp_state.sim.items, tmp_state.sim.agents,tmp_state.sim.main_agent)
             roll_out_state = State(roll_out_sim)
             # roll_out_state.sim.draw_map()
 
