@@ -17,13 +17,48 @@ class Agent:
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
+        self.memory = position.position(0, 0)
 
+    def equals(self, other_agent):
+        (x, y) = self.position
+         
+        (other_x, other_y) = other_agent.get_position()
+
+        (other_memory_x, other_memory_y) = other_agent.get_memory()
+        
+        (memory_x, memory_y) = self.get_memory()
+
+        ## TODO: More things to be compared? Parameters?
+        ## TODO: The same agent will always have the same index?
+        
+        return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
+        
+    def copy(self):
+        ## TODO: Position here is a list, while the memory is a position object???        
+        (x, y) = self.position
+
+        copy_agent = Agent(x, y, self.agent_type, self.index)
+
+        (memory_x, memory_y) = self.memory.get_position()
+
+        copy_agent.memory = position.position(memory_x, memory_y)
+        
+        ## TODO: More things to be copied? Parameters?
+
+        return copy_agent
+        
     def set_level(self,level):
         self.level = level
 
+    ## TODO: The position class is not really being used... This could be confusing.
     def get_position(self):
         return self.position[0], self.position[1]
 
+    def get_memory(self):
+        (memory_x, memory_y) = self.memory.get_position()
+         
+        return memory_x, memory_y
+    
     def set_position(self, x, y):
 
         self.position = (x, y)
@@ -91,7 +126,6 @@ class Agent:
         self.direction = direction
 
     def set_probability_main_action(self):
-
         if self.next_action == 'L':
             self.actions_probability['L'] = 0.96
             self.actions_probability['N'] = 0.01
@@ -134,34 +168,42 @@ class Agent:
 
     def set_actions_probabilities(self,action):
 
-        if action == 'N':
+        if action == 'L':
+            self.actions_probability['L'] = 0.96
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
 
-            self.actions_probability['N'] = 0.97
+        if action == 'N':
+            self.actions_probability['L'] = 0.01
+            self.actions_probability['N'] = 0.96
             self.actions_probability['E'] = 0.01
             self.actions_probability['S'] = 0.01
             self.actions_probability['W'] = 0.01
             return
 
         if action == 'W':
-
+            self.actions_probability['L'] = 0.01
             self.actions_probability['N'] = 0.01
             self.actions_probability['E'] = 0.01
             self.actions_probability['S'] = 0.01
-            self.actions_probability['W'] = 0.97
+            self.actions_probability['W'] = 0.96
             return
 
         if action == 'S':
-
+            self.actions_probability['L'] = 0.01
             self.actions_probability['N'] = 0.01
             self.actions_probability['E'] = 0.01
-            self.actions_probability['S'] = 0.97
+            self.actions_probability['S'] = 0.96
             self.actions_probability['W'] = 0.01
             return
 
         if action == 'E':
-
+            self.actions_probability['L'] = 0.01
             self.actions_probability['N'] = 0.01
-            self.actions_probability['E'] = 0.97
+            self.actions_probability['E'] = 0.96
             self.actions_probability['S'] = 0.01
             self.actions_probability['W'] = 0.01
             return
@@ -186,6 +228,7 @@ class Agent:
     def get_actions_probabilities(self):
 
         actions_probabilities=[]
+        actions_probabilities.append(self.actions_probability['L'])
         actions_probabilities.append(self.actions_probability['N'])
         actions_probabilities.append(self.actions_probability['E'])
         actions_probabilities.append(self.actions_probability['S'])

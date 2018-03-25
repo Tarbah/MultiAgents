@@ -181,7 +181,11 @@ while time_step < 100:
     unknown_agent = real_sim.run_and_update(unknown_agent)
     main_agent_next_action = UCT.move_agent(real_sim.agents, real_sim.items,  real_sim.main_agent, true_parameters)
     print main_agent_next_action
-    r, real_sim = UCT.do_move(real_sim, main_agent_next_action)
+
+    ## TODO: Load action is not correct
+
+    #import ipdb; ipdb.set_trace()
+    r = UCT.do_move(real_sim, main_agent_next_action)
 
     time_step = time_step + 1
 

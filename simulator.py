@@ -8,7 +8,7 @@ from numpy.random import choice
 
 dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
 dy = [0, 1, 0, -1]
-actions = ['N', 'E', 'S', 'W']
+actions = ['L', 'N', 'E', 'S', 'W']
 
 class simulator:
     def __init__(self,the_map, items, agents, main_agent, n, m):
@@ -16,10 +16,79 @@ class simulator:
         self.items = items
         self.agents = agents
         self.main_agent = main_agent
-        self.memory = position.position(0, 0)
+        #self.memory = position.position(0, 0) ## This should be inside the agent?
         self.n = n
         self.m = m
 
+    ###############################################################################################################
+    def equals(self, other_simulator):
+        ## TODO: Is there a way to make a quicker comparison? Some sort of unique ID, hash table?..
+
+        for i in range(self.m):
+            for j in range(self.n):
+                if (other_simulator.the_map[i][j] != self.the_map[i][j]):
+                    return False
+                
+        ## If I reached here the maps are equal. Now let's compare the items and agents
+
+        if (len(self.items) != len(other_simulator.items)):
+            return False
+
+        ## TODO: Items have an index. Can we assume that they will always be in the same order?
+        for i in range(len(self.items)):
+            if (not self.items[i].equals(other_simulator.items[i])):
+                return False
+
+        if (len(self.agents) != len(other_simulator.agents)):
+            return False
+
+        ## TODO: Can we assume that agents will always be in the same order?
+        for i in range(len(self.agents)):
+            if (not self.agents[i].equals(other_simulator.agents[i])):
+                return False
+
+        if (not self.main_agent.equals(other_simulator.main_agent)):
+            return False
+
+        ## TODO: Anything else to be compared? If we could reach here the states are the same?
+
+        return True
+        
+    ###############################################################################################################
+    def copy(self):
+        copy_map = list()
+
+        ## m rows of n columns each, right?
+        ## why the map is addressed as [y][x] instead of [x][y]?
+        for i in range(self.m):
+            row = list()
+            for j in range(self.n):
+                row.append(self.the_map[i][j])
+            copy_map.append(list(row))
+
+        copy_items = []
+
+        for i in range(len(self.items)):            
+            copy_item = self.items[i].copy()
+
+            copy_items.append(copy_item)
+
+
+        copy_agents = list()
+        
+        for agent in self.agents:
+            copy_agent = agent.copy()
+            
+            copy_agents.append(copy_agent)
+
+
+        copy_main_agent = self.main_agent.copy()
+
+        tmp_sim = simulator(copy_map, copy_items, copy_agents, copy_main_agent, self.n, self.m)
+        
+        return tmp_sim
+                            
+            
     ###############################################################################################################
     def get_item_by_position(self, x, y):
         for i in range(0, len(self.items)):
@@ -215,6 +284,7 @@ class simulator:
         a_agent = self.move_a_agent(a_agent)
 
 
+        ## TODO: I see many commented out print statements. Are you using a debugger?
         # print node.state.action_probabilities
 
         next_action = choice(actions, p=a_agent.get_actions_probabilities())  # random sampling the action
@@ -224,7 +294,8 @@ class simulator:
         return self.agents[a_agent.index]
     ################################################################################################################
     def update(self, a_agent, action):
-
+        ## TODO: This can erase M agent???
+        ## TODO: I should only Load if the action is Load
         if a_agent.item_to_load != -1:
             destination = self.agents[a_agent.index].item_to_load
             if destination.level <= a_agent.level:  # If there is a an item nearby loading process starts
@@ -235,10 +306,12 @@ class simulator:
                 self.agents[a_agent.index] = a_agent
 
                 # Empty the memory to choose new target
-                self.memory = position.position(0, 0)
+                self.agents[a_agent.index].memory = position.position(0, 0)
                 return 1
 
         if a_agent.item_to_load == -1:
+        ## TODO: We are erasing M from the state here
+        ## TODO: The agents move at the same time. Hence, the NEW positions cannot conflict, not the old positions        
         # If there is no item to collect just move A agent
             (old_position_x , old_position_y) = a_agent.get_position()
             self.the_map[old_position_y][old_position_x] = 0
@@ -263,18 +336,18 @@ class simulator:
         # item_loaded = False
 
         # Check if item is collected by other agents so we need to ignore it and change the target.
-        (memory_x, memory_y) = self.memory.get_position()
+        (memory_x, memory_y) = a_agent.memory.get_position()
         destination_index = self.find_item_by_location(memory_x, memory_y)
 
         if destination_index != -1:
             item_loaded = self.items[destination_index].loaded
 
-            if item_loaded:  # item is loaded by other agents so reset the memomory to choose new target.
-                self.memory = position.position(0, 0)
+            if item_loaded:  # item is loaded by other agents so reset the memory to choose new target.
+                a_agent.memory = position.position(0, 0) ## TODO: What if there is a target at 0, 0???
 
         # If the target is selected before we have it in memory variable and we can use it
-        if self.memory.get_position() != (0, 0) and location != self.memory:
-            destination = self.memory
+        if a_agent.memory.get_position() != (0, 0) and location != a_agent.memory:
+            destination = a_agent.memory
 
         else:  # If there is no target we should choose a target based on visible items and agents.
 
@@ -292,7 +365,7 @@ class simulator:
                 else:  # rotate agent to find an agent
                     a_agent.direction = directions.pop()
 
-            self.memory = destination
+            a_agent.memory = destination
 
         # If there is no destination the probabilities for all of the actions are same.
         if destination.get_position() == (0, 0):
@@ -311,8 +384,11 @@ class simulator:
 
             load = a_agent.is_agent_near_destination(x_destination, y_destination)
 
+            ## TODO: It does not look like we are treating Load correctly yet
             if load:  # If there is a an item nearby loading process starts
-                self.agents[a_agent.index].item_to_load = destination
+                self.agents[a_agent.index].item_to_load = self.items[destination_index]
+
+                a_agent.set_actions_probabilities('L')
                 # if destination.level <= a_agent.level:  # If there is a an item nearby loading process starts
                 #
                 #     # load item and and remove it from map  and get the direction of agent when reaching the item.
@@ -398,7 +474,7 @@ class simulator:
 
                     # move a agent
                     new_position = (x_item, y_item)
-                    self.memory = position.position(0, 0)
+                    a_agent.memory = position.position(0, 0)
                     self.update_map(a_agent.position, new_position)
 
                     item_loaded = True
