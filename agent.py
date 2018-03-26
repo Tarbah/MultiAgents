@@ -1,4 +1,4 @@
-
+from numpy.random import choice
 import position
 import numpy as np
 from math import sqrt
@@ -17,6 +17,9 @@ class Agent:
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
+        self.memory = position.position(0, 0)
+
+    def reset_memory(self):
         self.memory = position.position(0, 0)
 
     def equals(self, other_agent):
@@ -235,8 +238,6 @@ class Agent:
         actions_probabilities.append(self.actions_probability['W'])
         return actions_probabilities
 
-
-
     def change_direction(self, dx, dy):
         if dx == -1 and dy == 0:  # 'E':
             self.direction = 0 * np.pi / 2
@@ -345,6 +346,11 @@ class Agent:
 
         return len(self.visible_items)
 
+    def set_random_action(self):
+        actions = [ 'N', 'E', 'S', 'W']
+        self.next_action = choice(actions)
+        return
+
     def visible_agents_items(self, items, agents):
 
         self.visible_agents = list()
@@ -370,7 +376,6 @@ class Agent:
 
     def choose_target(self, items, agents):
 
-        #print 'number of visible items: ' , len(self.visible_items)
 
         if len(self.visible_items) == 0:
             return position.position(0, 0)

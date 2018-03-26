@@ -3,7 +3,7 @@ from numpy.random import choice
 import simulator
 import item
 import agent
-import position
+
 
 iteration_max = 100
 max_depth = 100
@@ -101,7 +101,17 @@ class Node:
         Qt.append ( Q_table_row('W', 0, 0, 0))
         return Qt
 
-        
+
+    def update(self, action, result):
+        ## TODO: We should change the table to a dictionary, so that we don't have to find the action
+        for i in range(len(self.Q_table)):
+            if (self.Q_table[i].action == action):
+                self.Q_table[i].trials += 1
+                self.Q_table[i].sumValue += result
+                self.Q_table[i].QValue = self.Q_table[i].sumValue/self.Q_table[i].trials
+                return
+
+
     def uct_select_action(self):
         #Q_table = self.Q_table
 
@@ -192,16 +202,6 @@ class Node:
 
         return untriedMoves
 
-    def update(self, action, result):
-        ## TODO: We should change the table to a dictionary, so that we don't have to find the action
-        for i in range(len(self.Q_table)):
-            if (self.Q_table[i].action == action):        
-                self.Q_table[i].trials += 1
-                self.Q_table[i].sumValue += result
-                self.Q_table[i].QValue = self.Q_table[i].sumValue/self.Q_table[i].trials
-                return
-
-
 ################################################################################################################
 
 def do_move(sim, move):
@@ -222,8 +222,6 @@ def do_move(sim, move):
     ## TODO: M shouldn't move to the item position if the action was Load... But keeping it for now to be similar to previous version
     if (move == 'L'):
 
-#        import ipdb; ipdb.set_trace()
-        
         # If there is any item near main agent.
         x_item = None
         y_item = None
@@ -233,7 +231,7 @@ def do_move(sim, move):
             x_item = x_new
 
         ## TODO: Check: self.n or self.m?
-        if (y_new + 1 < sim.n) and (sim.the_map[y_new + 1][x_new] == 1 or sim.the_map[y_new + 1][x_new] == 4):
+        if (y_new + 1 < sim.dim_h) and (sim.the_map[y_new + 1][x_new] == 1 or sim.the_map[y_new + 1][x_new] == 4):
             y_item = y_new + 1
             x_item = x_new
         
@@ -242,7 +240,7 @@ def do_move(sim, move):
             x_item = x_new - 1
 
         ## TODO: Check: self.n or self.m?            
-        if (x_new + 1 < sim.m) and (sim.the_map[y_new][x_new + 1] == 1 or sim.the_map[y_new][x_new + 1] == 4):
+        if (x_new + 1 < sim.dim_w) and (sim.the_map[y_new][x_new + 1] == 1 or sim.the_map[y_new][x_new + 1] == 4):
             y_item = y_new
             x_item = x_new + 1
 
@@ -481,8 +479,9 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
     while time_step < iteration_max:
          tmp_sim = create_temp_simulator(simulator.items, simulator.agents, simulator.main_agent)
          node.state.simulator = tmp_sim
-         # print_nodes(node.childNodes)
+
          search(node, current_estimated_parameters)
+
          time_step += 1
 
     #import ipdb; ipdb.set_trace()
