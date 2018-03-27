@@ -57,6 +57,45 @@ class Agent:
     def get_position(self):
         return self.position[0], self.position[1]
 
+    def is_agent_face_to_item(self,sim):
+
+        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [0, 1, 0, -1]
+
+        x_diff = 0
+        y_diff = 0
+
+        x, y = self.get_position()
+
+        if self.direction == 0 * np.pi / 2 :
+           # Agent face to East
+            x_diff = dx[2]
+            y_diff = dy[2]
+
+        if self.direction == np.pi / 2 :
+            # Agent face to North
+            x_diff = dx[1]
+            y_diff = dy[1]
+
+        if  self.direction == 2 * np.pi / 2:
+            # Agent face to West
+            x_diff = dx[0]
+            y_diff = dy[0]
+
+        if self.direction == 3 * np.pi / 2:
+            # Agent face to South
+            x_diff = dx[3]
+            y_diff = dy[3]
+
+        if x + x_diff < sim.dim_w and x + x_diff >= 0 \
+                and y + y_diff < sim.dim_h and y + y_diff >= 0:
+             if sim.the_map[y + y_diff][x + x_diff] == 1 or sim.the_map[y + y_diff][x + x_diff] == 4:
+                 return True , ( x + x_diff , y + y_diff)
+
+        return False ,(-1 ,-1)
+
+
+
     def get_memory(self):
         (memory_x, memory_y) = self.memory.get_position()
          
@@ -249,6 +288,19 @@ class Agent:
             self.direction = 2 * np.pi / 2
 
         if dx == 0 and dy == -1:  # 'S':
+            self.direction = 3 * np.pi / 2
+
+    def change_direction_with_action(self, action):
+        if action == 'E':  # 'E':
+            self.direction = 0 * np.pi / 2
+
+        if action == 'N' :  # 'N':
+            self.direction = np.pi / 2
+
+        if action == 'W' :  # 'W':
+            self.direction = 2 * np.pi / 2
+
+        if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
     def change_position_direction(self, n, m):

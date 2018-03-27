@@ -5,8 +5,8 @@ import item
 import agent
 
 
-iteration_max = 100
-max_depth = 100
+iteration_max = 10
+max_depth = 10
 
 totalItems = 0 ## TODO: Adding as a global variable for now
 
@@ -79,16 +79,12 @@ class Node:
         self.state = state
         self.Q_table = self.create_empty_table()
 
-        ## It is better to not have that. Different actions could lead to the same s'
-        #self.action = action  # the move that got us to this node - "None" for the root node
 
         self.untriedMoves = self.create_possible_moves()
         self.childNodes = []
 
-        #self.cumulativeRewards = 0
-        #self.immediateReward = 0
         self.visits = 0
-        #self.expectedReward = 0
+
         self.numItems = state.simulator.items_left()
 
 
@@ -137,13 +133,7 @@ class Node:
 
         return maxA
         
-    # def uct_select_child(self):
 
-    #     ## UCB expects mean between 0 and 1.
-    #     s = \
-    #     sorted(self.childNodes, key=lambda c: c.expectedReward / self.numItems + sqrt(2 * log(self.visits) / c.visits))[
-    #         -1]
-    #     return s
 
     def add_child(self, state):
 
@@ -205,125 +195,33 @@ class Node:
 ################################################################################################################
 
 def do_move(sim, move):
+
     get_reward = 0
 
     # get the position of main agent
     tmp_m_agent = sim.main_agent
-    (x_m_agent, y_m_agent) = tmp_m_agent.get_position()
 
-    # assign unknown agent
-    tmp_a_agent = sim.agents[0]
-
-    (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
-
-    ### TODO: Something is weird here. I should only load an item if the action was "load"
-    ### TODO: Also, only M agent should be moving here, not A agent
-
-    ## TODO: M shouldn't move to the item position if the action was Load... But keeping it for now to be similar to previous version
-    if (move == 'L'):
-
-        # If there is any item near main agent.
-        x_item = None
-        y_item = None
-
-        if (y_new - 1 > -1) and (sim.the_map[y_new - 1][x_new] == 1 or sim.the_map[y_new - 1][x_new] == 4):
-            y_item = y_new - 1
-            x_item = x_new
-
-        ## TODO: Check: self.n or self.m?
-        if (y_new + 1 < sim.dim_h) and (sim.the_map[y_new + 1][x_new] == 1 or sim.the_map[y_new + 1][x_new] == 4):
-            y_item = y_new + 1
-            x_item = x_new
-        
-        if (x_new - 1 > -1) and (sim.the_map[y_new][x_new - 1] == 1 or sim.the_map[y_new][x_new - 1] == 4):
-            y_item = y_new
-            x_item = x_new - 1
-
-        ## TODO: Check: self.n or self.m?            
-        if (x_new + 1 < sim.dim_w) and (sim.the_map[y_new][x_new + 1] == 1 or sim.the_map[y_new][x_new + 1] == 4):
-            y_item = y_new
-            x_item = x_new + 1
-
-            
-        if (x_item != None):
-
-            item_loaded = False
-
-            # Find the index and position of item that should be loaded.
-            loaded_item_index = sim.get_item_by_position(x_item, y_item)
-
-
-
-            # load the item.
-            # for now the agent will assume the item position if loaded
-            tmp_m_agent.position = (x_item, y_item)
-            sim.load_item(tmp_m_agent, loaded_item_index)
-
-
-            sim.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
-                 
-            get_reward += float(1)/totalItems
-            item_loaded = True
-
-           ## TODO: The level test is not working yet 
-            # if tmp_m_agent.level >= sim.items[loaded_item_index].level:
-
-            #      # load the item.
-            #      # for now the agent will assume the item position if loaded
-            #      tmp_m_agent.position = (x_item, y_item)
-            #      sim.load_item(tmp_m_agent, loaded_item_index)
-
-
-            #      sim.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
-                 
-            #      get_reward += float(1)/totalItems
-            #      item_loaded = True
-            # else:
-
-            #      # (x_a_agent, y_a_agent) = tmp_a_agent.get_position()
-
-            #      # If unknown agent is in the loading position of the same item that main agent wants to collect.
-            #      a_load = tmp_a_agent.is_agent_near_destination(x_new, y_new) and tmp_a_agent.next_action == 'L'
-
-            #      # Check if two agents can load the item together
-            #      if a_load and tmp_m_agent.level + tmp_a_agent.level >= sim.items[loaded_item_index].level:
-            #          tmp_m_agent.position = (x_item, y_item)
-            #          sim.load_item(tmp_m_agent, loaded_item_index)
-
-            #          get_reward += float(1)/totalItems
-
-            #          # move a agent
-            #          new_position = (x_item, y_item)
-            #          sim.memory = position.position(0, 0)
-            #          sim.update_map(tmp_a_agent.position, new_position)
-
-            #          item_loaded = True
-
-            #          # Update the map
-
-            #          if item_loaded:
-            #              tmp_m_agent.next_action = 'L'
-            #              sim.main_agent = tmp_m_agent
-            #              sim.update_map_mcts((x_m_agent, y_m_agent), (x_item, y_item))
+    if move == 'L':
+        load_item, (item_position_x,  item_position_y) = tmp_m_agent.is_agent_face_to_item(sim)
+        if load_item:
+            destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
+            sim.items[destinantion_item_index].loaded = True
+            sim.the_map[item_position_y][item_position_x] = 0
+            get_reward += float(1) / totalItems
 
     else:
-        hasItem = True
-        testItem = sim.get_item_by_position(x_new,y_new) 
-        if (testItem != -1):
-            if (sim.items[testItem].loaded):
-                hasItem = False
-        else:
-            hasItem = False
-                
-        if ((x_new, y_new) != tmp_a_agent.get_position() and (not hasItem)):
-            # Set the new action to the main agent.
-            tmp_m_agent.next_action = move
 
-            # Get new action of main agent and set it to the main agent.
+        (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
+
+        # If there is any item near main agent.
+        if sim.the_map[y_new][x_new] == 0:
+            (x_m_agent, y_m_agent) = tmp_m_agent.get_position()
+            tmp_m_agent.next_action = move
             (x_new, y_new) = tmp_m_agent.change_position_direction(10, 10)
             sim.main_agent = tmp_m_agent
             sim.update_map_mcts((x_m_agent, y_m_agent), (x_new, y_new))
-
+        else :
+            tmp_m_agent.change_direction_with_action(move)
 
     return get_reward
 

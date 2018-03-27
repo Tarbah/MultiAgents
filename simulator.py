@@ -136,11 +136,9 @@ class simulator:
     ###############################################################################################################
     def update_map_mcts(self, old_pos, new_pos):
 
-
         (x, y) = old_pos
         self.the_map[y][x] = 0
-        agent_index = self.find_agent_index(old_pos)
-        self.main_agent.pos = new_pos
+
         (x, y) = new_pos
         self.the_map[y][x] = 9  # 9 demonstrate the main agent on the map
 

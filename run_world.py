@@ -170,7 +170,7 @@ real_sim.draw_map()
 # real_sim.draw_map_with_level()
 
 time_step = 0
-while time_step < 100:
+while time_step < 1:
 
     print 'main run count: ', time_step
 
@@ -181,6 +181,7 @@ while time_step < 100:
     unknown_agent = real_sim.run_and_update(unknown_agent)
     # real_sim.draw_map()
     main_agent_next_action = UCT.move_agent(real_sim.agents, real_sim.items,  real_sim.main_agent, true_parameters)
+    print("main_agent_next_action: ", main_agent_next_action)
 
     ## TODO: Load action is not correct
 
