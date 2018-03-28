@@ -46,12 +46,12 @@ def initialize_items_agents_notrandom(n, m):
 
     # creating agent
     (x, y) = (4,4)
-    unknown_agent = agent.Agent(x, y, 'l1', 0)
+    unknown_agent = agent.Agent(x, y, 0,'l1', 0)
     the_map[y][x] = 8
     agents.append(unknown_agent)
 
     (x, y) = (1, 1)
-    main_agent = agent.Agent(x, y,'l1', 1)
+    main_agent = agent.Agent(x, y,0,'l1', 1)
     main_agent.level = 1
     main_agent.set_level(1)
     #agents.append(main_agent)
@@ -88,8 +88,9 @@ def initialize_items_agents(n, m):
 
     (x, y) = random.choice(sf)
     main_agent = agent.Agent(x, y, 'l1', -1)
-    main_agent.set_level(0.5)
-    #agents.append(main_agent)
+    main_agent.set_level(1)
+    main_agent.direction = 0
+
     sf.remove((x, y))
 
     return main_agent
@@ -124,12 +125,12 @@ def create_tmp_map(items, agents, main_agent):
 
     (a_agent_x, a_agent_y) = agents[0].get_position()
     local_map[a_agent_y][a_agent_x] = 8
-    local_agent = agent.Agent(a_agent_x, a_agent_y, 'l1', 0)
+    local_agent = agent.Agent(a_agent_x, a_agent_y,agents[0].direction, 'l1', 0)
     local_agents.append(local_agent)
 
     (m_agent_x, m_agent_y) = main_agent.get_position()
     local_map[m_agent_y][m_agent_x] = 9
-    local_main_agent = agent.Agent(m_agent_x, m_agent_y, 'l1', -1)
+    local_main_agent = agent.Agent(m_agent_x, m_agent_y,main_agent.direction, 'l1', -1)
     local_main_agent.set_level(main_agent.level)
 
     return local_agents,local_items,local_map,local_main_agent
@@ -168,9 +169,10 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 
 real_sim.draw_map()
 # real_sim.draw_map_with_level()
-
+main_agent.direction = 0
+print ("Main agent's direction:",main_agent.get_agent_direction( ) )
 time_step = 0
-while time_step < 1:
+while time_step < 100:
 
     print 'main run count: ', time_step
 
@@ -179,11 +181,11 @@ while time_step < 1:
     prev_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
 
     unknown_agent = real_sim.run_and_update(unknown_agent)
-    # real_sim.draw_map()
     main_agent_next_action = UCT.move_agent(real_sim.agents, real_sim.items,  real_sim.main_agent, true_parameters)
     print("main_agent_next_action: ", main_agent_next_action)
 
     ## TODO: Load action is not correct
+    print ("Main agent's direction:",main_agent.get_agent_direction( ) )
 
     r = UCT.do_move(real_sim, main_agent_next_action)
 
@@ -195,10 +197,6 @@ while time_step < 1:
     if real_sim.items_left() == 0:
         break
     print "left items", real_sim.items_left()
-
-# import_result_tofile (param_estim.parameters_values_l1)
-#real_sim.draw_map()
-
 
 
 print  time_step

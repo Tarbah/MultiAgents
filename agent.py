@@ -5,12 +5,12 @@ from math import sqrt
 
 
 class Agent:
-    def __init__(self, x, y, agent_type, index):
+    def __init__(self, x, y, direction, agent_type, index):
         self.position = (x, y)
         self.status = "move"
         self.visible_agents = []
         self.visible_items = []
-        self.direction = np.pi / 2
+        self.direction = direction
         self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
@@ -40,7 +40,7 @@ class Agent:
         ## TODO: Position here is a list, while the memory is a position object???        
         (x, y) = self.position
 
-        copy_agent = Agent(x, y, self.agent_type, self.index)
+        copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
 
         (memory_x, memory_y) = self.memory.get_position()
 
@@ -93,8 +93,6 @@ class Agent:
                  return True , ( x + x_diff , y + y_diff)
 
         return False ,(-1 ,-1)
-
-
 
     def get_memory(self):
         (memory_x, memory_y) = self.memory.get_position()
@@ -302,6 +300,21 @@ class Agent:
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
+
+    def get_agent_direction(self):
+
+        if self.direction == 0:
+            return 'W'
+
+        if self.direction == np.pi / 2:
+            return 'N'
+
+        if self.direction == np.pi:
+            return 'E'
+
+        if self.direction == 3 * np.pi / 2:
+            return 'S'
+
 
     def change_position_direction(self, n, m):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
