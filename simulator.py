@@ -16,24 +16,29 @@ class simulator:
         self.items = items
         self.agents = agents
         self.main_agent = main_agent
-        self.dim_w = dim_w
-        self.dim_h = dim_h
+        self.dim_w = dim_w  # Number of columns
+        self.dim_h = dim_h  # Number of rows
+
+    ###############################################################################################################
+    def create_empty_map(self):
+
+        self.the_map = list()
+
+        row = [0] * self.dim_w
+
+        for i in range(self.dim_h):
+            self.the_map.append(list(row))
 
     ###############################################################################################################
     def equals(self, other_simulator):
-        ## TODO: Is there a way to make a quicker comparison? Some sort of unique ID, hash table?..
 
-        for i in range(self.dim_h):
-            for j in range(self.dim_w):
-                if (other_simulator.the_map[i][j] != self.the_map[i][j]):
-                    return False
-                
+
         ## If I reached here the maps are equal. Now let's compare the items and agents
 
         if (len(self.items) != len(other_simulator.items)):
             return False
 
-        ## TODO: Items have an index. Can we assume that they will always be in the same order?
+
         for i in range(len(self.items)):
             if (not self.items[i].equals(other_simulator.items[i])):
                 return False
@@ -41,7 +46,7 @@ class simulator:
         if (len(self.agents) != len(other_simulator.agents)):
             return False
 
-        ## TODO: Can we assume that agents will always be in the same order?
+
         for i in range(len(self.agents)):
             if (not self.agents[i].equals(other_simulator.agents[i])):
                 return False
@@ -49,7 +54,7 @@ class simulator:
         if (not self.main_agent.equals(other_simulator.main_agent)):
             return False
 
-        ## TODO: Anything else to be compared? If we could reach here the states are the same?
+
 
         return True
         
@@ -63,13 +68,13 @@ class simulator:
             row = list()
             for j in range(self.dim_w):
                 row.append(self.the_map[i][j])
+
             copy_map.append(list(row))
 
         copy_items = []
 
         for i in range(len(self.items)):            
             copy_item = self.items[i].copy()
-
             copy_items.append(copy_item)
 
 
@@ -77,7 +82,6 @@ class simulator:
         
         for agent in self.agents:
             copy_agent = agent.copy()
-            
             copy_agents.append(copy_agent)
 
 
@@ -89,7 +93,8 @@ class simulator:
                             
             
     ###############################################################################################################
-    def get_item_by_position(self, x, y):
+
+    def get_itemIndex_by_position(self, x, y):
         for i in range(0, len(self.items)):
             if self.items[i].get_position() == (x,y):
                 return i
@@ -97,6 +102,7 @@ class simulator:
 
     ###############################################################################################################
     def get_first_action(self,route):
+        #  This function is to find the first action afte finding the path by  A Star
 
         dir = route[0]
 
@@ -110,6 +116,7 @@ class simulator:
             return 'S'
 
     ###############################################################################################################
+
     def items_left(self):
         items_count= 0
         for i in range(0,len(self.items)):
@@ -118,31 +125,25 @@ class simulator:
         return items_count
 
     ###############################################################################################################
-    def update_map(self,old_pos, new_pos):
+    def update_the_map(self):
 
-        (x, y) = old_pos
+        self.create_empty_map()
 
-        self.the_map[y][x] = 0
+        for i in range(len(self.items)):
+            (item_x, item_y) = self.items[i].get_position()
+            if self.items[i].loaded :
+                self.the_map[item_y][item_x] = 0
+            else:
+                self.the_map[item_y][item_x] = 1
 
-        agent_index = self.find_agent_index(old_pos)
-        self.agents[0].pos = new_pos
+        for i in range(len(self.agents)):
+            (agent_x, agent_y) = self.agents[i].get_position()
+            self.the_map[agent_y][agent_x] = 8
 
-        (x, y) = new_pos
+        (m_agent_x, m_agent_y) = self.main_agent.get_position()
+        self.the_map[m_agent_y][m_agent_x] = 9
 
-        self.the_map[y][x] = 8  # 8 demonstrate the unknown agent on the map
 
-        return
-
-    ###############################################################################################################
-    def update_map_mcts(self, old_pos, new_pos):
-
-        (x, y) = old_pos
-        self.the_map[y][x] = 0
-
-        (x, y) = new_pos
-        self.the_map[y][x] = 9  # 9 demonstrate the main agent on the map
-
-        return
 
     ###############################################################################################################
     def find_agent_index(self,pos):
@@ -240,10 +241,6 @@ class simulator:
                 return i
         return -1
 
-    ################################################################################################################
-## todo: delete it
-    # def set_map(self, the_map):
-    #     self.the_map = the_map
 
     ################################################################################################################
     def agent_next_item(self, agent_position, item_position):
@@ -265,12 +262,11 @@ class simulator:
         distance_x = x_item - x_agent
         distance_y = y_item - y_agent
 
-        self.the_map[y_item][x_item] = 0
+
 
         agent.change_direction(distance_x, distance_y)
         agent.item_to_load = -1
 
-       # self.remove_old_destination_in_map()
 
         return agent
 
@@ -282,12 +278,14 @@ class simulator:
 
         next_action = choice(actions, p=a_agent.get_actions_probabilities())  # random sampling the action
 
-        a_reward = self.update(a_agent, next_action)
+        a_agent.next_action = next_action
+
+        a_reward = self.update(a_agent)
 
         return self.agents[a_agent.index]
 
     ################################################################################################################
-    def update(self, a_agent, action):
+    def update(self, a_agent):
 
         if a_agent.next_action == 'L':
             destination = a_agent.item_to_load
@@ -302,18 +300,16 @@ class simulator:
                 self.agents[a_agent.index].memory = position.position(0, 0)
                 return 1
 
-        # if a_agent.item_to_load == -1:
+
         else:
             # If there is no item to collect just move A agent
-            (old_position_x , old_position_y) = a_agent.get_position()
-
             (new_position_x , new_position_y) = a_agent.change_position_direction(self.dim_h,self.dim_w)
 
-            if self.the_map[new_position_y][new_position_x] == 0:
-                self.the_map[old_position_y][old_position_x] = 0
-                a_agent.set_position(new_position_x, new_position_y)
+            if self.position_is_empty(new_position_x,new_position_y):
+                a_agent.position = (new_position_x, new_position_y)
                 self.agents[a_agent.index] = a_agent
-                self.the_map[new_position_y][new_position_x] = 8
+
+        self.update_the_map()
         return 0
 
     ################################################################################################################
@@ -329,7 +325,28 @@ class simulator:
             item_loaded = self.items[destination_index].loaded
 
         return item_loaded
+
     ################################################################################################################
+    def position_is_empty(self, x, y):
+
+        for i in range (len(self.items)):
+            (item_x, item_y) = self.items[i].get_position()
+            if (item_x, item_y) == (x,y) :
+                return False
+
+        for i in range(len(self.agents)):
+            (agent_x, agent_y) = self.agents[i].get_position()
+            if (agent_x, agent_y) == (x, y):
+                return False
+
+        (m_agent_x, m_agent_y) =self.main_agent.get_position()
+        if (m_agent_x, m_agent_y) == (x, y):
+            return False
+
+        return True
+
+    ################################################################################################################
+
     def move_a_agent(self, a_agent):
 
         location = a_agent.position  # Location of main agent
@@ -372,10 +389,8 @@ class simulator:
 
             load = a_agent.is_agent_near_destination(x_destination, y_destination)
 
-            ## TODO: It does not look like we are treating Load correctly yet
             if load:  # If there is a an item nearby loading process starts
                 a_agent.item_to_load = self.items[destination_index]
-
                 a_agent.set_actions_probabilities('L')
                 a_agent.next_action = 'L'
 
