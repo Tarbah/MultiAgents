@@ -40,7 +40,7 @@ class Agent:
         ## TODO: Position here is a list, while the memory is a position object???        
         (x, y) = self.position
 
-        copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
+        copy_agent = Agent(x, y, self.direction, self.agent_type, self.index)
 
         (memory_x, memory_y) = self.memory.get_position()
 
@@ -56,6 +56,21 @@ class Agent:
     ## TODO: The position class is not really being used... This could be confusing.
     def get_position(self):
         return self.position[0], self.position[1]
+
+
+    ## I added this one back. Useful for debugging
+    def get_agent_direction(self):
+        if self.direction == 0:
+            return 'W'
+
+        if self.direction == np.pi / 2:
+            return 'N'
+
+        if self.direction == np.pi:
+            return 'E'
+
+        if self.direction == 3 * np.pi / 2:
+            return 'S'
 
     def is_agent_face_to_item(self,sim):
 
@@ -93,6 +108,8 @@ class Agent:
                  return True , ( x + x_diff , y + y_diff)
 
         return False ,(-1 ,-1)
+
+
 
     def get_memory(self):
         (memory_x, memory_y) = self.memory.get_position()
@@ -300,21 +317,6 @@ class Agent:
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
-
-    def get_agent_direction(self):
-
-        if self.direction == 0:
-            return 'W'
-
-        if self.direction == np.pi / 2:
-            return 'N'
-
-        if self.direction == np.pi:
-            return 'E'
-
-        if self.direction == 3 * np.pi / 2:
-            return 'S'
-
 
     def change_position_direction(self, n, m):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
