@@ -7,7 +7,6 @@ from math import sqrt
 class Agent:
     def __init__(self, x, y, direction, agent_type, index):
         self.position = (x, y)
-        self.status = "move"
         self.visible_agents = []
         self.visible_items = []
         self.direction = direction
@@ -19,9 +18,15 @@ class Agent:
         self.agent_type = agent_type
         self.memory = position.position(0, 0)
 
+    ################################################################################################################
     def reset_memory(self):
         self.memory = position.position(0, 0)
 
+    ################################################################################################################
+    def get_position(self):
+        return self.position[0], self.position[1]
+
+    ################################################################################################################
     def equals(self, other_agent):
         (x, y) = self.position
          
@@ -31,46 +36,26 @@ class Agent:
         
         (memory_x, memory_y) = self.get_memory()
 
-        ## TODO: More things to be compared? Parameters?
-        ## TODO: The same agent will always have the same index?
         
         return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
-        
+
+    ################################################################################################################
     def copy(self):
-        ## TODO: Position here is a list, while the memory is a position object???        
+
         (x, y) = self.position
 
-        copy_agent = Agent(x, y, self.direction, self.agent_type, self.index)
+        copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
 
         (memory_x, memory_y) = self.memory.get_position()
 
         copy_agent.memory = position.position(memory_x, memory_y)
-        
-        ## TODO: More things to be copied? Parameters?
+
 
         return copy_agent
-        
-    def set_level(self,level):
-        self.level = level
-
-    ## TODO: The position class is not really being used... This could be confusing.
-    def get_position(self):
-        return self.position[0], self.position[1]
 
 
-    ## I added this one back. Useful for debugging
-    def get_agent_direction(self):
-        if self.direction == 0:
-            return 'E'
 
-        if self.direction == np.pi / 2:
-            return 'N'
-
-        if self.direction == np.pi:
-            return 'W'
-
-        if self.direction == 3 * np.pi / 2:
-            return 'S'
+    ################################################################################################################
 
     def is_agent_face_to_item(self,sim):
 
@@ -83,7 +68,7 @@ class Agent:
         x, y = self.get_position()
 
         if self.direction == 0 * np.pi / 2 :
-           # Agent face to East
+           # Agent face to West
             x_diff = dx[2]
             y_diff = dy[2]
 
@@ -93,7 +78,7 @@ class Agent:
             y_diff = dy[1]
 
         if  self.direction == 2 * np.pi / 2:
-            # Agent face to West
+            # Agent face to East
             x_diff = dx[0]
             y_diff = dy[0]
 
@@ -109,21 +94,13 @@ class Agent:
 
         return False ,(-1 ,-1)
 
-
+    ################################################################################################################
 
     def get_memory(self):
         (memory_x, memory_y) = self.memory.get_position()
          
         return memory_x, memory_y
     
-    def set_position(self, x, y):
-
-        self.position = (x, y)
-        return
-
-    def set_type(self, atype):
-        self.atype = atype
-
     def is_item_nearby(self, items):
 
         pos = self.position
@@ -318,6 +295,20 @@ class Agent:
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
+    def get_agent_direction(self):
+
+        if self.direction == 0:
+            return 'W'
+
+        if self.direction == np.pi / 2:
+            return 'N'
+
+        if self.direction == np.pi:
+            return 'E'
+
+        if self.direction == 3 * np.pi / 2:
+            return 'S'
+
     def change_position_direction(self, n, m):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
         dy = [0, 1, 0, -1]
@@ -328,7 +319,7 @@ class Agent:
         if self.next_action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if self.next_action == 'N':
             x_diff = dx[1]
@@ -338,7 +329,7 @@ class Agent:
         if self.next_action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if self.next_action == 'S':
             x_diff = dx[3]
@@ -364,7 +355,7 @@ class Agent:
         if action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'N':
             x_diff = dx[1]
@@ -374,7 +365,7 @@ class Agent:
         if action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'S':
             x_diff = dx[3]
