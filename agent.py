@@ -36,7 +36,7 @@ class Agent:
         
         (memory_x, memory_y) = self.get_memory()
 
-        
+
         return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
 
     ################################################################################################################
@@ -50,10 +50,7 @@ class Agent:
 
         copy_agent.memory = position.position(memory_x, memory_y)
 
-
         return copy_agent
-
-
 
     ################################################################################################################
 
@@ -87,12 +84,12 @@ class Agent:
             x_diff = dx[3]
             y_diff = dy[3]
 
-        if x + x_diff < sim.dim_w and x + x_diff >= 0 \
-                and y + y_diff < sim.dim_h and y + y_diff >= 0:
-             if sim.the_map[y + y_diff][x + x_diff] == 1 or sim.the_map[y + y_diff][x + x_diff] == 4:
-                 return True , ( x + x_diff , y + y_diff)
+        if 0 <= x + x_diff < sim.dim_w and 0 <= y + y_diff < sim.dim_h and \
+                sim.is_there_item_in_position(x + x_diff, y + y_diff) != -1:
 
-        return False ,(-1 ,-1)
+            return True, (x + x_diff, y + y_diff)
+
+        return False,(-1,-1)
 
     ################################################################################################################
 
