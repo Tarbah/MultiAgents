@@ -1,36 +1,106 @@
-
+from numpy.random import choice
 import position
 import numpy as np
 from math import sqrt
 
 
 class Agent:
-    def __init__(self, x, y, agent_type, index):
+    def __init__(self, x, y, direction, agent_type, index):
         self.position = (x, y)
-        self.status = "move"
         self.visible_agents = []
         self.visible_items = []
-        self.direction = np.pi / 2
+        self.direction = direction
+        self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
+        self.memory = position.position(0, 0)
 
-    def set_level(self,level):
-        self.level = level
+    ################################################################################################################
+    def reset_memory(self):
+        self.memory = position.position(0, 0)
 
+    ################################################################################################################
     def get_position(self):
         return self.position[0], self.position[1]
 
-    def set_position(self, x, y):
+    ################################################################################################################
+    def equals(self, other_agent):
+        (x, y) = self.position
+         
+        (other_x, other_y) = other_agent.get_position()
 
-        self.position = (x, y)
-        return
+        (other_memory_x, other_memory_y) = other_agent.get_memory()
+        
+        (memory_x, memory_y) = self.get_memory()
 
-    def set_type(self, atype):
-        self.atype = atype
+        
+        return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
 
+    ################################################################################################################
+    def copy(self):
+
+        (x, y) = self.position
+
+        copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
+
+        (memory_x, memory_y) = self.memory.get_position()
+
+        copy_agent.memory = position.position(memory_x, memory_y)
+
+
+        return copy_agent
+
+
+
+    ################################################################################################################
+
+    def is_agent_face_to_item(self,sim):
+
+        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [0, 1, 0, -1]
+
+        x_diff = 0
+        y_diff = 0
+
+        x, y = self.get_position()
+
+        if self.direction == 0 * np.pi / 2 :
+           # Agent face to West
+            x_diff = dx[2]
+            y_diff = dy[2]
+
+        if self.direction == np.pi / 2 :
+            # Agent face to North
+            x_diff = dx[1]
+            y_diff = dy[1]
+
+        if  self.direction == 2 * np.pi / 2:
+            # Agent face to East
+            x_diff = dx[0]
+            y_diff = dy[0]
+
+        if self.direction == 3 * np.pi / 2:
+            # Agent face to South
+            x_diff = dx[3]
+            y_diff = dy[3]
+
+        if x + x_diff < sim.dim_w and x + x_diff >= 0 \
+                and y + y_diff < sim.dim_h and y + y_diff >= 0:
+             if sim.the_map[y + y_diff][x + x_diff] == 1 or sim.the_map[y + y_diff][x + x_diff] == 4:
+                 return True , ( x + x_diff , y + y_diff)
+
+        return False ,(-1 ,-1)
+
+    ################################################################################################################
+
+    def get_memory(self):
+        (memory_x, memory_y) = self.memory.get_position()
+         
+        return memory_x, memory_y
+    
     def is_item_nearby(self, items):
 
         pos = self.position
@@ -76,6 +146,9 @@ class Agent:
         else:
             return False
 
+    def set_parameters_array(self,parameters_probabilities):
+        self.set_parameters(parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
+
     def set_parameters(self, level, radius, angle):
 
         width, hight = 10, 10
@@ -87,7 +160,6 @@ class Agent:
         self.direction = direction
 
     def set_probability_main_action(self):
-
         if self.next_action == 'L':
             self.actions_probability['L'] = 0.96
             self.actions_probability['N'] = 0.01
@@ -128,7 +200,50 @@ class Agent:
             self.actions_probability['W'] = 0.01
             return
 
+    def set_actions_probabilities(self,action):
+
+        if action == 'L':
+            self.actions_probability['L'] = 0.96
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
+
+        if action == 'N':
+            self.actions_probability['L'] = 0.01
+            self.actions_probability['N'] = 0.96
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
+
+        if action == 'W':
+            self.actions_probability['L'] = 0.01
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.96
+            return
+
+        if action == 'S':
+            self.actions_probability['L'] = 0.01
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.01
+            self.actions_probability['S'] = 0.96
+            self.actions_probability['W'] = 0.01
+            return
+
+        if action == 'E':
+            self.actions_probability['L'] = 0.01
+            self.actions_probability['N'] = 0.01
+            self.actions_probability['E'] = 0.96
+            self.actions_probability['S'] = 0.01
+            self.actions_probability['W'] = 0.01
+            return
+
     def get_action_probability(self, action):
+
         if action == 'W':
             return self.actions_probability['W']
 
@@ -144,6 +259,16 @@ class Agent:
         if action == 'S':
             return self.actions_probability['S']
 
+    def get_actions_probabilities(self):
+
+        actions_probabilities=[]
+        actions_probabilities.append(self.actions_probability['L'])
+        actions_probabilities.append(self.actions_probability['N'])
+        actions_probabilities.append(self.actions_probability['E'])
+        actions_probabilities.append(self.actions_probability['S'])
+        actions_probabilities.append(self.actions_probability['W'])
+        return actions_probabilities
+
     def change_direction(self, dx, dy):
         if dx == -1 and dy == 0:  # 'E':
             self.direction = 0 * np.pi / 2
@@ -156,6 +281,33 @@ class Agent:
 
         if dx == 0 and dy == -1:  # 'S':
             self.direction = 3 * np.pi / 2
+
+    def change_direction_with_action(self, action):
+        if action == 'E':  # 'E':
+            self.direction = 0 * np.pi / 2
+
+        if action == 'N' :  # 'N':
+            self.direction = np.pi / 2
+
+        if action == 'W' :  # 'W':
+            self.direction = 2 * np.pi / 2
+
+        if action == 'S':  # 'S':
+            self.direction = 3 * np.pi / 2
+
+    def get_agent_direction(self):
+
+        if self.direction == 0:
+            return 'W'
+
+        if self.direction == np.pi / 2:
+            return 'N'
+
+        if self.direction == np.pi:
+            return 'E'
+
+        if self.direction == 3 * np.pi / 2:
+            return 'S'
 
     def change_position_direction(self, n, m):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
@@ -252,6 +404,11 @@ class Agent:
 
         return len(self.visible_items)
 
+    def set_random_action(self):
+        actions = [ 'N', 'E', 'S', 'W']
+        self.next_action = choice(actions)
+        return
+
     def visible_agents_items(self, items, agents):
 
         self.visible_agents = list()
@@ -277,7 +434,6 @@ class Agent:
 
     def choose_target(self, items, agents):
 
-        #print 'number of visible items: ' , len(self.visible_items)
 
         if len(self.visible_items) == 0:
             return position.position(0, 0)
