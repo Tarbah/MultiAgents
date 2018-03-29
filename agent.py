@@ -61,13 +61,13 @@ class Agent:
     ## I added this one back. Useful for debugging
     def get_agent_direction(self):
         if self.direction == 0:
-            return 'W'
+            return 'E'
 
         if self.direction == np.pi / 2:
             return 'N'
 
         if self.direction == np.pi:
-            return 'E'
+            return 'W'
 
         if self.direction == 3 * np.pi / 2:
             return 'S'
@@ -328,7 +328,7 @@ class Agent:
         if self.next_action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if self.next_action == 'N':
             x_diff = dx[1]
@@ -338,7 +338,7 @@ class Agent:
         if self.next_action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if self.next_action == 'S':
             x_diff = dx[3]
@@ -364,7 +364,7 @@ class Agent:
         if action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'N':
             x_diff = dx[1]
@@ -374,7 +374,7 @@ class Agent:
         if action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':
             x_diff = dx[3]

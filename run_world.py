@@ -41,8 +41,16 @@ def initialize_items_agents_notrandom(n, m):
         # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
         #tmp_item = item.item(x, y, ( i) / 10.0, i)
         tmp_item = item.item(x, y, 1, i)
+
+        if (i == 0 or i == 1):
+            tmp_item.loaded = True
+
+        ## TODO: We should not have these map updated all over the place. There should be one method that just checks the state of all objects, and then updates the map
+        if (not tmp_item.loaded):
+            the_map[y][x] = 1
+                
         items.append(tmp_item)
-        the_map[y][x] = 1
+
 
     # creating agent
     (x, y) = (4,4)
@@ -50,9 +58,9 @@ def initialize_items_agents_notrandom(n, m):
     the_map[y][x] = 8
     agents.append(unknown_agent)
 
-    (x, y) = (1, 1)
+    (x, y) = (2, 4)
 
-    main_agent = agent.Agent(x, y, np.pi / 2,'l1', 1)
+    main_agent = agent.Agent(x, y, 0,'l1', 1)
 
     main_agent.level = 1
     main_agent.set_level(1)
@@ -165,7 +173,7 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 real_sim.draw_map()
 
 # real_sim.draw_map_with_level()
-main_agent.direction = np.pi / 2
+main_agent.direction = np.pi
 print ("Main agent's direction:",main_agent.get_agent_direction( ) )
 
 time_step = 0
@@ -184,7 +192,7 @@ while time_step < 100:
 
     ## TODO: Load action is not correct
     print ("Main agent's direction:",main_agent.get_agent_direction( ) )
-    
+
     r = UCT.do_move(real_sim, main_agent_next_action)
 
     time_step = time_step + 1
