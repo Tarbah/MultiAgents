@@ -49,7 +49,7 @@ def create_temp_simulator(items, agents, main_agent):
     local_map[m_agent_y][m_agent_x] = 9
     local_main_agent = agent.Agent(m_agent_x, m_agent_y,main_agent.direction, 'l1', 1)
 
-    local_main_agent.set_level(main_agent.level)
+    local_main_agent.level = main_agent.level
 
     tmp_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
     return tmp_sim
@@ -193,21 +193,21 @@ def do_move(sim, move):
         if load_item:
             destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
             sim.items[destinantion_item_index].loaded = True
-            sim.the_map[item_position_y][item_position_x] = 0
-            get_reward += float(1.0)
+            get_reward += float(1)
 
     else:
         (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
 
         # If there new position is empty
-        if sim.the_map[y_new][x_new] == 0:
-            (x_m_agent, y_m_agent) = tmp_m_agent.get_position()
+        if sim.position_is_empty(x_new, y_new):
             tmp_m_agent.next_action = move
-            (x_new, y_new) = tmp_m_agent.change_position_direction(10, 10)
+            tmp_m_agent.change_position_direction(10, 10)
             sim.main_agent = tmp_m_agent
-            sim.update_map_mcts((x_m_agent, y_m_agent), (x_new, y_new))
+
         else:
             tmp_m_agent.change_direction_with_action(move)
+
+    sim.update_the_map()
 
     return get_reward
 
@@ -267,7 +267,7 @@ def simulate_action(state, action, current_estimated_parameters):
     action_probabilities = a_agent.get_actions_probabilities()
     next_action = choice(actions, p=action_probabilities)  # random sampling the action
 
-    a_reward = sim.update(a_agent, next_action)
+    a_reward = sim.update(a_agent)
 
     m_reward = do_move(sim, action)
     #
@@ -290,9 +290,6 @@ def search(node, current_estimated_parameters):
     if leaf(node):
         return 0#evalute(node)
 
-    # if (node == root):
-    #     import ipdb; ipdb.set_trace()
-        
     action = select_action(node)
     
     # Agents move at the same time, so the previous action was not performed yet in the point of view of A agent.
@@ -338,8 +335,6 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
     node = root_node
     root = node
 
-##    import ipdb; ipdb.set_trace()
-    
     while time_step < iteration_max:
          tmp_sim = create_temp_simulator(simulator.items, simulator.agents, simulator.main_agent)
          node.state.simulator = tmp_sim
