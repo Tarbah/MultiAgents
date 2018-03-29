@@ -3,7 +3,7 @@ import item
 import random
 import simulator
 import UCT
-
+import numpy as np
 
 radius_max = 1
 radius_min = 0.1
@@ -51,7 +51,7 @@ def initialize_items_agents_notrandom(n, m):
     agents.append(unknown_agent)
 
     (x, y) = (1, 1)
-    main_agent = agent.Agent(x, y,0,'l1', 1)
+    main_agent = agent.Agent(x, y, np.pi / 2,'l1', 1)
     main_agent.level = 1
     main_agent.set_level(1)
     #agents.append(main_agent)
@@ -169,7 +169,7 @@ unknown_agent.set_parameters(true_level, true_radius, true_angle)
 
 real_sim.draw_map()
 # real_sim.draw_map_with_level()
-main_agent.direction = 0
+main_agent.direction = np.pi / 2
 print ("Main agent's direction:",main_agent.get_agent_direction( ) )
 time_step = 0
 while time_step < 100:
@@ -181,12 +181,13 @@ while time_step < 100:
     prev_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
 
     unknown_agent = real_sim.run_and_update(unknown_agent)
+    
     main_agent_next_action = UCT.move_agent(real_sim.agents, real_sim.items,  real_sim.main_agent, true_parameters)
     print("main_agent_next_action: ", main_agent_next_action)
 
     ## TODO: Load action is not correct
     print ("Main agent's direction:",main_agent.get_agent_direction( ) )
-
+    
     r = UCT.do_move(real_sim, main_agent_next_action)
 
     time_step = time_step + 1

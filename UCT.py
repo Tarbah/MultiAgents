@@ -194,7 +194,7 @@ def do_move(sim, move):
             destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
             sim.items[destinantion_item_index].loaded = True
             sim.the_map[item_position_y][item_position_x] = 0
-            get_reward += float(1) / totalItems
+            get_reward += float(1.0)
 
     else:
         (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
@@ -290,6 +290,9 @@ def search(node, current_estimated_parameters):
     if leaf(node):
         return 0#evalute(node)
 
+    # if (node == root):
+    #     import ipdb; ipdb.set_trace()
+        
     action = select_action(node)
     
     # Agents move at the same time, so the previous action was not performed yet in the point of view of A agent.
@@ -335,6 +338,8 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
     node = root_node
     root = node
 
+##    import ipdb; ipdb.set_trace()
+    
     while time_step < iteration_max:
          tmp_sim = create_temp_simulator(simulator.items, simulator.agents, simulator.main_agent)
          node.state.simulator = tmp_sim
