@@ -262,23 +262,16 @@ class simulator:
         distance_x = x_item - x_agent
         distance_y = y_item - y_agent
 
+
+
         agent.change_direction(distance_x, distance_y)
         agent.item_to_load = -1
 
+
         return agent
 
-    ################################################################################################################
-    def is_there_item_in_position(self, x, y):
-
-        for i in range(len(self.items)):
-            (item_x, item_y) = self.items[i].get_position()
-            if (item_x, item_y) == (x, y):
-                return i
-
-        return -1
 
     ################################################################################################################
-
     def run_and_update(self, a_agent):
 
         a_agent = self.move_a_agent(a_agent)

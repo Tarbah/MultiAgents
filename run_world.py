@@ -17,6 +17,7 @@ items = []
 agents = []
 
 
+
 def initialize_items_agents_notrandom(n, m):
     # generating choices for random selection
 
