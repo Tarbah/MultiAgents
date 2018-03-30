@@ -101,6 +101,8 @@ class Agent:
          
         return memory_x, memory_y
     
+
+
     def is_item_nearby(self, items):
 
         pos = self.position
@@ -308,6 +310,7 @@ class Agent:
 
         if self.direction == 3 * np.pi / 2:
             return 'S'
+
 
     def change_position_direction(self, n, m):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
