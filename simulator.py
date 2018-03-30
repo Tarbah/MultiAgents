@@ -1,24 +1,118 @@
 # Types for agents are 'L1','L2','F1','F2'
 import agent
+import item
 import position
 import a_star
 import numpy as np
 from numpy.random import choice
+import random
 
 dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
 dy = [0, 1, 0, -1]
 actions = ['L', 'N', 'E', 'S', 'W']
 
 
+radius_max = 1
+radius_min = 0.1
+angle_max = 1
+angle_min = 0.1
+level_max = 1
+level_min = 0
+
 class simulator:
-    def __init__(self,the_map, items, agents, main_agent, dim_w, dim_h):
-        self.the_map = the_map
-        self.items = items
-        self.agents = agents
-        self.main_agent = main_agent
+    def __init__(self, dim_w, dim_h):
+        self.the_map = []
+        self.items = []
+        self.agents = []
+        self.main_agent = None
         self.dim_w = dim_w  # Number of columns
         self.dim_h = dim_h  # Number of rows
 
+    ###############################################################################################################
+
+    def initialisation_fixed_values(self):
+        # generating choices for random selection
+        sf = list()
+        sf.append((1, 2))
+        sf.append((1, 5))
+        sf.append((3, 4))
+        sf.append((5, 8))
+        sf.append((8, 1))
+        sf.append((6, 2))
+        sf.append((5, 4))
+        sf.append((9, 4))
+        sf.append((2, 6))
+        sf.append((9, 9))
+
+        # creating items
+        for i in range(0, 10):
+            (x, y) = sf[i]
+
+            # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
+            # tmp_item = item.item(x, y, ( i) / 10.0, i)
+            tmp_item = item.item(x, y, 1, i)
+            self.items.append(tmp_item)
+
+        # creating agent
+        (x, y) = (4, 4)
+        a_agent = agent.Agent(x, y, 0, 'l1', 0)
+        self.agents.append(a_agent)
+
+        (x, y) = (1, 1)
+        self.main_agent = agent.Agent(x, y, 0, 'l1', 1)
+        self.main_agent.level = 1
+
+        self.update_the_map()
+
+        return
+    ################################################################################################################
+
+    def is_there_item_in_position(self, x, y):
+
+        for i in range(len(self.items)):
+            (item_x, item_y) = self.items[i].get_position()
+            if (item_x, item_y) == (x, y):
+                return i
+
+        return -1
+
+    ####################################################################################################################
+
+    def initialisation_random_values(self):
+        # generating choices for random selection
+
+        sf = []
+        for i in range(0, self.dim_w):
+            for j in range(0, self.dim_h):
+                sf.append((i, j))
+
+        # creating items
+        for i in range(1, 11):
+            (x, y) = random.choice(sf)
+            item_level = round(random.uniform(level_min, level_max), 2)
+            tmp_item = item.item(x, y, item_level, i)
+            self.items.append(tmp_item)
+            sf.remove((x, y))
+
+
+        # creating agent
+        (x, y) = random.choice(sf)
+        unknown_agent = agent.Agent(x, y, 0, 'l1', 0)
+
+        self.agents.append(unknown_agent, 1)
+        sf.remove((x, y))
+
+        (x, y) = random.choice(sf)
+        main_agent = agent.Agent(x, y, 0, 'l1', -1)
+        main_agent.level = 1
+        main_agent.direction = 0
+
+        sf.remove((x, y))
+        self.update_the_map()
+
+        return main_agent
+
+    ###############################################################################################################
     ###############################################################################################################
     def create_empty_map(self):
 
@@ -60,38 +154,29 @@ class simulator:
         
     ###############################################################################################################
     def copy(self):
-        copy_map = list()
-
-        ## m rows of n columns each, right?
-        ## why the map is addressed as [y][x] instead of [x][y]?
-        for i in range(self.dim_h):
-            row = list()
-            for j in range(self.dim_w):
-                row.append(self.the_map[i][j])
-
-            copy_map.append(list(row))
 
         copy_items = []
 
-        for i in range(len(self.items)):            
+        for i in range(len(self.items)):
             copy_item = self.items[i].copy()
             copy_items.append(copy_item)
 
-
         copy_agents = list()
-        
+
         for agent in self.agents:
             copy_agent = agent.copy()
             copy_agents.append(copy_agent)
 
-
         copy_main_agent = self.main_agent.copy()
 
-        tmp_sim = simulator(copy_map, copy_items, copy_agents, copy_main_agent, self.dim_h, self.dim_w)
-        
+        tmp_sim = simulator(self.dim_h, self.dim_w)
+        tmp_sim.agents = copy_agents
+        tmp_sim.items = copy_items
+        tmp_sim.main_agent = copy_main_agent
+        tmp_sim.update_the_map()
+
         return tmp_sim
-                            
-            
+
     ###############################################################################################################
 
     def get_itemIndex_by_position(self, x, y):

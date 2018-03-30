@@ -21,39 +21,6 @@ class Q_table_row:
         self.sumValue = sumValue
         self.trials = trials
 
-## TODO: I think this method is not necessary. What we want is to use the copy method inside simulator class, right?
-def create_temp_simulator(items, agents, main_agent):
-    local_map = []
-    row = [0] * 10
-
-    for i in range(10):
-        local_map.append(list(row))
-
-    local_items = []
-    for i in range(len(items)):
-        (item_x, item_y) = items[i].get_position()
-        local_item = item.item(item_x, item_y, items[i].level, i)
-        local_item.loaded = items[i].loaded
-        local_items.append(local_item)
-        if not local_item.loaded:
-            local_map[item_y][item_x] = 1
-
-    local_agents = list()
-
-    (a_agent_x, a_agent_y) = agents[0].get_position()
-    local_map[a_agent_y][a_agent_x] = 8
-    local_agent = agent.Agent(a_agent_x, a_agent_y,agents[0].direction, 'l1', 0)
-    local_agents.append(local_agent)
-
-    (m_agent_x, m_agent_y) = main_agent.get_position()
-    local_map[m_agent_y][m_agent_x] = 9
-    local_main_agent = agent.Agent(m_agent_x, m_agent_y,main_agent.direction, 'l1', 1)
-
-    local_main_agent.level = main_agent.level
-
-    tmp_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
-    return tmp_sim
-
 
 class State:
 
@@ -336,7 +303,7 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
     root = node
 
     while time_step < iteration_max:
-         tmp_sim = create_temp_simulator(simulator.items, simulator.agents, simulator.main_agent)
+         tmp_sim = simulator.copy()
          node.state.simulator = tmp_sim
 
          search(node, current_estimated_parameters)
@@ -348,11 +315,10 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
     return best_action(node)
 
 
-def move_agent(agents, items, main_agent, current_estimated_parameters):
+def move_agent(real_sim,current_estimated_parameters):
     global totalItems
-    
-    real_sim = create_temp_simulator(items, agents, main_agent)
 
+    # real_sim = create_temp_simulator(items, agents, main_agent)
     ## We need total items, because the QValues must be between 0 and 1
     totalItems = real_sim.items_left()
     

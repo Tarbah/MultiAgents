@@ -36,8 +36,7 @@ class Agent:
         
         (memory_x, memory_y) = self.get_memory()
 
-        
-        return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
+        return (x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index)
 
     ################################################################################################################
     def copy(self):
@@ -50,14 +49,11 @@ class Agent:
 
         copy_agent.memory = position.position(memory_x, memory_y)
 
-
         return copy_agent
-
-
 
     ################################################################################################################
 
-    def is_agent_face_to_item(self,sim):
+    def is_agent_face_to_item(self, sim):
 
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
         dy = [0, 1, 0, -1]
@@ -68,7 +64,7 @@ class Agent:
         x, y = self.get_position()
 
         if self.direction == 0 * np.pi / 2 :
-           # Agent face to West
+            # Agent face to West
             x_diff = dx[2]
             y_diff = dy[2]
 
@@ -77,7 +73,7 @@ class Agent:
             x_diff = dx[1]
             y_diff = dy[1]
 
-        if  self.direction == 2 * np.pi / 2:
+        if self.direction == 2 * np.pi / 2:
             # Agent face to East
             x_diff = dx[0]
             y_diff = dy[0]
@@ -87,12 +83,12 @@ class Agent:
             x_diff = dx[3]
             y_diff = dy[3]
 
-        if x + x_diff < sim.dim_w and x + x_diff >= 0 \
-                and y + y_diff < sim.dim_h and y + y_diff >= 0:
-             if sim.the_map[y + y_diff][x + x_diff] == 1 or sim.the_map[y + y_diff][x + x_diff] == 4:
-                 return True , ( x + x_diff , y + y_diff)
+        if 0 <= x + x_diff < sim.dim_w and 0 <= y + y_diff < sim.dim_h and \
+                sim.is_there_item_in_position(x + x_diff, y + y_diff) != -1:
 
-        return False ,(-1 ,-1)
+            return True, (x + x_diff, y + y_diff)
+
+        return False,(-1,-1)
 
     ################################################################################################################
 
@@ -101,7 +97,7 @@ class Agent:
          
         return memory_x, memory_y
     
-
+    ################################################################################################################
 
     def is_item_nearby(self, items):
 
@@ -115,9 +111,9 @@ class Agent:
                     return i
         return -1
 
+    ################################################################################################################
     def find_nearest_item(self, items):
 
-        pos = self.position
         minimum_distance = 10000
         nearest_item_index = -1
 
@@ -130,6 +126,7 @@ class Agent:
                     nearest_item_index = i
 
         return nearest_item_index
+    ################################################################################################################
 
     def if_see_other_agent(self, agent):
         if self.distance(agent) < self.radius:
@@ -138,6 +135,7 @@ class Agent:
               return True
         return False
 
+    ################################################################################################################
     def is_agent_near_destination(self, item_x, item_y):
 
         pos = self.position
