@@ -36,7 +36,12 @@ class Agent:
         
         (memory_x, memory_y) = self.get_memory()
 
-        return (x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index)
+        return x == other_x and y == other_y and \
+               memory_x == other_memory_x and memory_y == other_memory_y and \
+               self.agent_type == other_agent.agent_type and \
+               self.index == other_agent.index and \
+               self.direction == other_agent.direction
+
 
     ################################################################################################################
     def copy(self):
@@ -44,6 +49,7 @@ class Agent:
         (x, y) = self.position
 
         copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
+        copy_agent.level = self.level
 
         (memory_x, memory_y) = self.memory.get_position()
 
@@ -63,12 +69,12 @@ class Agent:
 
         x, y = self.get_position()
 
-        if self.direction == 0 * np.pi / 2 :
+        if self.direction == 0 * np.pi / 2:
             # Agent face to West
             x_diff = dx[2]
             y_diff = dy[2]
 
-        if self.direction == np.pi / 2 :
+        if self.direction == np.pi / 2:
             # Agent face to North
             x_diff = dx[1]
             y_diff = dy[1]
@@ -261,7 +267,7 @@ class Agent:
 
     def get_actions_probabilities(self):
 
-        actions_probabilities=[]
+        actions_probabilities = list()
         actions_probabilities.append(self.actions_probability['L'])
         actions_probabilities.append(self.actions_probability['N'])
         actions_probabilities.append(self.actions_probability['E'])
@@ -270,6 +276,7 @@ class Agent:
         return actions_probabilities
 
     def change_direction(self, dx, dy):
+
         if dx == -1 and dy == 0:  # 'E':
             self.direction = 0 * np.pi / 2
 
@@ -283,6 +290,7 @@ class Agent:
             self.direction = 3 * np.pi / 2
 
     def change_direction_with_action(self, action):
+
         if action == 'E':  # 'E':
             self.direction = 0 * np.pi / 2
 

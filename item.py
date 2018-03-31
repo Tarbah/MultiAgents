@@ -25,5 +25,8 @@ class item:
         (other_x, other_y) = other_item.get_position()
         (x, y) = self.get_position()
 
-        return ((other_x == x) and (other_y == y) and (other_item.loaded == self.loaded) and (other_item.level == self.level) and (other_item.index == self.index))
+        return (other_x == x) and (other_y == y) and\
+               other_item.loaded == self.loaded and \
+               other_item.level == self.level and \
+               other_item.index == self.index
   
