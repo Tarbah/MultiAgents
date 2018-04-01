@@ -71,8 +71,8 @@ class Agent:
 
         if self.direction == 0 * np.pi / 2:
             # Agent face to West
-            x_diff = dx[2]
-            y_diff = dy[2]
+            x_diff = dx[0]
+            y_diff = dy[0]
 
         if self.direction == np.pi / 2:
             # Agent face to North
@@ -81,8 +81,8 @@ class Agent:
 
         if self.direction == 2 * np.pi / 2:
             # Agent face to East
-            x_diff = dx[0]
-            y_diff = dy[0]
+            x_diff = dx[2]
+            y_diff = dy[2]
 
         if self.direction == 3 * np.pi / 2:
             # Agent face to South
@@ -142,13 +142,42 @@ class Agent:
         return False
 
     ################################################################################################################
+    ## The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
+        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [0, 1, 0, -1]
+
+        x_diff = 0
+        y_diff = 0
 
         pos = self.position
 
+        if self.direction == 0 * np.pi / 2:
+            # Agent face to West
+            x_diff = dx[0]
+            y_diff = dy[0]
+
+        if self.direction == np.pi / 2:
+            # Agent face to North
+            x_diff = dx[1]
+            y_diff = dy[1]
+
+        if self.direction == 2 * np.pi / 2:
+            # Agent face to East
+            x_diff = dx[2]
+            y_diff = dy[2]
+
+        if self.direction == 3 * np.pi / 2:
+            # Agent face to South
+            x_diff = dx[3]
+            y_diff = dy[3]
+        
         (xI, yI) = (item_x, item_y)
         if (yI == pos[1] and abs(pos[0] - xI) == 1) or (xI == pos[0] and abs(pos[1] - yI) == 1):
-            return True
+            if ((pos[0] + x_diff == xI) and (pos[1] + y_diff == yI)):
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -278,13 +307,13 @@ class Agent:
     def change_direction(self, dx, dy):
 
         if dx == -1 and dy == 0:  # 'E':
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if dx == 0 and dy == 1:  # 'N':
             self.direction = np.pi / 2
 
         if dx == 1 and dy == 0:  # 'W':
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if dx == 0 and dy == -1:  # 'S':
             self.direction = 3 * np.pi / 2
@@ -292,27 +321,26 @@ class Agent:
     def change_direction_with_action(self, action):
 
         if action == 'E':  # 'E':
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'N' :  # 'N':
             self.direction = np.pi / 2
 
         if action == 'W' :  # 'W':
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
     def get_agent_direction(self):
-
-        if self.direction == 0:
-            return 'W'
+        if self.direction == np.pi:
+            return 'E'
 
         if self.direction == np.pi / 2:
             return 'N'
 
-        if self.direction == np.pi:
-            return 'E'
+        if self.direction == 0:
+            return 'W'
 
         if self.direction == 3 * np.pi / 2:
             return 'S'

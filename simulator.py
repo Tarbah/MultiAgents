@@ -35,8 +35,9 @@ class simulator:
         # generating choices for random selection
         sf = list()
         sf.append((1, 2))
-        sf.append((1, 5))
+        sf.append((1, 5))        
         sf.append((3, 4))
+        #sf.append((0, 4))        
         sf.append((5, 8))
         sf.append((8, 1))
         sf.append((6, 2))
@@ -52,14 +53,29 @@ class simulator:
             # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
             # tmp_item = item.item(x, y, ( i) / 10.0, i)
             tmp_item = item.item(x, y, 1, i)
+
+            ## DEBUG: If you start M at (1,4) and A at (2,4), this creates an interesting case for testing A agent
+            # tmp_item.loaded = True
+            
+            # if (x == 0 and y == 4):
+            #     tmp_item.loaded = False
+                
+            # if (x == 1 and y == 5):
+            #     tmp_item.loaded = False
+
+            
+            
             self.items.append(tmp_item)
 
         # creating agent
         (x, y) = (4, 4)
+        #(x, y) = (2, 4)
         a_agent = agent.Agent(x, y, 0, 'l1', 0)
         self.agents.append(a_agent)
 
         (x, y) = (1, 1)
+        #(x, y) = (1, 4)
+        ##self.main_agent = agent.Agent(x, y, np.pi/2, 'l1', 1)
         self.main_agent = agent.Agent(x, y, 0, 'l1', 1)
         self.main_agent.level = 1
 
@@ -346,7 +362,7 @@ class simulator:
         distance_x = x_item - x_agent
         distance_y = y_item - y_agent
 
-        agent.change_direction(distance_x, distance_y)
+        ##agent.change_direction(distance_x, distance_y) ## I can only load if the direction is correct
         agent.item_to_load = -1
 
         return agent
@@ -383,7 +399,7 @@ class simulator:
 
         else:
             # If there is no item to collect just move A agent
-            (new_position_x, new_position_y) = a_agent.change_position_direction(self.dim_h,self.dim_w)
+            (new_position_x, new_position_y) = a_agent.new_position_with_given_action(self.dim_h,self.dim_w,a_agent.next_action)
 
             if self.position_is_empty(new_position_x, new_position_y):
                 a_agent.position = (new_position_x, new_position_y)
@@ -411,7 +427,7 @@ class simulator:
 
         for i in range (len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
-            if (item_x, item_y) == (x,y) :
+            if ((item_x, item_y) == (x,y) and not self.items[i].loaded):
                 return False
 
         for i in range(len(self.agents)):
@@ -472,7 +488,7 @@ class simulator:
             if load:  # If there is a an item nearby loading process starts
                 a_agent.item_to_load = self.items[destination_index]
                 a_agent.set_actions_probabilities('L')
-                a_agent.next_action = 'L'
+                ##a_agent.next_action = 'L'
 
             else:
 
@@ -489,7 +505,7 @@ class simulator:
                     return a_agent
 
                 action = self.get_first_action(route)  # Get first action of the path
-                a_agent.next_action = action
+                ##a_agent.next_action = action
 
                 a_agent.set_actions_probabilities(action)
 

@@ -228,8 +228,9 @@ def simulate_action(state, action, current_estimated_parameters):
     a_agent = sim.move_a_agent(a_agent)
     action_probabilities = a_agent.get_actions_probabilities()
     next_action = choice(actions, p=action_probabilities)  # random sampling the action
-    a_agent.next_action = next_action
-    a_reward = sim.update(a_agent)
+    a_agent.next_action = next_action ## DEBUG: If you comment these two lines, and set a_reward to 0, you will ignore A in the tree search
+    a_reward = sim.update(a_agent) ## DEBUG: See above
+    ## a_reward = 0 ## DEBUG: See above
 
     m_reward = do_move(sim, action)
     #
@@ -255,6 +256,8 @@ def search(node, current_estimated_parameters):
     # print ('---action:',action)
     # print_Q_table(node)
 
+##    if (node == root):
+##        import ipdb; ipdb.set_trace()
     
     # Agents move at the same time, so the previous action was not performed yet in the point of view of A agent.
     # Hence, we simulate next state from the current node state
