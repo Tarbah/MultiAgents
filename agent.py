@@ -23,6 +23,21 @@ class Agent:
         self.memory = position.position(0, 0)
 
     ################################################################################################################
+
+    def agent_is_stocked(self, sim):
+        (memory_x, memory_y) = self.memory.get_position()
+
+        destination_index = sim.find_item_by_location(memory_x, memory_y)
+
+        if destination_index != -1:
+            if self.next_action == 'L' and \
+                    self.is_agent_near_destination(memory_x, memory_y) and \
+                    self.level < sim.items[destination_index].level:
+                return True
+        return False
+
+    ################################################################################################################
+
     def get_position(self):
         return self.position[0], self.position[1]
 

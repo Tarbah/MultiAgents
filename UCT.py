@@ -233,11 +233,16 @@ def simulate_action(state, action, current_estimated_parameters):
     ## a_reward = 0 ## DEBUG: See above
 
     m_reward = do_move(sim, action)
+
+    if sim.do_collaboration(a_agent):
+        c_reward = float(1)
+    else:
+        c_reward = 0
     #
     # print('*********************************************************************')
     # sim.draw_map()
 
-    total_reward = float(m_reward + a_reward) / totalItems
+    total_reward = float(m_reward + a_reward + c_reward) / totalItems
 
     return next_state, total_reward
 

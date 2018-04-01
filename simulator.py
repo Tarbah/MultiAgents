@@ -425,9 +425,9 @@ class simulator:
     ################################################################################################################
     def position_is_empty(self, x, y):
 
-        for i in range (len(self.items)):
+        for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
-            if ((item_x, item_y) == (x,y) and not self.items[i].loaded):
+            if (item_x, item_y) == (x,y) and not self.items[i].loaded:
                 return False
 
         for i in range(len(self.agents)):
@@ -441,6 +441,17 @@ class simulator:
 
         return True
 
+    ################################################################################################################
+    def do_collaboration(self, agent):
+        (memory_x, memory_y) = agent.memory.get_position()
+        destination_index = self.find_item_by_location(memory_x, memory_y)
+
+        if self.main_agent.next_action == 'L' and agent.next_action == 'L' and \
+                self.main_agent.is_agent_near_destination(memory_x, memory_y) and \
+                self.main_agent.level + agent.level >= self.items[destination_index].level:
+            self.load_item(agent, destination_index)
+            return True
+        return False
     ################################################################################################################
 
     def move_a_agent(self, a_agent):
