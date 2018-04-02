@@ -16,16 +16,16 @@ class Agent:
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
-        self.memory = position.position(0, 0)
+        self.memory = position.position(-1, -1)
 
     ################################################################################################################
     def reset_memory(self):
-        self.memory = position.position(0, 0)
+        self.memory = position.position(-1, -1)
 
     ################################################################################################################
 
     def agent_is_stocked(self, sim):
-        (memory_x, memory_y) = self.memory.get_position()
+        (memory_x, memory_y) = self.get_memory()
 
         destination_index = sim.find_item_by_location(memory_x, memory_y)
 
@@ -48,7 +48,7 @@ class Agent:
         (other_x, other_y) = other_agent.get_position()
 
         (other_memory_x, other_memory_y) = other_agent.get_memory()
-        
+
         (memory_x, memory_y) = self.get_memory()
 
         return x == other_x and y == other_y and \
@@ -109,7 +109,7 @@ class Agent:
 
             return True, (x + x_diff, y + y_diff)
 
-        return False,(-1,-1)
+        return False, (-1, -1)
 
     ################################################################################################################
 

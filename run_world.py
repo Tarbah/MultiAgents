@@ -45,19 +45,19 @@ while time_step < 100:
     # Initializing the simulator
     ##import ipdb; ipdb.set_trace()
     a_agent = main_sim.run_and_update(a_agent) ## DEBUG: You can comment this line to let only M move
-    tmp_sim = main_sim.copy()
-    main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
-    print 'main_agent_direction: ', main_agent.get_agent_direction()
-
-
-    main_sim.do_collaboration(a_agent)
-
-    ##main_agent_next_action = 'L' ## DEBUG: You can uncomment this line to let only A move
-    
-    print 'main_agent_next_action: ', main_agent_next_action
+    # tmp_sim = main_sim.copy()
+    # main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
+    # print 'main_agent_direction: ', main_agent.get_agent_direction()
+    #
+    #
+    # main_sim.do_collaboration(a_agent)
+    #
+    # ##main_agent_next_action = 'L' ## DEBUG: You can uncomment this line to let only A move
+    #
+    # print 'main_agent_next_action: ', main_agent_next_action
 
     #import ipdb; ipdb.set_trace()
-    r = UCT.do_move(main_sim, main_agent_next_action)
+    # r = UCT.do_move(main_sim, main_agent_next_action)
 
     time_step = time_step + 1
 
