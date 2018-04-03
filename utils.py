@@ -34,7 +34,7 @@ def txt_generator(agent_count, item_count, grid_width, grid_height):
                                                   np.round(np.random.uniform(0, grid_width)).astype(int),  # x-coord
                                                   np.round(np.random.uniform(0, grid_height)).astype(int),  # y-coord
                                                   np.round(np.random.uniform(), 3),  # level
-                                                  np.round(np.random.uniform(0.1, 2*np.pi-0.01), 3),  # radius
+                                                  np.round(np.random.uniform(0.1, 2*np.pi-0.01), 1).astype(int),  # radius
                                                   random.choice(angles)))  # direction
         i += 1
     i = 0
@@ -42,7 +42,7 @@ def txt_generator(agent_count, item_count, grid_width, grid_height):
         print('item{}, {}, {}, {}'.format(i+1,
                                           np.round(np.random.uniform(0, grid_width)).astype(int),
                                           np.round(np.random.uniform(0, grid_height)).astype(int),
-                                          np.round(np.random.uniform(), 3)))
+                                          np.round(np.random.uniform(), 3).astype(int)))
         i += 1
 
 def loader(path):

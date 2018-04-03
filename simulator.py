@@ -266,7 +266,9 @@ class simulator:
 
         copy_main_agent = self.main_agent.copy()
 
-        tmp_sim = simulator(self.dim_h, self.dim_w)
+        tmp_sim = simulator()
+        tmp_sim.dim_h = self.dim_h
+        tmp_sim.dim_w = self.dim_w
         tmp_sim.agents = copy_agents
         tmp_sim.items = copy_items
         tmp_sim.main_agent = copy_main_agent

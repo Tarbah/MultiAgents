@@ -2,9 +2,8 @@ import position
 
 
 class item:
-
     def __init__(self, x,y,level, index):
-        self.position = position.position(x,y)
+        self.position = position.position(int(x),int(y))
         self.loaded = False
         self.level = level
         self.index = index
