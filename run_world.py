@@ -12,9 +12,12 @@ import numpy as np
 column_no = 10  # horizontal size ,column
 row_no = 10  # vertical size ,row
 
-main_sim = simulator.simulator(column_no, row_no)
-main_sim.initialisation_fixed_values()
+#main_sim = simulator.simulator(column_no, row_no)
+#main_sim.initialisation_fixed_values()
 
+main_sim = simulator.simulator()
+main_sim.loader('/home/tpin3694/Documents/python/MultiAgents/simulation.csv')
+print('Simulation Successful')
 # ================create unknown agent  ================================================================
 
 # true parameters

@@ -23,13 +23,13 @@ level_min = 0
 
 
 class simulator:
-    def __init__(self, dim_w, dim_h):
+    def __init__(self):
         self.the_map = []
         self.items = []
         self.agents = []
         self.main_agent = None
-        self.dim_w = dim_w  # Number of columns
-        self.dim_h = dim_h  # Number of rows
+        self.dim_w = None  # Number of columns
+        self.dim_h = None  # Number of rows
 
     # ###############################################################################################################
     #
@@ -82,8 +82,8 @@ class simulator:
                 info[key].append(val)
 
         # Extract grid dimensions
-        self.dim_w = info['grid'][0][0]
-        self.dim_h = info['grid'][0][1]
+        self.dim_w = int(info['grid'][0][0])
+        self.dim_h = int(info['grid'][0][1])
 
         # Add items and agents to the environment
         i = 0
@@ -97,19 +97,21 @@ class simulator:
                 self.agents.append(agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', j))
                 j += 1
             elif 'main' in k:
+                # x-coord, y-coord, direction, type, index
                 self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', l)
+                self.main_agent.level = v[0][2]
                 l += 1
 
         # Run Checks
-        assert len(self.items)== i, 'Incorrect Item Loading'
+        assert len(self.items) == i, 'Incorrect Item Loading'
         assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
-        assert len(self.main_agent) == l, 'Incorrect Main Agent Loading'
 
         # Print Simulation Description
-        print('Grid Size: {} \n{} Items Loaded \n{} Agents Loaded \n{} Main Agents Loaded'.format(self.dim_w,
-                                                                                                  len(self.items),
-                                                                                                  len(self.agents),
-                                                                                                  len(self.main_agent)))
+        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded'.format(self.dim_w, len(self.items), len(self.agents)))
+
+        # Update the map
+        self.update_the_map()
+
 
     def initialisation_fixed_values(self):
         # generating choices for random selection

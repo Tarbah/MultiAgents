@@ -31,8 +31,8 @@ def txt_generator(agent_count, item_count, grid_width, grid_height):
             prefix = 'agent'
         print('{}, {}, {}, {}, {}, {}, {}'.format(prefix,
                                                   i+1,  # meta-name
-                                                  np.round(np.random.uniform(0, grid_width)),  # x-coord
-                                                  np.round(np.random.uniform(0, grid_height)),  # y-coord
+                                                  np.round(np.random.uniform(0, grid_width)).astype(int),  # x-coord
+                                                  np.round(np.random.uniform(0, grid_height)).astype(int),  # y-coord
                                                   np.round(np.random.uniform(), 3),  # level
                                                   np.round(np.random.uniform(0.1, 2*np.pi-0.01), 3),  # radius
                                                   random.choice(angles)))  # direction
@@ -40,8 +40,8 @@ def txt_generator(agent_count, item_count, grid_width, grid_height):
     i = 0
     while i < item_count:
         print('item{}, {}, {}, {}'.format(i+1,
-                                          np.round(np.random.uniform(0, grid_width)),
-                                          np.round(np.random.uniform(0, grid_height)),
+                                          np.round(np.random.uniform(0, grid_width)).astype(int),
+                                          np.round(np.random.uniform(0, grid_height)).astype(int),
                                           np.round(np.random.uniform(), 3)))
         i += 1
 
@@ -57,8 +57,3 @@ def loader(path):
 if __name__ == '__main__':
     txt_generator(2, 10, 10, 10)
     t = loader('/home/tpin3694/Documents/python/MultiAgents/simulation.csv')
-    for k, v in t.items():
-        if 'item' in k:
-            print(v[0])
-        else:
-            print('Non-item')
