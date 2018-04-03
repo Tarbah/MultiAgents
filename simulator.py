@@ -6,6 +6,8 @@ import a_star
 import numpy as np
 from numpy.random import choice
 import random
+import csv
+from collections import defaultdict
 
 dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
 dy = [0, 1, 0, -1]
@@ -29,6 +31,52 @@ class simulator:
         self.dim_h = dim_h  # Number of rows
 
     ###############################################################################################################
+
+    def loader(self, path):
+        """
+        Takes in a csv file and stores the necessary instances for the simulation object. The file path referenced
+        should point to a file of a particular format - an example of which can be found in utils.py txt_generator().
+        The exact order of the file is unimportant - the three if statements will extract the needed information.
+        :param path: File path directory to a .csv file holding the simulation information
+        :return:
+        """
+        # Load and store csv file
+        info = defaultdict(list)
+        with open(path) as info_read:
+            for line in info_read:
+                data = line.strip().split(', ')
+                key, val = data[0], data[1:]
+                info[key].append(val)
+
+        # Extract grid dimensions
+        self.dim_w = info['grid'][0][0]
+        self.dim_h = info['grid'][0][1]
+
+        # Add items and agents to the environment
+        i = 0
+        j = 0
+        l = 0
+        for k, v in info.items():
+            if 'item' in k:
+                self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
+                i += 1
+            elif 'agent' in k:
+                self.agents.append(agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', j))
+                j += 1
+            elif 'main' in k:
+                self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', l)
+                l += 1
+
+        # Run Checks
+        assert len(self.items)== i, 'Incorrect Item Loading'
+        assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
+        assert len(self.main_agent) == l, 'Incorrect Main Agent Loading'
+
+        # Print Simulation Description
+        print('Grid Size: {} \n{} Items Loaded \n{} Agents Loaded \n{} Main Agents Loaded'.format(self.dim_w,
+                                                                                                  len(self.items),
+                                                                                                  len(self.agents),
+                                                                                                  len(self.main_agent)))
 
     def initialisation_fixed_values(self):
         # generating choices for random selection
