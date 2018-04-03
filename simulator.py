@@ -112,7 +112,6 @@ class simulator:
             self.items.append(tmp_item)
             sf.remove((x, y))
 
-
         # creating agent
         (x, y) = random.choice(sf)
         unknown_agent = agent.Agent(x, y, 0, 'l1', 0)
@@ -166,8 +165,6 @@ class simulator:
         if not self.main_agent.equals(other_simulator.main_agent):
             return False
 
-
-
         return True
         
     ###############################################################################################################
@@ -194,7 +191,6 @@ class simulator:
         tmp_sim.update_the_map()
 
         return tmp_sim
-
 
     ###############################################################################################################
     def get_first_action(self,route):
@@ -236,14 +232,12 @@ class simulator:
             (agent_x, agent_y) = self.agents[i].get_position()
             self.the_map[agent_y][agent_x] = 8
 
-            (memory_x, memory_y) = self.agents[i].memory.get_position()
-            if (memory_x, memory_y) != (0, 0):
+            (memory_x, memory_y) = self.agents[i].get_memory()
+            if (memory_x, memory_y) != (-1, -1):
                 self.the_map[memory_y][memory_x] = 4
 
         (m_agent_x, m_agent_y) = self.main_agent.get_position()
         self.the_map[m_agent_y][m_agent_x] = 9
-
-
 
     ###############################################################################################################
     def find_agent_index(self,pos):
@@ -355,20 +349,17 @@ class simulator:
     ################################################################################################################
     def load_item(self, agent, destinantion_item_index):
 
-        (x_agent, y_agent) = agent.get_position()
-        (x_item, y_item) = self.items[destinantion_item_index].get_position()
         self.items[destinantion_item_index].loaded = True
-
-        distance_x = x_item - x_agent
-        distance_y = y_item - y_agent
-
-        ##agent.change_direction(distance_x, distance_y) ## I can only load if the direction is correct
         agent.item_to_load = -1
+
+        # Empty the memory to choose new target
+        agent.reset_memory()
 
         return agent
 
     ################################################################################################################
     def run_and_update(self, a_agent):
+
 
         a_agent = self.move_a_agent(a_agent)
 
@@ -393,17 +384,19 @@ class simulator:
 
                 self.agents[a_agent.index] = a_agent
 
-                # Empty the memory to choose new target
-                self.agents[a_agent.index].memory = position.position(0, 0)
+
                 return 1
 
         else:
             # If there is no item to collect just move A agent
-            (new_position_x, new_position_y) = a_agent.new_position_with_given_action(self.dim_h,self.dim_w,a_agent.next_action)
+            (new_position_x, new_position_y) = a_agent.new_position_with_given_action(self.dim_h,self.dim_w
+                                                                                      ,a_agent.next_action)
 
             if self.position_is_empty(new_position_x, new_position_y):
                 a_agent.position = (new_position_x, new_position_y)
                 self.agents[a_agent.index] = a_agent
+            else :
+                a_agent.change_direction_with_action(a_agent.next_action)
 
         self.update_the_map()
         return 0
@@ -412,7 +405,7 @@ class simulator:
     def destination_loaded_by_other_agents(self, agent):
         # Check if item is collected by other agents so we need to ignore it and change the target.
 
-        (memory_x, memory_y) = agent.memory.get_position()
+        (memory_x, memory_y) = agent.get_memory()
         destination_index = self.find_item_by_location(memory_x, memory_y)
 
         item_loaded = False
@@ -443,7 +436,7 @@ class simulator:
 
     ################################################################################################################
     def do_collaboration(self, agent):
-        (memory_x, memory_y) = agent.memory.get_position()
+        (memory_x, memory_y) = agent.get_memory()
         destination_index = self.find_item_by_location(memory_x, memory_y)
 
         if self.main_agent.next_action == 'L' and agent.next_action == 'L' and \
@@ -457,14 +450,14 @@ class simulator:
     def move_a_agent(self, a_agent):
 
         location = a_agent.position  # Location of main agent
-        destination = position.position(0, 0)
-        target = position.position(0, 0)
+        destination = position.position(-1, -1)
+        target = position.position(-1, -1)
 
         if self.destination_loaded_by_other_agents(a_agent):  # item is loaded by other agents so reset the memory to choose new target.
             a_agent.reset_memory()
 
         # If the target is selected before we have it in memory variable and we can use it
-        if a_agent.memory.get_position() != (0, 0) and location != a_agent.memory: #here
+        if a_agent.memory.get_position() != (-1, -1) and location != a_agent.memory: #here
             destination = a_agent.memory
 
         else:  # If there is no target we should choose a target based on visible items and agents.
@@ -472,10 +465,11 @@ class simulator:
             directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
 
             while len(directions) > 0:
+
                 a_agent.visible_agents_items(self.items, self.agents)
                 target = a_agent.choose_target(self.items, self.agents)
 
-                if target.get_position() != (0, 0):
+                if target.get_position() != (-1, -1):
                     destination = target
                     break
 
@@ -485,7 +479,8 @@ class simulator:
             a_agent.memory = destination
 
         # If there is no destination the probabilities for all of the actions are same.
-        if destination.get_position() == (0, 0): # here
+        if destination.get_position() == (-1, -1):
+
             a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
             a_agent.set_random_action()
             return a_agent
@@ -499,8 +494,6 @@ class simulator:
             if load:  # If there is a an item nearby loading process starts
                 a_agent.item_to_load = self.items[destination_index]
                 a_agent.set_actions_probabilities('L')
-                ##a_agent.next_action = 'L'
-
             else:
 
                 self.the_map[y_destination][x_destination] = 4  # Update map with target position
@@ -516,8 +509,6 @@ class simulator:
                     return a_agent
 
                 action = self.get_first_action(route)  # Get first action of the path
-                ##a_agent.next_action = action
-
                 a_agent.set_actions_probabilities(action)
 
             return a_agent
