@@ -42,17 +42,18 @@ while time_step < 100:
 
     print 'main run count: ', time_step
 
-    # Initializing the simulator
-    ##import ipdb; ipdb.set_trace()
-    a_agent = main_sim.run_and_update(a_agent) ## DEBUG: You can comment this line to let only M move
+
+    for a_agent in main_sim.agents:
+         a_agent = main_sim.move_a_agent(a_agent) ## DEBUG: You can comment this line to let only M move
+
     tmp_sim = main_sim.copy()
     main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
     print 'main_agent_direction: ', main_agent.get_agent_direction()
 
 
-    main_sim.do_collaboration(a_agent)
+    # main_sim.do_collaboration(a_agent)
 
-    ##main_agent_next_action = 'L' ## DEBUG: You can uncomment this line to let only A move
+    main_sim.update_all_A_agents()
 
     print 'main_agent_next_action: ', main_agent_next_action
 
@@ -60,6 +61,7 @@ while time_step < 100:
     r = UCT.do_move(main_sim, main_agent_next_action)
 
     time_step = time_step + 1
+    print('*******************************************************************************************************************')
 
     main_sim.draw_map()
     # real_sim.draw_map_with_level()

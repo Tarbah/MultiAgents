@@ -29,15 +29,47 @@ class simulator:
         self.dim_w = dim_w  # Number of columns
         self.dim_h = dim_h  # Number of rows
 
-    ###############################################################################################################
+    # ###############################################################################################################
+    #
+    # def initialisation_fixed_values(self):
+    #
+    #     sf = list()
+    #
+    #     sf.append((5, 8))
+    #     sf.append((8, 1))
+    #     sf.append((6, 2))
+    #     sf.append((9, 4))
+    #
+    #     # creating items
+    #     for i in range(0, 4):
+    #         (x, y) = sf[i]
+    #         tmp_item = item.item(x, y, 1, i)
+    #
+    #         self.items.append(tmp_item)
+    #
+    #     # creating agent
+    #     (x, y) = (8, 5)
+    #     a_agent = agent.Agent(x, y, 0, 'l1', 0)
+    #     self.agents.append(a_agent)
+    #
+    #     (x, y) = (2, 4)
+    #
+    #     self.main_agent = agent.Agent(x, y, 0, 'l1', 1)
+    #     self.main_agent.level = 1
+    #
+    #     self.update_the_map()
+    #
+    #     return
+
+    # ###############################################################################################################
 
     def initialisation_fixed_values(self):
         # generating choices for random selection
         sf = list()
         sf.append((1, 2))
-        sf.append((1, 5))        
+        sf.append((1, 5))
         sf.append((3, 4))
-        #sf.append((0, 4))        
+        #sf.append((0, 4))
         sf.append((5, 8))
         sf.append((8, 1))
         sf.append((6, 2))
@@ -56,15 +88,15 @@ class simulator:
 
             ## DEBUG: If you start M at (1,4) and A at (2,4), this creates an interesting case for testing A agent
             # tmp_item.loaded = True
-            
+
             # if (x == 0 and y == 4):
             #     tmp_item.loaded = False
-                
+
             # if (x == 1 and y == 5):
             #     tmp_item.loaded = False
 
-            
-            
+
+
             self.items.append(tmp_item)
 
         # creating agent
@@ -370,6 +402,17 @@ class simulator:
         self.update(a_agent)
 
         return self.agents[a_agent.index]
+
+    ################################################################################################################
+    def update_all_A_agents(self):
+
+        for a_agent in self.agents:
+            next_action = choice(actions, p=a_agent.get_actions_probabilities())  # random sampling the action
+
+            a_agent.next_action = next_action
+
+            self.update(a_agent)
+
 
     ################################################################################################################
     def update(self, a_agent):

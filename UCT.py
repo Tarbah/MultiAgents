@@ -33,7 +33,7 @@ class State:
 
 class Node:
 
-    def __init__(self, depth, state, action=None, parent=None):
+    def __init__(self, depth, state,  parent=None):
 
         self.parentNode = parent  # "None" for the root node
         self.depth = depth
@@ -227,12 +227,13 @@ def simulate_action(state, action, current_estimated_parameters):
     a_agent.set_parameters_array(current_estimated_parameters)
     a_agent = sim.move_a_agent(a_agent)
     action_probabilities = a_agent.get_actions_probabilities()
-    next_action = choice(actions, p=action_probabilities)  # random sampling the action
-    a_agent.next_action = next_action ## DEBUG: If you comment these two lines, and set a_reward to 0, you will ignore A in the tree search
-    a_reward = sim.update(a_agent) ## DEBUG: See above
-  
+
 
     m_reward = do_move(sim, action)
+
+    next_action = choice(actions, p=action_probabilities)  # random sampling the action
+    a_agent.next_action = next_action  ## DEBUG: If you comment these two lines, and set a_reward to 0, you will ignore A in the tree search
+    a_reward = sim.update(a_agent)  ## DEBUG: See above
 
     if sim.do_collaboration(a_agent):
         c_reward = float(1)
