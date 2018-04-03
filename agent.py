@@ -25,7 +25,7 @@ class Agent:
     ################################################################################################################
 
     def agent_is_stocked(self, sim):
-        (memory_x, memory_y) = self.get_memory()
+        (memory_x, memory_y) = self.memory.get_position()
 
         destination_index = sim.find_item_by_location(memory_x, memory_y)
 
@@ -48,7 +48,7 @@ class Agent:
         (other_x, other_y) = other_agent.get_position()
 
         (other_memory_x, other_memory_y) = other_agent.get_memory()
-
+        
         (memory_x, memory_y) = self.get_memory()
 
         return x == other_x and y == other_y and \
@@ -109,7 +109,7 @@ class Agent:
 
             return True, (x + x_diff, y + y_diff)
 
-        return False, (-1, -1)
+        return False,(-1,-1)
 
     ################################################################################################################
 
@@ -335,21 +335,19 @@ class Agent:
 
     def change_direction_with_action(self, action):
 
-        if action == 'E':  # 'E':
-            self.direction = 2 * np.pi / 2
+        if action == 'W':  # 'W':
+            self.direction = 0 * np.pi / 2
 
-        if action == 'N' :  # 'N':
+        if action == 'N':  # 'N':
             self.direction = np.pi / 2
 
-        if action == 'W' :  # 'W':
-            self.direction = 0 * np.pi / 2
+        if action == 'E':  # 'E':
+            self.direction = 2 * np.pi / 2
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
     def get_agent_direction(self):
-        if self.direction == np.pi:
-            return 'E'
 
         if self.direction == np.pi / 2:
             return 'N'
@@ -357,11 +355,13 @@ class Agent:
         if self.direction == 0:
             return 'W'
 
+        if self.direction == np.pi:
+            return 'E'
+
         if self.direction == 3 * np.pi / 2:
             return 'S'
 
-
-    def change_position_direction(self, n, m):
+    def change_position_direction(self, dim_w , dim_h):
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
         dy = [0, 1, 0, -1]
 
@@ -390,12 +390,12 @@ class Agent:
 
         x, y = self.get_position()
 
-        if x + x_diff < n and x + x_diff >= 0 and y + y_diff < m and y + y_diff >= 0:
+        if 0 <= x + x_diff < dim_w  and 0 <= y + y_diff < dim_h :
             self.position = (x + x_diff, y + y_diff)
 
         return self.position
 
-    def new_position_with_given_action(self, n, m, action):
+    def new_position_with_given_action(self, dim_w, dim_h, action):
 
         dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
         dy = [0, 1, 0, -1]
@@ -426,7 +426,7 @@ class Agent:
 
         x, y = self.get_position()
 
-        if x + x_diff < n and x + x_diff >= 0 and y + y_diff < m and y + y_diff >= 0:
+        if 0 <= x + x_diff < dim_w and 0 <= y + y_diff < dim_h:
             new_position = (x + x_diff, y + y_diff)
 
         return new_position
@@ -457,7 +457,7 @@ class Agent:
         return len(self.visible_items)
 
     def set_random_action(self):
-        actions = [ 'N', 'E', 'S', 'W']
+        actions = ['N', 'E', 'S', 'W']
         self.next_action = choice(actions)
         return
 
@@ -481,14 +481,12 @@ class Agent:
                             agents[i]) <= self.direction + self.angle / 2:
                         self.visible_agents.append(agents[i])
 
-
         return self.visible_items
 
     def choose_target(self, items, agents):
 
-
         if len(self.visible_items) == 0:
-            return position.position(0, 0)
+            return position.position(-1, -1)
 
         max_index = -1
         max_distanse = 0
@@ -516,7 +514,7 @@ class Agent:
                         max_index = i
 
             if max_index == -1:
-                return position.position(0, 0)
+                return position.position(-1, -1)
             else:
                 return self.visible_items[max_index]
 
@@ -548,9 +546,9 @@ class Agent:
 
                         return furthest_agent.choose_target()
                     else:
-                        return position.position(0, 0)
+                        return position.position(-1, -1)
             else:
-                return position.position(0, 0)
+                return position.position(-1, -1)
 
 
         # else, return 0
@@ -597,8 +595,8 @@ class Agent:
 
                         return furthest_agent.choose_target()
                     else:
-                        return position.position(0, 0)
+                        return position.position(-1, -1)
             else:
-                return position.position(0, 0)
+                return position.position(-1, -1)
 
-        return position.position(0, 0)
+        return position.position(-1, -1)
