@@ -26,6 +26,7 @@ class simulator:
         self.the_map = []
         self.items = []
         self.agents = []
+        self.obstacles = []
         self.main_agent = None
         self.dim_w = None  # Number of columns
         self.dim_h = None  # Number of rows
@@ -76,10 +77,10 @@ class simulator:
         info = defaultdict(list)
         with open(path) as info_read:
             for line in info_read:
-                data = line.strip().split(', ')
+                data = line.strip().split(',')
                 key, val = data[0], data[1:]
                 info[key].append(val)
-
+        print(info)
         # Extract grid dimensions
         self.dim_w = int(info['grid'][0][0])
         self.dim_h = int(info['grid'][0][1])
@@ -99,14 +100,20 @@ class simulator:
                 # x-coord, y-coord, direction, type, index
                 self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', l)
                 self.main_agent.level = v[0][2]
+            elif 'obstacle' in k:
+                self.obstacles.append(agent.Obstacle(v[0][1], v[0][1]))
                 l += 1
 
         # Run Checks
         assert len(self.items) == i, 'Incorrect Item Loading'
         assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
+        assert len(self.obstacles) == l, 'Incorrect Obstacle Loading'
 
         # Print Simulation Description
-        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded'.format(self.dim_w, len(self.items), len(self.agents)))
+        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded\n{} Obstacles Loaded'.format(self.dim_w,
+                                                                                              len(self.items),
+                                                                                              len(self.agents),
+                                                                                              len(self.obstacles)))
 
         # Update the map
         self.update_the_map()
@@ -267,6 +274,10 @@ class simulator:
             if (memory_x, memory_y) != (-1, -1):
                 self.the_map[memory_y][memory_x] = 4
 
+        #for i in range(len(self.obstacles)):
+        #    (obs_x, obs_y) = self.obstacles[i].get_position()
+        #    self.the_map[obs_x, obs_y] = 5
+
         (m_agent_x, m_agent_y) = self.main_agent.get_position()
         self.the_map[m_agent_y][m_agent_x] = 9
 
@@ -317,7 +328,7 @@ class simulator:
                     print 'R',  # route
                 elif xy == 4:
                     print 'D',  # finish
-                elif xy = 5:
+                elif xy == 5:
                     print('O') # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
@@ -350,7 +361,8 @@ class simulator:
 
                 elif xy == 4:
                     line_str += ' D '
-
+                elif xy == 5:
+                    line_str += ' O ' # Obstacle
                 elif xy == 8:
                     line_str += ' A '
 

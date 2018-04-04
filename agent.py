@@ -608,5 +608,4 @@ class Obstacle:
         self.y = y
 
     def get_position(self):
-        pos = (self.x, self.y)
-        return pos
+        return int(self.x), int(self.y)
