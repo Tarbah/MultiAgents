@@ -130,41 +130,6 @@ class simulator:
 
         return -1
 
-    ####################################################################################################################
-
-    def initialisation_random_values(self):
-        # generating choices for random selection
-
-        sf = []
-        for i in range(0, self.dim_w):
-            for j in range(0, self.dim_h):
-                sf.append((i, j))
-
-        # creating items
-        for i in range(1, 11):
-            (x, y) = random.choice(sf)
-            item_level = round(random.uniform(level_min, level_max), 2)
-            tmp_item = item.item(x, y, item_level, i)
-            self.items.append(tmp_item)
-            sf.remove((x, y))
-
-        # creating agent
-        (x, y) = random.choice(sf)
-        unknown_agent = agent.Agent(x, y, 0, 'l1', 0)
-
-        self.agents.append(unknown_agent, 1)
-        sf.remove((x, y))
-
-        (x, y) = random.choice(sf)
-        main_agent = agent.Agent(x, y, 0, 'l1', -1)
-        main_agent.level = 1
-        main_agent.direction = 0
-
-        sf.remove((x, y))
-        self.update_the_map()
-
-        return main_agent
-
     ###############################################################################################################
     def create_empty_map(self):
 
@@ -220,12 +185,18 @@ class simulator:
 
         copy_main_agent = self.main_agent.copy()
 
+        copy_obstacles = []
+        for obs in self.obstacles:
+            copy_obstacle = obs.copy()
+            copy_obstacles.append(copy_obstacle)
+
         tmp_sim = simulator()
         tmp_sim.dim_h = self.dim_h
         tmp_sim.dim_w = self.dim_w
         tmp_sim.agents = copy_agents
         tmp_sim.items = copy_items
         tmp_sim.main_agent = copy_main_agent
+        tmp_sim.obstacles = copy_obstacles
         tmp_sim.update_the_map()
 
         return tmp_sim
@@ -261,7 +232,7 @@ class simulator:
 
         for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
-            if self.items[i].loaded :
+            if self.items[i].loaded:
                 self.the_map[item_y][item_x] = 0
             else:
                 self.the_map[item_y][item_x] = 1
@@ -274,9 +245,9 @@ class simulator:
             if (memory_x, memory_y) != (-1, -1):
                 self.the_map[memory_y][memory_x] = 4
 
-        #for i in range(len(self.obstacles)):
-        #    (obs_x, obs_y) = self.obstacles[i].get_position()
-        #    self.the_map[obs_x, obs_y] = 5
+        for i in range(len(self.obstacles)):
+            (obs_x, obs_y) = self.obstacles[i].get_position()
+            self.the_map[obs_x][obs_y] = 5
 
         (m_agent_x, m_agent_y) = self.main_agent.get_position()
         self.the_map[m_agent_y][m_agent_x] = 9
@@ -329,7 +300,7 @@ class simulator:
                 elif xy == 4:
                     print 'D',  # finish
                 elif xy == 5:
-                    print('O') # Obstacle
+                    print 'O', # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
                 elif xy == 9:
