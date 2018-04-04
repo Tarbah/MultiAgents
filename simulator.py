@@ -5,6 +5,7 @@ import position
 import a_star
 import numpy as np
 from numpy.random import choice
+import csv
 import random
 from collections import defaultdict
 
@@ -26,42 +27,68 @@ class simulator:
         self.the_map = []
         self.items = []
         self.agents = []
-        self.obstacles = []
         self.main_agent = None
         self.dim_w = None  # Number of columns
         self.dim_h = None  # Number of rows
 
-    # ###############################################################################################################
-    #
-    # def initialisation_fixed_values(self):
-    #
-    #     sf = list()
-    #
-    #     sf.append((5, 8))
-    #     sf.append((8, 1))
-    #     sf.append((6, 2))
-    #     sf.append((9, 4))
-    #
-    #     # creating items
-    #     for i in range(0, 4):
-    #         (x, y) = sf[i]
-    #         tmp_item = item.item(x, y, 1, i)
-    #
-    #         self.items.append(tmp_item)
-    #
-    #     # creating agent
-    #     (x, y) = (8, 5)
-    #     a_agent = agent.Agent(x, y, 0, 'l1', 0)
-    #     self.agents.append(a_agent)
-    #
-    #     (x, y) = (2, 4)
-    #
-    #     self.main_agent = agent.Agent(x, y, 0, 'l1', 1)
-    #     self.main_agent.level = 1
-    #
-    #     self.update_the_map()
-    #
-    #     return
+        ###############################################################################################################
+
+    def initialisation_fixed_values(self):
+        # generating choices for random selection
+        sf = list()
+        sf.append((1, 2))
+        sf.append((1, 5))
+        sf.append((3, 4))
+        # sf.append((0, 4))
+        sf.append((5, 8))
+        sf.append((8, 1))
+        sf.append((6, 2))
+        sf.append((5, 4))
+        sf.append((9, 4))
+        sf.append((2, 6))
+        sf.append((9, 9))
+
+        # creating items
+        for i in range(0, 10):
+            (x, y) = sf[i]
+
+            # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
+            # tmp_item = item.item(x, y, ( i) / 10.0, i)
+            tmp_item = item.item(x, y, 1, i)
+
+            ## DEBUG: If you start M at (1,4) and A at (2,4), this creates an interesting case for testing A agent
+            # tmp_item.loaded = True
+
+            # if (x == 0 and y == 4):
+            #     tmp_item.loaded = False
+
+            # if (x == 1 and y == 5):
+            #     tmp_item.loaded = False
+
+            self.items.append(tmp_item)
+
+        # creating agent
+        (x, y) = (4, 4)
+        # (x, y) = (2, 4)
+        a_agent = agent.Agent(x, y, 0, 'l1', 0)
+        self.agents.append(a_agent)
+
+        # (x, y) = (4, 4)
+        (x, y) = (6, 5)
+        a_agent = agent.Agent(x, y, np.pi / 2, 'l1', 0)
+        self.agents.append(a_agent)
+
+        (x, y) = (1, 1)
+        # (x, y) = (1, 4)
+        ##self.main_agent = agent.Agent(x, y, np.pi/2, 'l1', 1)
+        self.main_agent = agent.Agent(x, y, 0, 'l1', 1)
+        self.main_agent.level = 1
+        self.dim_w = 10
+        self.dim_h = 10
+
+        self.update_the_map()
+
+        return
 
     # ###############################################################################################################
 
@@ -74,13 +101,22 @@ class simulator:
         :return:
         """
         # Load and store csv file
+        # info = defaultdict(list)
+        # Load and store csv file
+        # Load and store csv file
         info = defaultdict(list)
         with open(path) as info_read:
             for line in info_read:
-                data = line.strip().split(',')
+                data = line.strip().split(', ')
                 key, val = data[0], data[1:]
                 info[key].append(val)
-        print(info)
+
+        # with open(path) as info_read:
+        #     csv_reader = csv.reader(info_read, delimiter=',')
+        #     for row in csv_reader:
+        #         key, value = row[0], row[1]
+        #         info[key].append(value)
+
         # Extract grid dimensions
         self.dim_w = int(info['grid'][0][0])
         self.dim_h = int(info['grid'][0][1])
@@ -100,20 +136,14 @@ class simulator:
                 # x-coord, y-coord, direction, type, index
                 self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', l)
                 self.main_agent.level = v[0][2]
-            elif 'obstacle' in k:
-                self.obstacles.append(agent.Obstacle(v[0][1], v[0][1]))
                 l += 1
 
         # Run Checks
         assert len(self.items) == i, 'Incorrect Item Loading'
         assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
-        assert len(self.obstacles) == l, 'Incorrect Obstacle Loading'
 
         # Print Simulation Description
-        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded\n{} Obstacles Loaded'.format(self.dim_w,
-                                                                                              len(self.items),
-                                                                                              len(self.agents),
-                                                                                              len(self.obstacles)))
+        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded'.format(self.dim_w, len(self.items), len(self.agents)))
 
         # Update the map
         self.update_the_map()
@@ -185,18 +215,12 @@ class simulator:
 
         copy_main_agent = self.main_agent.copy()
 
-        copy_obstacles = []
-        for obs in self.obstacles:
-            copy_obstacle = obs.copy()
-            copy_obstacles.append(copy_obstacle)
-
         tmp_sim = simulator()
         tmp_sim.dim_h = self.dim_h
         tmp_sim.dim_w = self.dim_w
         tmp_sim.agents = copy_agents
         tmp_sim.items = copy_items
         tmp_sim.main_agent = copy_main_agent
-        tmp_sim.obstacles = copy_obstacles
         tmp_sim.update_the_map()
 
         return tmp_sim
@@ -232,7 +256,7 @@ class simulator:
 
         for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
-            if self.items[i].loaded:
+            if self.items[i].loaded :
                 self.the_map[item_y][item_x] = 0
             else:
                 self.the_map[item_y][item_x] = 1
@@ -244,10 +268,6 @@ class simulator:
             (memory_x, memory_y) = self.agents[i].get_memory()
             if (memory_x, memory_y) != (-1, -1):
                 self.the_map[memory_y][memory_x] = 4
-
-        for i in range(len(self.obstacles)):
-            (obs_x, obs_y) = self.obstacles[i].get_position()
-            self.the_map[obs_x][obs_y] = 5
 
         (m_agent_x, m_agent_y) = self.main_agent.get_position()
         self.the_map[m_agent_y][m_agent_x] = 9
@@ -299,8 +319,6 @@ class simulator:
                     print 'R',  # route
                 elif xy == 4:
                     print 'D',  # finish
-                elif xy == 5:
-                    print '+',  # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
                 elif xy == 9:
@@ -332,8 +350,7 @@ class simulator:
 
                 elif xy == 4:
                     line_str += ' D '
-                elif xy == 5:
-                    line_str += ' O ' # Obstacle
+
                 elif xy == 8:
                     line_str += ' A '
 
