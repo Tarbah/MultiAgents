@@ -300,7 +300,7 @@ class simulator:
                 elif xy == 4:
                     print 'D',  # finish
                 elif xy == 5:
-                    print 'O', # Obstacle
+                    print '+',  # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
                 elif xy == 9:
