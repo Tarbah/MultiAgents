@@ -7,7 +7,7 @@ class node:
     yPos = 0
 
     distance = 0
-    priority = 0 # smaller: higher priority
+    priority = 0# smaller: higher priority
 
     def __init__(self, xPos, yPos, distance, priority):
         self.xPos = xPos
@@ -54,7 +54,7 @@ class a_star:
         open_nodes_map = []
         dir_map = []
         row = [0] * self.n
-        for i in range(self.m): # create 2d arrays
+        for i in range(self.m):# create 2d arrays
             closed_nodes_map.append(list(row))
             open_nodes_map.append(list(row))
             dir_map.append(list(row))
@@ -107,7 +107,7 @@ class a_star:
                 
                 ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
-                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or closed_nodes_map[ydy][xdx] == 1):                    
+                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or self.the_map[ydy][xdx] == 8 or closed_nodes_map[ydy][xdx] == 1):
                     m0 = node(xdx, ydy, n0.distance, n0.priority)
                     m0.next_distance(i)
                     m0.updatePriority(xFinish, yFinish)
