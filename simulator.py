@@ -535,7 +535,7 @@ class simulator:
             agents_total_level = 0
             for agent in item.agents_load_item:
                 agents_total_level += agent.level
-            if agents_total_level >= item.level:
+            if agents_total_level >= item.level and item.agents_load_item !=[]:
                 item.loaded = True
                 item.agents_load_item = list()
                 c_reward += 1
