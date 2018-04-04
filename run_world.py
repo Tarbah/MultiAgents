@@ -15,8 +15,7 @@ row_no = 10  # vertical size ,row
 # main_sim = simulator.simulator(column_no, row_no)
 # main_sim.initialisation_fixed_values()
 main_sim = simulator.simulator()
-main_sim.loader('C:\simulator\UCT - merge\simulation.csv')
-print('Simulation Successful')
+main_sim.loader('/home/tpin3694/Documents/python/MultiAgents/simulation.csv')
 
 # ================create unknown agent  ================================================================
 

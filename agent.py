@@ -600,3 +600,13 @@ class Agent:
                 return position.position(-1, -1)
 
         return position.position(-1, -1)
+
+
+class Obstacle:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def get_position(self):
+        pos = (self.x, self.y)
+        return pos

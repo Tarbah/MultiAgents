@@ -64,63 +64,6 @@ class simulator:
 
     # ###############################################################################################################
 
-    def initialisation_fixed_values(self):
-        # generating choices for random selection
-        sf = list()
-        sf.append((1, 2))
-        sf.append((1, 5))
-        sf.append((3, 4))
-        #sf.append((0, 4))
-        sf.append((5, 8))
-        sf.append((8, 1))
-        sf.append((6, 2))
-        sf.append((5, 4))
-        sf.append((9, 4))
-        sf.append((2, 6))
-        sf.append((9, 9))
-
-        # creating items
-        for i in range(0, 10):
-            (x, y) = sf[i]
-
-            # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
-            # tmp_item = item.item(x, y, ( i) / 10.0, i)
-            tmp_item = item.item(x, y, 1, i)
-
-            ## DEBUG: If you start M at (1,4) and A at (2,4), this creates an interesting case for testing A agent
-            # tmp_item.loaded = True
-
-            # if (x == 0 and y == 4):
-            #     tmp_item.loaded = False
-
-            # if (x == 1 and y == 5):
-            #     tmp_item.loaded = False
-
-            self.items.append(tmp_item)
-
-        # creating agent
-        (x, y) = (4, 4)
-        #(x, y) = (2, 4)
-        a_agent = agent.Agent(x, y, 0, 'l1', 0)
-        self.agents.append(a_agent)
-
-        # (x, y) = (4, 4)
-        (x, y) = (6, 5)
-        a_agent = agent.Agent(x, y,np.pi/2 , 'l1', 0)
-        self.agents.append(a_agent)
-
-        (x, y) = (1, 1)
-        #(x, y) = (1, 4)
-        ##self.main_agent = agent.Agent(x, y, np.pi/2, 'l1', 1)
-        self.main_agent = agent.Agent(x, y, 0, 'M', 1)
-        self.main_agent.level = 1
-
-        self.update_the_map()
-
-        return
-
-        # ###############################################################################################################
-
     def loader(self, path):
         """
         Takes in a csv file and stores the necessary instances for the simulation object. The file path referenced
@@ -374,6 +317,8 @@ class simulator:
                     print 'R',  # route
                 elif xy == 4:
                     print 'D',  # finish
+                elif xy = 5:
+                    print('O') # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
                 elif xy == 9:
