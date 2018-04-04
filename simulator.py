@@ -291,7 +291,7 @@ class simulator:
                     self.the_map[y][x] = 1
 
     ###############################################################################################################
-    def mark_route_map(self,route, xA, yA, dx, dy): #todo: check to  delete
+    def mark_route_map(self,route, xA, yA): #todo: check to  delete
 
         x = xA
         y = yA
@@ -541,10 +541,12 @@ class simulator:
 
                 self.the_map[y_destination][x_destination] = 4  # Update map with target position
 
-                a = a_star.a_star(self)  # Find the whole path  to reach the destination with A Star
+                a = a_star.a_star(self, a_agent)  # Find the whole path  to reach the destination with A Star
                 (x_agent, y_agent) = a_agent.get_position()  # Get agent's current position
 
+
                 route = a.pathFind(x_agent, y_agent, x_destination, y_destination)
+                self.mark_route_map(route,x_agent, y_agent)
 
                 if len(route) == 0:
                     a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)

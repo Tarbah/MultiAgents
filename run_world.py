@@ -47,24 +47,21 @@ while time_step < 100:
     for i in range(len(main_sim.agents)):
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
-    # tmp_sim = main_sim.copy()
-    # main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
-    # print 'main_agent_direction: ', main_agent.get_agent_direction()
+    tmp_sim = main_sim.copy()
+    main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
+    print 'main_agent_direction: ', main_agent.get_agent_direction()
 
-
-
-    main_sim.update_all_A_agents()
-
-    # print 'main_agent_next_action: ', main_agent_next_action
+    print 'main_agent_next_action: ', main_agent_next_action
+    r = UCT.do_move(main_sim, main_agent_next_action)
     #
-    # # import ipdb; ipdb.set_trace()
-    # r = UCT.do_move(main_sim, main_agent_next_action)
+    main_sim.update_all_A_agents()
+    main_sim.do_collaboration()
 
     time_step = time_step + 1
     print('*******************************************************************************************************************')
 
     main_sim.draw_map()
-    main_sim.do_collaboration()
+
     # real_sim.draw_map_with_level()
 
     if main_sim.items_left() == 0:
