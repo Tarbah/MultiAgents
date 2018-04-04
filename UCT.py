@@ -153,16 +153,19 @@ def do_move(sim, move):
         load_item, (item_position_x,  item_position_y) = tmp_m_agent.is_agent_face_to_item(sim)
         if load_item:
             destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
-            sim.items[destinantion_item_index].loaded = True
-            get_reward += float(1.0)
+            if sim.items [destinantion_item_index].level <= tmp_m_agent.level:
+                sim.items[destinantion_item_index].loaded = True
+                get_reward += float(1.0)
+            else:
+                sim.items[destinantion_item_index].agents_load_item.append(tmp_m_agent)
 
     else:
-        (x_new, y_new) = tmp_m_agent.new_position_with_given_action(10, 10, move)
+        (x_new, y_new) = tmp_m_agent.new_position_with_given_action(sim.dim_w, sim.dim_h, move)
 
         # If there new position is empty
         if sim.position_is_empty(x_new, y_new):
             tmp_m_agent.next_action = move
-            tmp_m_agent.change_position_direction(10, 10)
+            tmp_m_agent.change_position_direction(sim.dim_w, sim.dim_h)
 
         else:
             tmp_m_agent.change_direction_with_action(move)
@@ -223,19 +226,16 @@ def simulate_action(state, action, current_estimated_parameters):
     next_state = State(sim)
 
     # Run the A agent to get the actions probabilities
-    a_agent = sim.agents[0]
-    a_agent.set_parameters_array(current_estimated_parameters)
-    a_agent = sim.move_a_agent(a_agent)
-    action_probabilities = a_agent.get_actions_probabilities()
 
+    for i in range(len(sim.agents)):
+        sim.agents[i].set_parameters_array(current_estimated_parameters)
+        sim.agents[i] = sim.move_a_agent(sim.agents[i])
 
     m_reward = do_move(sim, action)
 
-    next_action = choice(actions, p=action_probabilities)  # random sampling the action
-    a_agent.next_action = next_action  ## DEBUG: If you comment these two lines, and set a_reward to 0, you will ignore A in the tree search
-    a_reward = sim.update(a_agent)  ## DEBUG: See above
+    a_reward = sim.update_all_A_agents()
 
-    if sim.do_collaboration(a_agent):
+    if sim.do_collaboration():
         c_reward = float(1)
     else:
         c_reward = 0

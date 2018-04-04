@@ -9,7 +9,7 @@ class Agent:
         self.position = (int(x), int(y))
         self.visible_agents = []
         self.visible_items = []
-        self.direction = int(direction)
+        self.direction = float(direction)
         self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
