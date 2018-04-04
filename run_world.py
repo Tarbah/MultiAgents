@@ -3,10 +3,20 @@ import simulator
 import UCT
 
 
-# ============== main part  ==================
+# ========== main part  ====== ===========
+
+# Map creation
+
 # ==============simulator initialisation=====================================================
+
+column_no = 10  # horizontal size ,column
+row_no = 10  # vertical size ,row
+
 main_sim = simulator.simulator()
-main_sim.loader('/home/tpin3694/Documents/python/MultiAgents/simulation.csv')
+main_sim.initialisation_fixed_values()
+# main_sim = simulator.simulator()
+# main_sim.loader('C:\simulator\UCT\Input Files\sim2.csv')
+# print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
@@ -37,9 +47,9 @@ while time_step < 100:
     for i in range(len(main_sim.agents)):
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
-    tmp_sim = main_sim.copy()
-    main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
-    print 'main_agent_direction: ', main_agent.get_agent_direction()
+    # tmp_sim = main_sim.copy()
+    # main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
+    # print 'main_agent_direction: ', main_agent.get_agent_direction()
 
 
 
@@ -48,13 +58,13 @@ while time_step < 100:
     # print 'main_agent_next_action: ', main_agent_next_action
     #
     # # import ipdb; ipdb.set_trace()
-    r = UCT.do_move(main_sim, main_agent_next_action)
+    # r = UCT.do_move(main_sim, main_agent_next_action)
 
     time_step = time_step + 1
     print('*******************************************************************************************************************')
 
     main_sim.draw_map()
-    # main_sim.do_collaboration()
+    main_sim.do_collaboration()
     # real_sim.draw_map_with_level()
 
     if main_sim.items_left() == 0:

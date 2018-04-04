@@ -107,8 +107,7 @@ class a_star:
                 
                 ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
-                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or self.the_map[ydy][xdx] == 8
-                        or closed_nodes_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 5):
+                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or self.the_map[ydy][xdx] == 8 or closed_nodes_map[ydy][xdx] == 1):
                     m0 = node(xdx, ydy, n0.distance, n0.priority)
                     m0.next_distance(i)
                     m0.updatePriority(xFinish, yFinish)
