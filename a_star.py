@@ -40,14 +40,38 @@ class node:
 
 class a_star:
 
-    def __init__(self, the_map ):
+    def __init__(self, simulator):
 
-        self.n = 10 ## TODO: Size hard-coded?
-        self.m = len(the_map)
-        self.the_map = the_map
+        self.n = simulator.dim_w
+        self.m = simulator.dim_h
+        self.the_map = simulator.the_map
         self.directions = 4
         self.dx = [1, 0, -1, 0]
         self.dy = [0, 1, 0, -1]
+        self.obstacles = self.create_abstacles_list(simulator)
+
+    @staticmethod
+    def create_abstacles_list(sim):
+        obstacles = list()
+
+        for item in sim.items :
+            obstacles.append(item.get_position())
+
+        for agent in sim.agents :
+            obstacles.append(agent.get_position())
+
+        obstacles.append(sim.main_agent.get_position())
+
+        return obstacles
+
+    def position_is_obstacle(self,x,y):
+        for obstacle in self.obstacles:
+            if obstacle[0] == x and obstacle[1] == y:
+                return True
+        return False
+
+
+
 
     def pathFind(self, xStart, yStart, xFinish, yFinish):
         closed_nodes_map = []
@@ -107,7 +131,7 @@ class a_star:
                 
                 ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
-                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or self.the_map[ydy][xdx] == 8 or closed_nodes_map[ydy][xdx] == 1):
+                        or self.position_is_obstacle(xdx , ydy) or closed_nodes_map[ydy][xdx] == 1):
                     m0 = node(xdx, ydy, n0.distance, n0.priority)
                     m0.next_distance(i)
                     m0.updatePriority(xFinish, yFinish)

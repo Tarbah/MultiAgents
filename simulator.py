@@ -541,7 +541,7 @@ class simulator:
 
                 self.the_map[y_destination][x_destination] = 4  # Update map with target position
 
-                a = a_star.a_star(self.the_map)  # Find the whole path  to reach the destination with A Star
+                a = a_star.a_star(self)  # Find the whole path  to reach the destination with A Star
                 (x_agent, y_agent) = a_agent.get_position()  # Get agent's current position
 
                 route = a.pathFind(x_agent, y_agent, x_destination, y_destination)
