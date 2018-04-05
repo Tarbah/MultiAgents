@@ -62,6 +62,9 @@ class a_star:
             if a_agent.get_position() != agent.get_position():
                 obstacles.append(agent.get_position())
 
+        for obstacle in sim.obstacles:
+            obstacles.append(obstacle.get_position())
+
         obstacles.append(sim.main_agent.get_position())
 
         return obstacles
