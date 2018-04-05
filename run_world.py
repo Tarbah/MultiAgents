@@ -12,11 +12,12 @@ import UCT
 column_no = 10  # horizontal size ,column
 row_no = 10  # vertical size ,row
 
-main_sim = simulator.simulator()
-main_sim.initialisation_fixed_values()
 # main_sim = simulator.simulator()
-# main_sim.loader('C:\simulator\UCT\Input Files\sim2.csv')
-# print('Simulation Successful')
+# main_sim.initialisation_fixed_values()
+main_sim = simulator.simulator()
+main_sim.loader('/home/elnaz/simulation.csv')
+
+print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
