@@ -40,38 +40,14 @@ class node:
 
 class a_star:
 
-    def __init__(self, simulator ,a_agent):
+    def __init__(self, the_map ):
 
-        self.n = simulator.dim_w
-        self.m = simulator.dim_h
-        self.the_map = simulator.the_map
+        self.n = 10 ## TODO: Size hard-coded?
+        self.m = len(the_map)
+        self.the_map = the_map
         self.directions = 4
         self.dx = [1, 0, -1, 0]
         self.dy = [0, 1, 0, -1]
-        self.obstacles = self.create_abstacles_list(simulator,a_agent)
-
-    @staticmethod
-    def create_abstacles_list(sim, a_agent):
-        obstacles = list()
-
-        for item in sim.items:
-            if a_agent.get_memory() != item.get_position():
-                obstacles.append(item.get_position())
-
-        for agent in sim.agents:
-            if a_agent.get_position() != agent.get_position():
-                obstacles.append(agent.get_position())
-
-        obstacles.append(sim.main_agent.get_position())
-
-        return obstacles
-
-    def position_is_obstacle(self,x,y):
-        for obstacle in self.obstacles:
-            if obstacle[0] == x and obstacle[1] == y:
-
-                return True
-        return False
 
     def pathFind(self, xStart, yStart, xFinish, yFinish):
         closed_nodes_map = []
@@ -125,39 +101,39 @@ class a_star:
             for i in range(self.directions):
                 xdx = x + self.dx[i]
                 ydy = y + self.dy[i]
-
-
-                if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1):
-                    if not(self.position_is_obstacle(xdx, ydy) or closed_nodes_map[ydy][xdx] == 1):
-
-                ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
+                
                 # if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
-                #         or self.position_is_obstacle(xdx, ydy) or closed_nodes_map[ydy][xdx] == 1):
-                        m0 = node(xdx, ydy, n0.distance, n0.priority)
-                        m0.next_distance(i)
-                        m0.updatePriority(xFinish, yFinish)
+                #         or self.the_map[ydy][xdx] == 1 or closed_nodes_map[ydy][xdx] == 1):
+                
+                ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
+                if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
+                        or self.the_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 9 or self.the_map[ydy][xdx] == 8
+                        or closed_nodes_map[ydy][xdx] == 1 or self.the_map[ydy][xdx] == 5):
+                    m0 = node(xdx, ydy, n0.distance, n0.priority)
+                    m0.next_distance(i)
+                    m0.updatePriority(xFinish, yFinish)
 
-                        if open_nodes_map[ydy][xdx] == 0:
-                            open_nodes_map[ydy][xdx] = m0.priority
-                            heappush(pq[pqi], m0)
+                    if open_nodes_map[ydy][xdx] == 0:
+                        open_nodes_map[ydy][xdx] = m0.priority
+                        heappush(pq[pqi], m0)
 
-                            dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
-                        elif open_nodes_map[ydy][xdx] > m0.priority:
+                        dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
+                    elif open_nodes_map[ydy][xdx] > m0.priority:
 
-                            open_nodes_map[ydy][xdx] = m0.priority
+                        open_nodes_map[ydy][xdx] = m0.priority
 
-                            dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
+                        dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
 
-                            while not (pq[pqi][0].xPos == xdx and pq[pqi][0].yPos == ydy):
-                                heappush(pq[1 - pqi], pq[pqi][0])
-                                heappop(pq[pqi])
+                        while not (pq[pqi][0].xPos == xdx and pq[pqi][0].yPos == ydy):
+                            heappush(pq[1 - pqi], pq[pqi][0])
                             heappop(pq[pqi])
+                        heappop(pq[pqi])
 
-                            if len(pq[pqi]) > len(pq[1 - pqi]):
-                                pqi = 1 - pqi
-                            while len(pq[pqi]) > 0:
-                                heappush(pq[1-pqi], pq[pqi][0])
-                                heappop(pq[pqi])
+                        if len(pq[pqi]) > len(pq[1 - pqi]):
                             pqi = 1 - pqi
-                            heappush(pq[pqi], m0) # add the better node instead
+                        while len(pq[pqi]) > 0:
+                            heappush(pq[1-pqi], pq[pqi][0])
+                            heappop(pq[pqi])
+                        pqi = 1 - pqi
+                        heappush(pq[pqi], m0) # add the better node instead
         return '' # no route found
