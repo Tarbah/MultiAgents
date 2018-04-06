@@ -1,0 +1,16 @@
+sim_2_agents :  a simulator with size 15*15 and 3 agents, one main and 2 A agents, and 15 items.There is no obstacle here!
+
+sim_m_far : a simulator with size 10*10 and 2 agents, one main and 1 A agents. and 4 items in which M agent is far from items and A agent. 
+There is no obstacle here!
+
+sim2 : A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed north of M agent.
+
+sim1: A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed south of M agent.
+
+sim3: A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed east of M agent.
+
+sim4: A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed west of M agent.
+
+sim5 : A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and all are on the corners.
+
+
