@@ -228,7 +228,7 @@ def simulate_action(state, action, current_estimated_parameters):
     # Run the A agent to get the actions probabilities
 
     for i in range(len(sim.agents)):
-        sim.agents[i].set_parameters_array(current_estimated_parameters)
+        sim.agents[i].set_parameters_array(sim,current_estimated_parameters)
         sim.agents[i] = sim.move_a_agent(sim.agents[i])
 
     m_reward = do_move(sim, action)

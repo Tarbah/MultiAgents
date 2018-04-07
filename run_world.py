@@ -15,21 +15,24 @@ row_no = 10  # vertical size ,row
 # main_sim = simulator.simulator()
 # main_sim.initialisation_fixed_values()
 main_sim = simulator.simulator()
-main_sim.loader('/home/elnaz/simulation.csv')
+# main_sim.loader('/home/elnaz/simulation.csv')
+# main_sim.loader('/home/elnaz/simulation.csv')
+main_sim.loader('C:\simulator\UCT\Test Files\sim2 - level.csv')
 
 print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
-# true parameters
+# # true parameters
 true_radius = 0.78
 true_angle = 0.72
-true_level = 1
+true_level = 0.5
 
+#
 true_parameters = [true_level, true_radius, true_angle]
-
-for a_agent in main_sim.agents:
-    a_agent.set_parameters(true_level, true_radius, true_angle)
+#
+# for a_agent in main_sim.agents:
+#     a_agent.set_parameters(true_level, true_radius, true_angle)
 
 main_agent = main_sim.main_agent
 
@@ -50,9 +53,11 @@ while time_step < 100:
 
     tmp_sim = main_sim.copy()
     main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
-    print 'main_agent_direction: ', main_agent.get_agent_direction()
 
+
+    print 'main_agent_direction: ', main_agent.get_agent_direction()
     print 'main_agent_next_action: ', main_agent_next_action
+
     r = UCT.do_move(main_sim, main_agent_next_action)
     #
     main_sim.update_all_A_agents()

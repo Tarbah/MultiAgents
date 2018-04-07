@@ -72,7 +72,6 @@ class a_star:
     def position_is_obstacle(self,x,y):
         for obstacle in self.obstacles:
             if obstacle[0] == x and obstacle[1] == y:
-
                 return True
         return False
 

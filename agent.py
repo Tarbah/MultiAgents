@@ -196,15 +196,15 @@ class Agent:
         else:
             return False
 
-    def set_parameters_array(self,parameters_probabilities):
-        self.set_parameters(parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
+    def set_parameters_array(self,sim,parameters_probabilities):
+        self.set_parameters(sim,parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
 
-    def set_parameters(self, level, radius, angle):
+    def set_parameters(self,sim, level, radius, angle):
 
-        width, hight = 10, 10
-        self.level = level
-        self.radius = radius * sqrt(width ** 2 + hight ** 2)
-        self.angle = 2 * np.pi * angle
+        width, hight = sim.dim_w, sim.dim_h
+        self.level = float(level)
+        self.radius = float(radius) * sqrt(width ** 2 + hight ** 2)
+        self.angle = 2 * np.pi * float(angle)
 
     def set_direction(self, direction):
         self.direction = direction

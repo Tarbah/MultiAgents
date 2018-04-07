@@ -108,6 +108,7 @@ class simulator:
                 data = line.strip().split(',')
                 key, val = data[0], data[1:]
                 info[key].append(val)
+
         print(info)
         # Extract grid dimensions
         self.dim_w = int(info['grid'][0][0])
@@ -122,15 +123,19 @@ class simulator:
                 self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
                 i += 1
             elif 'agent' in k:
-                self.agents.append(agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', j))
+                agnt = agent.Agent(v[0][0], v[0][1], v[0][2], v[0][3], j)
+                agnt.set_parameters(self,v[0][4], v[0][5], v[0][6])
+                self.agents.append(agnt)
+
                 j += 1
             elif 'main' in k:
                 # x-coord, y-coord, direction, type, index
-                self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][4], 'l1', l)
+                self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][2], 'm', -1)
                 self.main_agent.level = v[0][2]
             elif 'obstacle' in k:
                 self.obstacles.append(obstacle.Obstacle(v[0][1], v[0][1]))
                 l += 1
+
 
         # Run Checks
         assert len(self.items) == i, 'Incorrect Item Loading'
