@@ -8,7 +8,7 @@ File specification:
 
 
 
-sim_2_agents :  a simulator with size 15*15 and 3 agents, one main and 2 A agents, and 15 items.There is no obstacle here!
+sim_2_agents :  a simulator with size 15*15 and 3 agents, one main and 2 A agents with same parameters, and 15 items.There is no obstacle here!
 
 sim_m_far : a simulator with size 10*10 and 2 agents, one main and 1 A agents. and 4 items in which M agent is far from items and A agent. 
 There is no obstacle here!
@@ -22,5 +22,7 @@ sim3: A simulator with size 10*10 and 2 Agents,One main and one A agent. There a
 sim4: A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed west of M agent.
 
 sim5 : A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and all are on the corners.
+
+sim2 - level: A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items with several levels and M's level = 1 and A level = 5
 
 
