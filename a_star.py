@@ -65,7 +65,8 @@ class a_star:
         for obstacle in sim.obstacles:
             obstacles.append(obstacle.get_position())
 
-        obstacles.append(sim.main_agent.get_position())
+        if (sim.main_agent is not None):
+            obstacles.append(sim.main_agent.get_position())
 
         return obstacles
 

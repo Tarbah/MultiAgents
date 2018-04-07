@@ -93,6 +93,15 @@ class simulator:
 
     # ###############################################################################################################
 
+    def is_comment(self, string):
+        for pos in range(len(string)):
+            if (string[pos] == ' ' or string[pos] == '\t'):
+                continue
+            if (string[pos] == '#'):
+                return True
+            else:
+                return False
+    
     def loader(self, path):
         """
         Takes in a csv file and stores the necessary instances for the simulation object. The file path referenced
@@ -105,9 +114,10 @@ class simulator:
         info = defaultdict(list)
         with open(path) as info_read:
             for line in info_read:
-                data = line.strip().split(',')
-                key, val = data[0], data[1:]
-                info[key].append(val)
+                if (not self.is_comment(line)):
+                    data = line.strip().split(',')
+                    key, val = data[0], data[1:]
+                    info[key].append(val)
 
         print(info)
         # Extract grid dimensions
@@ -123,6 +133,8 @@ class simulator:
                 self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
                 i += 1
             elif 'agent' in k:
+
+                #import ipdb; ipdb.set_trace()
                 agnt = agent.Agent(v[0][0], v[0][1], v[0][2], v[0][3], j)
                 agnt.set_parameters(self,v[0][4], v[0][5], v[0][6])
                 self.agents.append(agnt)
@@ -282,8 +294,9 @@ class simulator:
             (obs_x, obs_y) = self.obstacles[i].get_position()
             self.the_map[obs_x][obs_y] = 5
 
-        (m_agent_x, m_agent_y) = self.main_agent.get_position()
-        self.the_map[m_agent_y][m_agent_x] = 9
+        if (self.main_agent is not None):    
+            (m_agent_x, m_agent_y) = self.main_agent.get_position()
+            self.the_map[m_agent_y][m_agent_x] = 9
 
     ###############################################################################################################
     def find_agent_index(self,pos):
@@ -484,9 +497,10 @@ class simulator:
             if (agent_x, agent_y) == (x, y):
                 return False
 
-        (m_agent_x, m_agent_y) =self.main_agent.get_position()
-        if (m_agent_x, m_agent_y) == (x, y):
-            return False
+        if (self.main_agent is not None):
+            (m_agent_x, m_agent_y) =self.main_agent.get_position()
+            if (m_agent_x, m_agent_y) == (x, y):
+                return False
 
         return True
 
@@ -522,19 +536,29 @@ class simulator:
 
         else:  # If there is no target we should choose a target based on visible items and agents.
 
-            directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
+            ## TODO: Temporarily removed agent rotating to choose a target
+            ## TODO: This code is also not fully correct. After last pop, we will have len(direction) = 0
+            ## TODO: Agent A sees an item on the West when facing North, but does not when facing South. I am not sure why?
+            # directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
 
-            while len(directions) > 0:
+            # while len(directions) > 0:
 
-                a_agent.visible_agents_items(self.items, self.agents)
-                target = a_agent.choose_target(self.items, self.agents)
+            #     a_agent.visible_agents_items(self.items, self.agents)
+            #     target = a_agent.choose_target(self.items, self.agents)
 
-                if target.get_position() != (-1, -1):
-                    destination = target
-                    break
+            #     if target.get_position() != (-1, -1):
+            #         destination = target
+            #         break
 
-                else:  # rotate agent to find an agent
-                    a_agent.direction = directions.pop()
+            #     else:  # rotate agent to find an agent
+            #         a_agent.direction = directions.pop()
+
+
+            a_agent.visible_agents_items(self.items, self.agents)
+            target = a_agent.choose_target(self.items, self.agents)
+
+            if target.get_position() != (-1, -1):
+                destination = target
 
             a_agent.memory = destination
 

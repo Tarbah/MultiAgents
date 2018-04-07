@@ -1,7 +1,7 @@
 
 import simulator
 import UCT
-
+import sys
 
 # ========== main part  ====== ===========
 
@@ -17,7 +17,7 @@ row_no = 10  # vertical size ,row
 main_sim = simulator.simulator()
 # main_sim.loader('/home/elnaz/simulation.csv')
 # main_sim.loader('/home/elnaz/simulation.csv')
-main_sim.loader('C:\simulator\UCT\Test Files\sim2 - level.csv')
+main_sim.loader(sys.argv[1])
 
 print('Simulation Successful')
 
@@ -43,6 +43,9 @@ main_agent = main_sim.main_agent
 
 main_sim.draw_map()
 
+
+#import ipdb; ipdb.set_trace()
+
 time_step = 0
 while time_step < 100:
 
@@ -51,16 +54,26 @@ while time_step < 100:
     for i in range(len(main_sim.agents)):
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
-    tmp_sim = main_sim.copy()
-    main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
+    if (main_sim.main_agent is not None):
+        tmp_sim = main_sim.copy()
+        main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
 
 
-    print 'main_agent_direction: ', main_agent.get_agent_direction()
-    print 'main_agent_next_action: ', main_agent_next_action
+        print 'main_agent_direction: ', main_agent.get_agent_direction()
+        print 'main_agent_next_action: ', main_agent_next_action
 
-    r = UCT.do_move(main_sim, main_agent_next_action)
-    #
+        r = UCT.do_move(main_sim, main_agent_next_action)
+
+    ## DEBUG
+    for agent_i in range(len(main_sim.agents)):
+        print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
+        
     main_sim.update_all_A_agents()
+
+    ## DEBUG
+    for agent_i in range(len(main_sim.agents)):
+        print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
+    
     main_sim.do_collaboration()
 
     time_step = time_step + 1

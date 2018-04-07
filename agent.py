@@ -9,7 +9,12 @@ class Agent:
         self.position = (int(x), int(y))
         self.visible_agents = []
         self.visible_items = []
-        self.direction = float(direction)
+
+        if (isinstance(direction, basestring)):
+            self.direction = self.convert_direction(direction)
+        else:
+            self.direction = float(direction)
+            
         self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
@@ -347,6 +352,19 @@ class Agent:
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
+    def convert_direction(self,direction):
+        if (direction == 'N'):
+            return np.pi / 2
+
+        if (direction == 'W'):
+            return 0
+
+        if (direction == 'E'):
+            return np.pi
+
+        if (direction == 'S'):
+            return 3*np.pi/2
+            
     def get_agent_direction(self):
 
         if self.direction == np.pi / 2:
