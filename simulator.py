@@ -437,6 +437,16 @@ class simulator:
 
             self.agents[i].next_action = next_action
 
+            ## DEBUG: For testing conflict cases
+            # if (i == 0):
+            #     self.agents[i].next_action = 'S'
+            # elif (i == 1):
+            #     self.agents[i].next_action = 'N'
+            # elif (i == 2):
+            #     self.agents[i].next_action = 'W'
+            # else:
+            #     self.agents[i].next_action = 'E'
+            
             reward += self.update(i)
 
         return reward
