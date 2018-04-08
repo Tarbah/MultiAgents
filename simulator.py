@@ -145,7 +145,7 @@ class simulator:
                 self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][2], 'm', -1)
                 self.main_agent.level = v[0][2]
             elif 'obstacle' in k:
-                self.obstacles.append(obstacle.Obstacle(v[0][1], v[0][1]))
+                self.obstacles.append(obstacle.Obstacle(v[0][0], v[0][1]))
                 l += 1
 
 
@@ -538,7 +538,8 @@ class simulator:
 
             ## TODO: Temporarily removed agent rotating to choose a target
             ## TODO: This code is also not fully correct. After last pop, we will have len(direction) = 0
-            ## TODO: Agent A sees an item on the West when facing North, but does not when facing South. I am not sure why?
+            ## TODO: Also, perhaps we should not allow an agent to rotate to all directions in a single time step?
+            ## TODO: That would be the same as a full angular visibility?
             # directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
 
             # while len(directions) > 0:
