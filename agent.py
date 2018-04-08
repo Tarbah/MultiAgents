@@ -29,7 +29,7 @@ class Agent:
 
     ################################################################################################################
 
-    def agent_is_stocked(self, sim):
+    def agent_is_stucked(self, sim):
         (memory_x, memory_y) = self.memory.get_position()
 
         destination_index = sim.find_item_by_location(memory_x, memory_y)
@@ -81,15 +81,15 @@ class Agent:
 
     def is_agent_face_to_item(self, sim):
 
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
 
         x, y = self.get_position()
 
-        if self.direction == 0 * np.pi / 2:
+        if self.direction == 2 * np.pi / 2:
             # Agent face to West
             x_diff = dx[0]
             y_diff = dy[0]
@@ -99,7 +99,7 @@ class Agent:
             x_diff = dx[1]
             y_diff = dy[1]
 
-        if self.direction == 2 * np.pi / 2:
+        if self.direction == 0 * np.pi / 2:
             # Agent face to East
             x_diff = dx[2]
             y_diff = dy[2]
@@ -156,23 +156,22 @@ class Agent:
 
     def if_see_other_agent(self, agent):
         if self.distance(agent) < self.radius:
-
-            if self.direction - self.angle / 2 <= self.angle_of_gradient(agent) <= self.direction + self.angle / 2:
+            if -self.angle / 2 <= self.angle_of_gradient(agent,self.direction) <= self.angle / 2:
               return True
         return False
 
     ################################################################################################################
     ## The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0,-1]
 
         x_diff = 0
         y_diff = 0
 
         pos = self.position
 
-        if self.direction == 0 * np.pi / 2:
+        if self.direction == 2 * np.pi / 2:
             # Agent face to West
             x_diff = dx[0]
             y_diff = dy[0]
@@ -182,7 +181,7 @@ class Agent:
             x_diff = dx[1]
             y_diff = dy[1]
 
-        if self.direction == 2 * np.pi / 2:
+        if self.direction == 0 * np.pi / 2:
             # Agent face to East
             x_diff = dx[2]
             y_diff = dy[2]
@@ -326,14 +325,14 @@ class Agent:
 
     def change_direction(self, dx, dy):
 
-        if dx == -1 and dy == 0:  # 'E':
-            self.direction = 2 * np.pi / 2
+        if dx == 1 and dy == 0:  # 'E':
+            self.direction = 0 * np.pi / 2
 
-        if dx == 0 and dy == 1:  # 'N':
+        if dx == 0 and dy == -1:  # 'N':
             self.direction = np.pi / 2
 
-        if dx == 1 and dy == 0:  # 'W':
-            self.direction = 0 * np.pi / 2
+        if dx == -1 and dy == 0:  # 'W':
+            self.direction = 2 * np.pi / 2
 
         if dx == 0 and dy == -1:  # 'S':
             self.direction = 3 * np.pi / 2
@@ -341,13 +340,13 @@ class Agent:
     def change_direction_with_action(self, action):
 
         if action == 'W':  # 'W':
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'N':  # 'N':
             self.direction = np.pi / 2
 
         if action == 'E':  # 'E':
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
@@ -357,10 +356,10 @@ class Agent:
             return np.pi / 2
 
         if (direction == 'W'):
-            return 0
+            return np.pi
 
         if (direction == 'E'):
-            return np.pi
+            return 0
 
         if (direction == 'S'):
             return 3*np.pi/2
@@ -370,18 +369,18 @@ class Agent:
         if self.direction == np.pi / 2:
             return 'N'
 
-        if self.direction == 0:
+        if self.direction == np.pi:
             return 'W'
 
-        if self.direction == np.pi:
+        if self.direction == 0:
             return 'E'
 
         if self.direction == 3 * np.pi / 2:
             return 'S'
 
     def change_position_direction(self, dim_w , dim_h):
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
@@ -389,7 +388,7 @@ class Agent:
         if self.next_action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if self.next_action == 'N':
             x_diff = dx[1]
@@ -399,7 +398,7 @@ class Agent:
         if self.next_action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if self.next_action == 'S':
             x_diff = dx[3]
@@ -415,8 +414,8 @@ class Agent:
 
     def new_position_with_given_action(self, dim_w, dim_h, action):
 
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
@@ -425,7 +424,7 @@ class Agent:
         if action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'N':
             x_diff = dx[1]
@@ -435,7 +434,7 @@ class Agent:
         if action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':
             x_diff = dx[3]
@@ -456,14 +455,22 @@ class Agent:
         self.actions_probability['S'] = s
         self.actions_probability['W'] = w
 
-    def angle_of_gradient(self, point):
+    def angle_of_gradient(self, point, direction):
 
         point_position = point.get_position()
         my_position = self.get_position()
-        if my_position[0] - point_position[0] == 0:
-            return np.pi / 2
-        else:
-            return np.arctan((my_position[1] - point_position[1]) * 1.0 / (my_position[0] - point_position[0]))
+
+        ## We need to rotate and translate the coordinate system first!
+        xt = point_position[0] - my_position[0]
+        yt = point_position[1] - my_position[1]
+
+        x = np.cos(direction)*xt + np.sin(direction)*yt
+        y = -np.sin(direction)*xt + np.cos(direction)*yt
+        
+        #if my_position[0] - x == 0:
+        #    return 0
+        #else:
+        return np.arctan2(y, x)
 
     def distance(self, point):
         point_position = point.get_position()
@@ -475,6 +482,7 @@ class Agent:
         return len(self.visible_items)
 
     def set_random_action(self):
+        ## TODO: I think every action needs a probability > 0 (including Load)
         actions = ['N', 'E', 'S', 'W']
         self.next_action = choice(actions)
         return
@@ -486,19 +494,21 @@ class Agent:
 
         for i in range(0, len(items)):
 
+#            if (i == 0):
+#                import ipdb; ipdb.set_trace()
+                
             if not items[i].loaded:
                 if self.distance(items[i]) < self.radius:
-                    if self.direction - self.angle / 2 <= self.angle_of_gradient(
-                            items[i]) <= self.direction + self.angle / 2:
+                    if -self.angle / 2 <= self.angle_of_gradient(items[i],self.direction) <= self.angle / 2:
                         self.visible_items.append(items[i])
 
         for i in range(0, len(agents)):
             if self.index != i:
                 if self.distance(agents[i]) < self.radius:
-                    if self.direction - self.angle / 2 <= self.angle_of_gradient(
-                            agents[i]) <= self.direction + self.angle / 2:
+                    if -self.angle / 2 <= self.angle_of_gradient(agents[i],self.direction) <= self.angle / 2:
                         self.visible_agents.append(agents[i])
 
+        ## TODO: Visible agents is not being returned? Probably follower agents are not working
         return self.visible_items
 
     def choose_target(self, items, agents):

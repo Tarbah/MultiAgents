@@ -46,8 +46,8 @@ class a_star:
         self.m = simulator.dim_h
         self.the_map = simulator.the_map
         self.directions = 4
-        self.dx = [1, 0, -1, 0]
-        self.dy = [0, 1, 0, -1]
+        self.dx = [-1, 0, 1,  0]
+        self.dy = [0,  1, 0, -1]
         self.obstacles = self.create_abstacles_list(simulator,a_agent)
 
     @staticmethod
@@ -92,7 +92,7 @@ class a_star:
         n0 = node(xStart, yStart, 0, 0)
         n0.updatePriority(xFinish, yFinish)
         heappush(pq[pqi], n0)
-        open_nodes_map[yStart][xStart] = n0.priority # mark it on the open nodes map
+        open_nodes_map[xStart][yStart] = n0.priority # mark it on the open nodes map
 
         # A* search
         while len(pq[pqi]) > 0:
@@ -104,9 +104,9 @@ class a_star:
             x = n0.xPos
             y = n0.yPos
             heappop(pq[pqi]) # remove the node from the open list
-            open_nodes_map[y][x] = 0
+            open_nodes_map[x][y] = 0
             # mark it on the closed nodes map
-            closed_nodes_map[y][x] = 1
+            closed_nodes_map[x][y] = 1
 
             # quit searching when the goal state is reached
             # if n0.estimate(xFinish, yFinish) == 0:
@@ -115,7 +115,7 @@ class a_star:
                 # by following the directions
                 path = ''
                 while not (x == xStart and y == yStart):
-                    j = dir_map[y][x]
+                    j = dir_map[x][y]
 
                     c = str((j + self.directions / 2) % self.directions)
                     path = c + path
@@ -131,7 +131,7 @@ class a_star:
 
 
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1):
-                    if not(self.position_is_obstacle(xdx, ydy) or closed_nodes_map[ydy][xdx] == 1):
+                    if not(self.position_is_obstacle(xdx, ydy) or closed_nodes_map[xdx][ydy] == 1):
 
                 ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
                 # if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
@@ -140,16 +140,16 @@ class a_star:
                         m0.next_distance(i)
                         m0.updatePriority(xFinish, yFinish)
 
-                        if open_nodes_map[ydy][xdx] == 0:
-                            open_nodes_map[ydy][xdx] = m0.priority
+                        if open_nodes_map[xdx][ydy] == 0:
+                            open_nodes_map[xdx][ydy] = m0.priority
                             heappush(pq[pqi], m0)
 
-                            dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
-                        elif open_nodes_map[ydy][xdx] > m0.priority:
+                            dir_map[xdx][ydy] = (i + self.directions / 2) % self.directions
+                        elif open_nodes_map[xdx][ydy] > m0.priority:
 
-                            open_nodes_map[ydy][xdx] = m0.priority
+                            open_nodes_map[xdx][ydy] = m0.priority
 
-                            dir_map[ydy][xdx] = (i + self.directions / 2) % self.directions
+                            dir_map[xdx][ydy] = (i + self.directions / 2) % self.directions
 
                             while not (pq[pqi][0].xPos == xdx and pq[pqi][0].yPos == ydy):
                                 heappush(pq[1 - pqi], pq[pqi][0])

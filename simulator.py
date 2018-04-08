@@ -9,8 +9,8 @@ from numpy.random import choice
 
 from collections import defaultdict
 
-dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
-dy = [0, 1, 0, -1]
+dx = [-1, 0, 1,  0]  # 0: left,  1:up, 2:right  3:down
+dy = [0,  1, 0, -1]
 actions = ['L', 'N', 'E', 'S', 'W']
 
 
@@ -278,17 +278,17 @@ class simulator:
         for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
             if self.items[i].loaded :
-                self.the_map[item_y][item_x] = 0
+                self.the_map[item_x][item_y] = 0
             else:
-                self.the_map[item_y][item_x] = 1
+                self.the_map[item_x][item_y] = 1
 
         for i in range(len(self.agents)):
             (agent_x, agent_y) = self.agents[i].get_position()
-            self.the_map[agent_y][agent_x] = 8
+            self.the_map[agent_x][agent_y] = 8
 
             (memory_x, memory_y) = self.agents[i].get_memory()
             if (memory_x, memory_y) != (-1, -1):
-                self.the_map[memory_y][memory_x] = 4
+                self.the_map[memory_x][memory_y] = 4
 
         for i in range(len(self.obstacles)):
             (obs_x, obs_y) = self.obstacles[i].get_position()
@@ -296,7 +296,7 @@ class simulator:
 
         if (self.main_agent is not None):    
             (m_agent_x, m_agent_y) = self.main_agent.get_position()
-            self.the_map[m_agent_y][m_agent_x] = 9
+            self.the_map[m_agent_x][m_agent_y] = 9
 
     ###############################################################################################################
     def find_agent_index(self,pos):
@@ -312,9 +312,9 @@ class simulator:
 
         for y in range(self.dim_h):
             for x in range(self.dim_w):
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
                 if xy == 4:
-                    self.the_map[y][x] = 1
+                    self.the_map[x][y] = 1
 
     ###############################################################################################################
     def mark_route_map(self,route, xA, yA): #todo: check to  delete
@@ -327,14 +327,14 @@ class simulator:
                 j = int(route[i])
                 x += dx[j]
                 y += dy[j]
-                self.the_map[y][x] = 3
+                self.the_map[x][y] = 3
 
     ###############################################################################################################
     def draw_map(self):
 
-        for y in range(self.dim_h):
+        for y in range(self.dim_h-1,-1,-1):
             for x in range(self.dim_w):
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
                 if xy == 0:
                     print '.',  # space
                 elif xy == 1:
@@ -356,13 +356,13 @@ class simulator:
     ################################################################################################################
     def draw_map_with_level(self):
 
-        for y in range(self.dim_h):
+        for y in range(self.dim_h-1,-1,-1):
 
             line_str = ""
             for x in range(self.dim_w):
                 item_index = self.find_item_by_location(x, y)
 
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
 
                 if xy == 0:
                     line_str += ' . '

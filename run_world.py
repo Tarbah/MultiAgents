@@ -44,7 +44,7 @@ main_agent = main_sim.main_agent
 main_sim.draw_map()
 
 
-#import ipdb; ipdb.set_trace()
+import ipdb; ipdb.set_trace()
 
 time_step = 0
 while time_step < 100:
