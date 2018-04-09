@@ -1,4 +1,3 @@
-
 import simulator
 import UCT
 import sys
@@ -9,14 +8,10 @@ import sys
 
 # ==============simulator initialisation=====================================================
 
-
 main_sim = simulator.simulator()
-
-
 main_sim.loader(sys.argv[1])
-
 # main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
-# main_sim.loader('C:\simulator\UCT\Test Files\sim2 - level.csv')
+# main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
 
 print('Simulation Successful')
 
@@ -28,7 +23,6 @@ true_angle = 0.72
 true_level = 0.5
 
 true_parameters = [true_level, true_radius, true_angle]
-
 
 main_agent = main_sim.main_agent
 
@@ -83,5 +77,6 @@ while time_step < 100:
 print  time_step
 print "True parameters: ",true_level,true_radius,true_angle
 #print "last new_estimated_parameters", new_estimated_parameters
+
 
 

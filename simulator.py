@@ -247,7 +247,7 @@ class simulator:
         return tmp_sim
 
     ###############################################################################################################
-    def get_first_action(self,route): #todo: change for multiple agents
+    def get_first_action(self,route):
         #  This function is to find the first action afte finding the path by  A Star
 
         dir = route[0]
@@ -294,7 +294,7 @@ class simulator:
             (obs_x, obs_y) = self.obstacles[i].get_position()
             self.the_map[obs_x][obs_y] = 5
 
-        if (self.main_agent is not None):    
+        if self.main_agent is not None:
             (m_agent_x, m_agent_y) = self.main_agent.get_position()
             self.the_map[m_agent_x][m_agent_y] = 9
 
@@ -464,7 +464,8 @@ class simulator:
                 a_agent = self.load_item(a_agent, destination.index)
                 reward += 1
             else:
-                self.items[destination.index].agents_load_item.append(a_agent)
+                if not self.items[destination.index].is_agent_in_loaded_list(a_agent):
+                    self.items[destination.index].agents_load_item.append(a_agent)
 
         else:
             # If there is no item to collect just move A agent
@@ -507,7 +508,7 @@ class simulator:
             if (agent_x, agent_y) == (x, y):
                 return False
 
-        if (self.main_agent is not None):
+        if self.main_agent is not None:
             (m_agent_x, m_agent_y) =self.main_agent.get_position()
             if (m_agent_x, m_agent_y) == (x, y):
                 return False
@@ -524,8 +525,12 @@ class simulator:
                 agents_total_level += agent.level
             if agents_total_level >= item.level and item.agents_load_item !=[]:
                 item.loaded = True
+                for agent in item.agents_load_item:
+                    self.agents[agent.index].reset_memory()
                 item.agents_load_item = list()
                 c_reward += 1
+
+        self.update_the_map()
 
         return
 

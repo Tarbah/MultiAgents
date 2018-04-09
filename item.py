@@ -10,6 +10,12 @@ class item:
         self.index = index
         self.agents_load_item = list()
 
+    def is_agent_in_loaded_list(self, new_agent):
+        for agent in self.agents_load_item:
+            if agent.equals(new_agent):
+                return True
+        return False
+
     def remove_agent(self,agent_x , agent_y):
         for agent_load in self.agents_load_item:
             (al_x , al_y) = agent_load.get_position()

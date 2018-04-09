@@ -124,18 +124,13 @@ class a_star:
 
                 return path
 
-
             for i in range(self.directions):
                 xdx = x + self.dx[i]
                 ydy = y + self.dy[i]
 
-
                 if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1):
                     if not(self.position_is_obstacle(xdx, ydy) or closed_nodes_map[xdx][ydy] == 1):
 
-                ## TODO: 1, 9, 8... These are very unclear. It would be better to create constants
-                # if not (xdx < 0 or xdx > self.n-1 or ydy < 0 or ydy > self.m - 1
-                #         or self.position_is_obstacle(xdx, ydy) or closed_nodes_map[ydy][xdx] == 1):
                         m0 = node(xdx, ydy, n0.distance, n0.priority)
                         m0.next_distance(i)
                         m0.updatePriority(xFinish, yFinish)
