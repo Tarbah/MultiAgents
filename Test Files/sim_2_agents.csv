@@ -1,3 +1,5 @@
+# a simulator with size 15*15 and 3 agents, one main and 2 A agents with same parameters, and 15 items.There is no obstacle here!
+
 grid,15,15
 main,1,1,N,m,1
 agent1,4,4,N,l1, 1, 0.78,0.72

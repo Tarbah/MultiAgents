@@ -1,3 +1,5 @@
+# A simulator with size 10*10 and 2 Agents,One main and one A agent. There are 10 items here and one item is placed west of M agent.
+
 grid,10,10
 main,2,2,N,m,1
 agent,4,4,N,l1, 1, 0.78,0.72
