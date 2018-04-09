@@ -5,7 +5,7 @@ from math import sqrt
 
 
 class Agent:
-    def __init__(self, x, y, direction, agent_type, index):
+    def __init__(self, x, y, direction, agent_type = 'l1', index = '0'):
         self.position = (int(x), int(y))
         self.visible_agents = []
         self.visible_items = []

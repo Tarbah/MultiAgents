@@ -6,7 +6,7 @@ class item:
     def __init__(self, x,y,level, index):
         self.position = position.position(int(x), int(y))
         self.loaded = False
-        self.level = int(level)
+        self.level = float(level)
         self.index = index
         self.agents_load_item = list()
 

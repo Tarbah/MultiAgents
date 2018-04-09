@@ -114,7 +114,7 @@ class simulator:
         info = defaultdict(list)
         with open(path) as info_read:
             for line in info_read:
-                if (not self.is_comment(line)):
+                if not self.is_comment(line):
                     data = line.strip().split(',')
                     key, val = data[0], data[1:]
                     info[key].append(val)

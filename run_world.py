@@ -9,38 +9,32 @@ import sys
 
 # ==============simulator initialisation=====================================================
 
-column_no = 10  # horizontal size ,column
-row_no = 10  # vertical size ,row
 
-# main_sim = simulator.simulator()
-# main_sim.initialisation_fixed_values()
 main_sim = simulator.simulator()
-# main_sim.loader('/home/elnaz/simulation.csv')
-# main_sim.loader('/home/elnaz/simulation.csv')
+
+
 main_sim.loader(sys.argv[1])
+
+# main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
+# main_sim.loader('C:\simulator\UCT\Test Files\sim2 - level.csv')
 
 print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
-# # true parameters
+
 true_radius = 0.78
 true_angle = 0.72
 true_level = 0.5
 
-#
 true_parameters = [true_level, true_radius, true_angle]
-#
-# for a_agent in main_sim.agents:
-#     a_agent.set_parameters(true_level, true_radius, true_angle)
+
 
 main_agent = main_sim.main_agent
 
 # ======================================================================================================
 
 # real_sim.draw_map_with_level()
-# main_agent.direction = 0
-
 main_sim.draw_map()
 
 time_step = 0
@@ -51,10 +45,9 @@ while time_step < 100:
     for i in range(len(main_sim.agents)):
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
-    if (main_sim.main_agent is not None):
+    if main_sim.main_agent is not None:
         tmp_sim = main_sim.copy()
         main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
-
 
         print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
@@ -77,7 +70,7 @@ while time_step < 100:
     print('*******************************************************************************************************************')
 
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     
     main_sim.draw_map()
 

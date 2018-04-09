@@ -76,6 +76,7 @@ class Node:
         
         for a in range(len(self.Q_table)):
             if self.valid(self.Q_table[a].action):
+
                 currentUCB = self.Q_table[a].QValue + sqrt(2.0 * log(float(self.visits)) / float(self.Q_table[a].trials))
 
                 if currentUCB > maxUCB:
@@ -93,55 +94,79 @@ class Node:
 
     def valid(self, action):
         (x, y) = self.state.simulator.main_agent.get_position()
-        ## TODO: We should get from the map/simulator here the correct dimension
-        m = 10
+
+        m = self.state.simulator.dim_w
+        n = self.state.simulator.dim_h
 
         # Check in order to avoid moving out of board.
         if x == 0:
-            if action == 'E':
+            if action == 'W':
                 return False
 
         if y == 0:
             if action == 'S':
                 return False
-
-        ## TODO: There is a bug here. It will only work for squared scenarios
         if x == m - 1:
-            if action == 'W':
+            if action == 'E':
                 return False
 
-        if y == m - 1:
+        if y == n - 1:
             if action == 'N':
                 return False
 
         return True
 
+    ################################################################################################################
     def create_possible_moves(self):
 
         (x, y) = self.state.simulator.main_agent.get_position()
-        ## TODO: We should get from the map/simulator here the correct dimension
-        m = 10
+
+        m = self.state.simulator.dim_w
+        n = self.state.simulator.dim_h
 
         untriedMoves = ['L', 'N', 'E', 'S', 'W']
 
         # Check in order to avoid moving out of board.
         if x == 0:
-            untriedMoves.remove('E')
+            untriedMoves.remove('W')
 
         if y == 0:
             untriedMoves.remove('S')
 
-        ## TODO: There is a bug here. It will only work for squared scenarios
         if x == m - 1:
-            untriedMoves.remove('W')
+            untriedMoves.remove('E')
 
-        if y == m - 1:
+        if y == n - 1:
             untriedMoves.remove('N')
 
         return untriedMoves
 
 ################################################################################################################
+def print_search_tree():
 
+    node = root
+
+    for i in range(max_depth):
+        print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4444"
+        print node.depth
+        print_nodes(node.childNodes)
+        if len(node.childNodes)>0 :
+            node = node.childNodes[0]
+        else:
+            break
+
+
+
+
+################################################################################################################
+def print_nodes(childNodes):
+    print('Total number of children:', len(childNodes))
+    for i in range(len(childNodes)):
+        print 'Node: ', i
+        print_Q_table(childNodes[i])
+        # print childNodes[i].state.simulator.draw_map()
+
+################################################################################################################
 
 def do_move(sim, move):
 
@@ -267,11 +292,13 @@ def search(node, current_estimated_parameters):
     (next_state, reward) = simulate_action(node.state, action, current_estimated_parameters)
     # print '***Search***',node.depth
     # next_state.simulator.draw_map()
+
     # Now we must either create a new child node or go to an existing node
     # I will assume that different actions a_i could lead to the same s'
     # However, I will assume that the s_i node when coming from parent s
     # will be different than s_i node when coming from a different parent s'.
     # This will make it simpler (i.e., a tree, not a graph), and more efficient
+
     # print('reward:', reward)
     # print next_state.simulator.draw_map()
     next_node = None
@@ -280,7 +307,7 @@ def search(node, current_estimated_parameters):
             next_node = child
             break
 
-    if next_node == None:
+    if next_node is None:
         next_node = node.add_child(next_state)
 
     discount_factor = 0.95
@@ -288,6 +315,7 @@ def search(node, current_estimated_parameters):
 
     node.update(action, q)
     node.visits += 1
+
     return q
 
 
@@ -311,22 +339,17 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
         node.state.simulator = tmp_sim
         # print('monte_carlo_planning', time_step)
         # print_Q_table(node)
-        # # print_nodes(node.childNodes)
+        # print_nodes(node.childNodes)
         # print('=================================================================')
         search(node, current_estimated_parameters)
         
         time_step += 1
 
+    # print_search_tree()
     # print('_____________________________________________________________________________________________________________________')
     # print_Q_table(node)
     return best_action(node)
 
-
-def print_nodes(childNodes):
-    print('Total number of children:',len(childNodes) )
-    for i in range(len(childNodes)):
-        print 'Node: ' , i
-        print childNodes[i].state.simulator.draw_map()
 
 
 def m_agent_planning(sim,current_estimated_parameters):
