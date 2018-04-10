@@ -28,8 +28,7 @@ class State:
     def equals(self, state):
         return self.simulator.equals(state.simulator)
 
-################################################################################################################
-
+########################################################################################################################
 
 class Node:
 
@@ -69,6 +68,13 @@ class Node:
                 self.Q_table[i].QValue = self.Q_table[i].sumValue/self.Q_table[i].trials
                 return
 
+    def uct_select_child(self):
+
+        ## UCB expects mean between 0 and 1.
+        s = \
+        sorted(self.childNodes, key=lambda c: c.expectedReward / self.numItems + sqrt(2 * log(self.visits) / c.visits))[
+            -1]
+        return s
     def uct_select_action(self):
 
         maxUCB = -1
@@ -116,7 +122,6 @@ class Node:
 
         return True
 
-    ################################################################################################################
     def create_possible_moves(self):
 
         (x, y) = self.state.simulator.main_agent.get_position()
@@ -141,32 +146,8 @@ class Node:
 
         return untriedMoves
 
-################################################################################################################
-def print_search_tree():
 
-    node = root
-
-    for i in range(max_depth):
-        print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4444"
-        print node.depth
-        print_nodes(node.childNodes)
-        if len(node.childNodes)>0 :
-            node = node.childNodes[0]
-        else:
-            break
-
-
-
-
-################################################################################################################
-def print_nodes(childNodes):
-    print('Total number of children:', len(childNodes))
-    for i in range(len(childNodes)):
-        print 'Node: ', i
-        print_Q_table(childNodes[i])
-        # print childNodes[i].state.simulator.draw_map()
-
-################################################################################################################
+########################################################################################################################
 
 def do_move(sim, move):
 
@@ -202,6 +183,7 @@ def do_move(sim, move):
     return get_reward
 
 
+################################################################################################################
 def best_action(node):
     Q_table = node.Q_table
 
@@ -216,6 +198,7 @@ def best_action(node):
     return maxA
 
 
+################################################################################################################
 def terminal(state):
     if state.simulator.items_left() == 0:
         return True
@@ -223,28 +206,33 @@ def terminal(state):
     return False
 
 
-def leaf(node):
-    if node.depth == max_depth + 1:
+################################################################################################################
+def leaf(main_time_step ,node):
+    if node.depth == main_time_step + max_depth + 1:
         return True
     return False
 
 
+################################################################################################################
 def evaluate(node):
     return node.expectedReward
 
 
+################################################################################################################
 def select_action(node):
     # If all *actions* of the current node have been tried at least once, then Select Child based on UCB
-    if node.untriedMoves == []:
+
+    if node.untriedMoves is list():
         return node.uct_select_action()
 
     # If there is some untried moves we will select a random move from the untried ones
-    if node.untriedMoves != []:
+    if node.untriedMoves is not list():
         move = choice(node.untriedMoves)
         node.untriedMoves.remove(move)
         return move
 
 
+################################################################################################################
 def simulate_action(state, action, current_estimated_parameters):
 
     sim = state.simulator.copy()
@@ -264,43 +252,44 @@ def simulate_action(state, action, current_estimated_parameters):
         c_reward = float(1)
     else:
         c_reward = 0
-    #
-    # print('*********************************************************************')
-    # sim.draw_map()
 
     total_reward = float(m_reward + a_reward + c_reward) / totalItems
 
     return next_state, total_reward
 
 
-def search(node, current_estimated_parameters):
+################################################################################################################
+
+def find_new_root(previous_root,current_state):
+
+    root_node = Node
+
+    for child in previous_root.childNodes:
+        if child.state.equals(current_state):
+            root_node = child
+            break
+
+    return root_node
+
+
+################################################################################################################
+def search(main_time_step,node, current_estimated_parameters):
 
     state = node.state
 
     if terminal(state):
         return 0
 
-    if leaf(node):
+    if leaf(main_time_step,node):
         return 0
 
     action = select_action(node)
     # print ('---action:',action)
     # print_Q_table(node)
 
-    # Agents move at the same time, so the previous action was not performed yet in the point of view of A agent.
-    # Hence, we simulate next state from the current node state
     (next_state, reward) = simulate_action(node.state, action, current_estimated_parameters)
-    # print '***Search***',node.depth
+
     # next_state.simulator.draw_map()
-
-    # Now we must either create a new child node or go to an existing node
-    # I will assume that different actions a_i could lead to the same s'
-    # However, I will assume that the s_i node when coming from parent s
-    # will be different than s_i node when coming from a different parent s'.
-    # This will make it simpler (i.e., a tree, not a graph), and more efficient
-
-    # print('reward:', reward)
-    # print next_state.simulator.draw_map()
     next_node = None
     for child in node.childNodes:
         if child.state.equals(next_state):
@@ -311,7 +300,7 @@ def search(node, current_estimated_parameters):
         next_node = node.add_child(next_state)
 
     discount_factor = 0.95
-    q = reward + discount_factor * search(next_node, current_estimated_parameters)
+    q = reward + discount_factor * search(main_time_step, next_node, current_estimated_parameters)
 
     node.update(action, q)
     node.visits += 1
@@ -319,18 +308,22 @@ def search(node, current_estimated_parameters):
     return q
 
 
-def print_Q_table(node):
-    for a in range(len(node.Q_table)):
-        print "Action: ", node.Q_table[a].action , "QValue:", node.Q_table[a].QValue  , "sumValue:", node.Q_table[a].sumValue , "trials:", node.Q_table[a].trials
-
-
-def monte_carlo_planning(simulator, current_estimated_parameters):
+########################################################################################################################
+def monte_carlo_planning(main_time_step, search_tree, simulator, current_estimated_parameters):
     global root
-    
-    time_step = 0
+
     current_state = State(simulator)
 
-    root_node = Node(depth=0, state=current_state)
+    if search_tree is None:
+        root_node = Node(depth=0, state=current_state)
+    else:
+        root_node = find_new_root(search_tree , current_state)
+        print "----- Beginning of monte_carlo_planning ---- "
+        print "root node children:", len(root_node.childNodes)
+
+    print_Q_table(root_node)
+    time_step = 0
+
     node = root_node
     root = node
 
@@ -341,25 +334,58 @@ def monte_carlo_planning(simulator, current_estimated_parameters):
         # print_Q_table(node)
         # print_nodes(node.childNodes)
         # print('=================================================================')
-        search(node, current_estimated_parameters)
+        search(main_time_step, node, current_estimated_parameters)
         
         time_step += 1
 
-    # print_search_tree()
-    # print('_____________________________________________________________________________________________________________________')
-    # print_Q_table(node)
-    return best_action(node)
+    # print_search_tree(main_time_step)
+    # print('_________________________________________________________________________________________________________')
+    print "----- End of monte_carlo_planning ---- "
+    print_Q_table(node)
+
+    best_selected_action = best_action(node)
+    print "Selected Action: ", best_selected_action
+
+    return best_selected_action, node
 
 
-
-def m_agent_planning(sim,current_estimated_parameters):
+########################################################################################################################
+def m_agent_planning(time_step,search_tree,sim,current_estimated_parameters):
     global totalItems
 
     tmp_sim = sim.copy()
     ## We need total items, because the QValues must be between 0 and 1
     totalItems = tmp_sim.items_left()
 
-    next_move = monte_carlo_planning(tmp_sim, current_estimated_parameters)
+    next_move , search_tree = monte_carlo_planning(time_step, search_tree,tmp_sim, current_estimated_parameters)
 
-    return next_move
+    return next_move , search_tree
 
+
+########################################################################################################################
+def print_search_tree(main_time_step):
+
+    node = root
+
+    for i in range(max_depth + main_time_step ):
+        print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+        print node.depth
+        print_nodes(node.childNodes)
+        if len(node.childNodes)>0 :
+            node = node.childNodes[0]
+        else:
+            break
+
+
+########################################################################################################################
+def print_nodes(childNodes):
+    print('Total number of children:', len(childNodes))
+    for i in range(len(childNodes)):
+        print 'Node: ', i
+        print_Q_table(childNodes[i])
+        # print childNodes[i].state.simulator.draw_map()
+
+################################################################################################################
+def print_Q_table(node):
+    for a in range(len(node.Q_table)):
+        print "Action: ", node.Q_table[a].action, "QValue:", node.Q_table[a].QValue, "sumValue:", node.Q_table[a].sumValue, "trials:", node.Q_table[a].trials

@@ -9,8 +9,8 @@ import sys
 # ==============simulator initialisation=====================================================
 
 main_sim = simulator.simulator()
-main_sim.loader(sys.argv[1])
-# main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
+# main_sim.loader(sys.argv[1])
+main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
 # main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
 
 print('Simulation Successful')
@@ -31,6 +31,8 @@ main_agent = main_sim.main_agent
 # real_sim.draw_map_with_level()
 main_sim.draw_map()
 
+search_tree = None
+
 time_step = 0
 while time_step < 100:
 
@@ -41,9 +43,9 @@ while time_step < 100:
 
     if main_sim.main_agent is not None:
         tmp_sim = main_sim.copy()
-        main_agent_next_action = UCT.m_agent_planning(tmp_sim, true_parameters)
+        main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
 
-        print 'main_agent_direction: ', main_agent.get_agent_direction()
+        # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
 
         r = UCT.do_move(main_sim, main_agent_next_action)
