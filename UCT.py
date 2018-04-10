@@ -1,5 +1,6 @@
 from math import *
 from numpy.random import choice
+import gc
 
 iteration_max = 100
 max_depth = 100
@@ -47,9 +48,10 @@ class Node:
 
         self.numItems = state.simulator.items_left()
 
-    @staticmethod
-    def create_empty_table():
-
+    #@staticmethod
+    #def create_empty_table():
+    # Not sure if this needs to be a static method. I removed static for now, because re-using tree is leaking memory...
+    def create_empty_table(self):
         Qt = list()
         Qt.append(Q_table_row('L', 0, 0, 0))
         Qt.append(Q_table_row('N', 0, 0, 0))
@@ -222,11 +224,11 @@ def evaluate(node):
 def select_action(node):
     # If all *actions* of the current node have been tried at least once, then Select Child based on UCB
 
-    if node.untriedMoves is list():
+    if node.untriedMoves == []:
         return node.uct_select_action()
 
     # If there is some untried moves we will select a random move from the untried ones
-    if node.untriedMoves is not list():
+    if node.untriedMoves != []:
         move = choice(node.untriedMoves)
         node.untriedMoves.remove(move)
         return move
@@ -262,7 +264,8 @@ def simulate_action(state, action, current_estimated_parameters):
 
 def find_new_root(previous_root,current_state):
 
-    root_node = Node
+    ## Initialise with new node, just in case the child was not yet expanded
+    root_node = Node(depth=previous_root.depth+1,state=current_state)
 
     for child in previous_root.childNodes:
         if child.state.equals(current_state):
@@ -320,8 +323,8 @@ def monte_carlo_planning(main_time_step, search_tree, simulator, current_estimat
         root_node = find_new_root(search_tree , current_state)
         print "----- Beginning of monte_carlo_planning ---- "
         print "root node children:", len(root_node.childNodes)
-
-    print_Q_table(root_node)
+        
+    #print_Q_table(root_node)
     time_step = 0
 
     node = root_node
@@ -354,8 +357,11 @@ def m_agent_planning(time_step,search_tree,sim,current_estimated_parameters):
     global totalItems
 
     tmp_sim = sim.copy()
+    
     ## We need total items, because the QValues must be between 0 and 1
-    totalItems = tmp_sim.items_left()
+    ## If we are re-using the tree, I think we should use the initial number of items, and not update it
+    if (search_tree is None):
+        totalItems = tmp_sim.items_left()
 
     next_move , search_tree = monte_carlo_planning(time_step, search_tree,tmp_sim, current_estimated_parameters)
 

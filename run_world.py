@@ -1,6 +1,7 @@
 import simulator
 import UCT
 import sys
+import gc
 
 # ========== main part  ====== ===========
 
@@ -8,9 +9,18 @@ import sys
 
 # ==============simulator initialisation=====================================================
 
+if (len(sys.argv) < 3):
+    print("Use: run_world.py [scenario file] [re-use tree]")
+    sys.exit()
+
+if (int(sys.argv[2]) == 0):
+    reuseTree = False
+else:
+    reuseTree = True
+    
 main_sim = simulator.simulator()
-# main_sim.loader(sys.argv[1])
-main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
+main_sim.loader(sys.argv[1])
+#main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
 # main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
 
 print('Simulation Successful')
@@ -43,7 +53,11 @@ while time_step < 100:
 
     if main_sim.main_agent is not None:
         tmp_sim = main_sim.copy()
-        main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
+
+        if (not reuseTree):
+            main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim, true_parameters)
+        else:
+            main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
 
         # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
