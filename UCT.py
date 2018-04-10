@@ -2,7 +2,8 @@ from math import *
 from numpy.random import choice
 import gc
 
-iteration_max = 100
+## TODO: Perhaps we should have a configuration file, besides the scenario file
+iteration_max = 1000
 max_depth = 100
 
 totalItems = 0 ## TODO: Adding as a global variable for now
@@ -85,7 +86,10 @@ class Node:
         for a in range(len(self.Q_table)):
             if self.valid(self.Q_table[a].action):
 
-                currentUCB = self.Q_table[a].QValue + sqrt(2.0 * log(float(self.visits)) / float(self.Q_table[a].trials))
+                #currentUCB = self.Q_table[a].QValue + sqrt(2.0 * log(float(self.visits)) / float(self.Q_table[a].trials))
+                
+                ## TODO: The exploration constant could be set up in the configuration file
+                currentUCB = self.Q_table[a].QValue + 0.5*sqrt(log(float(self.visits)) / float(self.Q_table[a].trials))
 
                 if currentUCB > maxUCB:
                     maxUCB = currentUCB
