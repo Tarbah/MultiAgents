@@ -9,19 +9,20 @@ import gc
 
 # ==============simulator initialisation=====================================================
 
-if (len(sys.argv) < 3):
-    print("Use: run_world.py [scenario file] [re-use tree]")
-    sys.exit()
-
-if (int(sys.argv[2]) == 0):
-    reuseTree = False
-else:
-    reuseTree = True
-    
+# if (len(sys.argv) < 3):
+#     print("Use: run_world.py [scenario file] [re-use tree]")
+#     sys.exit()
+#
+# if (int(sys.argv[2]) == 0):
+#     reuseTree = False
+# else:
+#     reuseTree = True
+#
 main_sim = simulator.simulator()
-main_sim.loader(sys.argv[1])
+# main_sim.loader(sys.argv[1])
 #main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/M Tests/test2.csv')
-# main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
+main_sim.loader('Test Files/sim2_level.csv')
+reuseTree = False
 
 print('Simulation Successful')
 
@@ -81,7 +82,7 @@ while time_step < 100:
 
 
     # import ipdb; ipdb.set_trace()
-    
+    # main_agent.estimate_parameter(sim = main_sim, time_step=time_step)
     main_sim.draw_map()
 
     # real_sim.draw_map_with_level()

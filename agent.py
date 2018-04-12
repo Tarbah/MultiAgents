@@ -27,6 +27,9 @@ class Agent:
 
     ####################################################################################################################
     def initialise_parameter_estimation(self):
+        """
+        :return: Empty list
+        """
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
         return param_estim

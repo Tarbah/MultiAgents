@@ -171,7 +171,7 @@ class ParameterEstimation:
         data_numbers = 10
 
         D = self.generate_data_for_update_parameter(sim, cur_agent, data_numbers, action)
-
+        print('D: {}'.format(D))
         x_train = []
         y_train = []
 
@@ -285,7 +285,10 @@ class ParameterEstimation:
 
     def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index):
 
-        new_parameters_estimation = None
+        # TP: placeholder for debugging parameter estimations
+        estim = np.random.uniform(1)
+        new_parameters_estimation = estim
+        print('DEBUG: {}'.format(new_parameters_estimation))
         tmp_sim = main_sim.copy()
         # Start parameter estimation
         selected_types = types #self.UCB_selection(time_step)  # returns l1, l2, f1, f2
