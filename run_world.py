@@ -1,190 +1,99 @@
-import agent
-import item
-import random
 import simulator
 import UCT
 
-
-radius_max = 1
-radius_min = 0.1
-angle_max = 1
-angle_min = 0.1
-level_max = 1
-level_min = 0
-
-
-items = []
-agents = []
+import sys
+import gc
 
 
 
-def initialize_items_agents_notrandom(n, m):
-    # generating choices for random selection
-
-    sf = list()
-    sf.append((1, 2))
-    sf.append((1, 5))
-    sf.append((3, 4))
-    sf.append((5, 8))
-    sf.append((8, 1))
-    sf.append((6, 2))
-    sf.append((5, 4))
-    sf.append((9, 4))
-    sf.append((2, 6))
-    sf.append((9, 9))
-
-    # creating items
-    for i in range(0, 10):
-        (x, y) = sf[i]
-
-        # tmp_item = item.item(x, y, (10 - i) / 10.0, i)
-        #tmp_item = item.item(x, y, ( i) / 10.0, i)
-        tmp_item = item.item(x, y, 1, i)
-        items.append(tmp_item)
-
-    # creating agent
-    (x, y) = (4,4)
-    unknown_agent = agent.Agent(x, y, 0,'l1', 0)
-    agents.append(unknown_agent)
-
-    (x, y) = (1, 1)
-    main_agent = agent.Agent(x, y,0,'l1', 1)
-    main_agent.level = 1
-    #agents.append(main_agent)
-
-
-    return main_agent
-
-def initialize_items_agents(n, m):
-    # generating choices for random selection
-    global the_map
-
-    sf = []
-    for i in range(0, n):
-        for j in range(0, m):
-            sf.append((i, j))
-
-    # creating items
-    for i in range(1, 11):
-        (x, y) = random.choice(sf)
-        item_level = round(random.uniform(level_min, level_max), 2)
-        tmp_item = item.item(x, y, item_level,i)
-        items.append(tmp_item)
-        sf.remove((x, y))
-        the_map[x][y] = 1
-
-    # creating agent
-    (x, y) = random.choice(sf)
-    unknown_agent = agent.Agent(x, y,0, 'l1', 0)
-    the_map[x][y] = 8
-
-    agents.append(unknown_agent,1)
-    sf.remove((x, y))
-    the_map[x][y] = 9
-
-    (x, y) = random.choice(sf)
-    main_agent = agent.Agent(x, y, 0, 'l1', -1)
-    main_agent.level = 1
-    main_agent.direction = 0
-
-    sf.remove((x, y))
-
-    return main_agent
-
-
-
-def create_tmp_map(items, agents, main_agent):
-    local_map = []
-    row = [0] * 10
-
-    for i in range(10):
-        local_map.append(list(row))
-
-    local_items = []
-    for i in range(len(items)):
-        (item_x, item_y) = items[i].get_position()
-        local_item = item.item(item_x, item_y, 1, i)
-        local_item.loaded = items[i].loaded
-        local_items.append(local_item)
-        if not local_item.loaded:
-            local_map[item_y][item_x] = 1
-
-    local_agents = list()
-
-    (a_agent_x, a_agent_y) = agents[0].get_position()
-    local_map[a_agent_y][a_agent_x] = 8
-    local_agent = agent.Agent(a_agent_x, a_agent_y,agents[0].direction, 'l1', 0)
-    local_agents.append(local_agent)
-
-    (m_agent_x, m_agent_y) = main_agent.get_position()
-    local_map[m_agent_y][m_agent_x] = 9
-    local_main_agent = agent.Agent(m_agent_x, m_agent_y,main_agent.direction, 'l1', -1)
-    local_main_agent.level = main_agent.level
-
-    return local_agents,local_items,local_map,local_main_agent
-
-# ========== main part  ====== ===========
-
-# Map creation
 
 # ==============simulator initialisation=====================================================
+#
+# if (len(sys.argv) < 3):
+#     print("Use: run_world.py [scenario file] [re-use tree]")
+#     sys.exit()
+#
+# if (int(sys.argv[2]) == 0):
+#     reuseTree = False
+# else:
+reuseTree = False
+    
+main_sim = simulator.simulator()
+# main_sim.loader(sys.argv[1])
+main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/sim_2_agents.csv')
+# main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
 
-
-n = 10  # horizontal size ,column
-m = 10  # vertical size ,row
-
-# initialize_items_agents(n, m)
-main_agent = initialize_items_agents_notrandom(n, m)
-
-real_sim = simulator.simulator([], items, agents, main_agent,n,m)
-real_sim.update_the_map()
-
-
+print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
-# true parameters
+
 true_radius = 0.78
 true_angle = 0.72
-true_level = 1
+true_level = 0.5
 
 true_parameters = [true_level, true_radius, true_angle]
 
-unknown_agent = agents[0]
-unknown_agent.set_parameters(true_level, true_radius, true_angle)
+main_agent = main_sim.main_agent
 
 # ======================================================================================================
 
-real_sim.draw_map()
 # real_sim.draw_map_with_level()
-main_agent.direction = 0
+main_sim.draw_map()
+
+search_tree = None
 
 time_step = 0
 while time_step < 100:
 
     print 'main run count: ', time_step
 
-    # Initializing the simulator
-    local_agents, local_items, local_map, local_main_agent = create_tmp_map(items, agents, main_agent)
-    prev_sim = simulator.simulator(local_map, local_items, local_agents, local_main_agent, 10, 10)
+    for i in range(len(main_sim.agents)):
+        main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
+        main_sim.agents[i].estimate_parameter(main_sim, time_step)
 
-    unknown_agent = real_sim.run_and_update(unknown_agent)
-    main_agent_next_action = UCT.move_agent(real_sim.agents, real_sim.items,  real_sim.main_agent, true_parameters)
+    if main_sim.main_agent is not None:
+        tmp_sim = main_sim.copy()
 
-    r = UCT.do_move(real_sim, main_agent_next_action)
+        if (not reuseTree):
+            main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim, true_parameters)
+        else:
+            main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
+
+        # print 'main_agent_direction: ', main_agent.get_agent_direction()
+        print 'main_agent_next_action: ', main_agent_next_action
+
+        r = UCT.do_move(main_sim, main_agent_next_action)
+
+    ## DEBUG
+    for agent_i in range(len(main_sim.agents)):
+        print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
+        
+    main_sim.update_all_A_agents()
+
+    ## DEBUG
+    for agent_i in range(len(main_sim.agents)):
+        print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
+    
+    main_sim.do_collaboration()
 
     time_step = time_step + 1
+    print('*******************************************************************************************************************')
 
-    real_sim.draw_map()
+
+    # import ipdb; ipdb.set_trace()
+    
+    main_sim.draw_map()
+
     # real_sim.draw_map_with_level()
 
-    if real_sim.items_left() == 0:
+    if main_sim.items_left() == 0:
         break
-    print "left items", real_sim.items_left()
-
+    print "left items", main_sim.items_left()
 
 print  time_step
 print "True parameters: ",true_level,true_radius,true_angle
 #print "last new_estimated_parameters", new_estimated_parameters
+
 
 

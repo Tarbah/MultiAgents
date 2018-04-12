@@ -10,17 +10,51 @@ angle_min = 0.1
 level_max = 1
 level_min = 0
 
+types = ['l1', 'l2', 'f1', 'f2']
+
+
+class Parameter:
+    def __init__(self, level, angle, radius):
+        self.level = level
+        self.angle = angle
+        self.radius = radius
+
+    def update(self, added_value):
+        self.level += added_value[0]
+        self.angle += added_value[1]
+        self.radius += added_value[2]
+        return self
+
+
+class TypeEstimation:
+    def __init__(self, a_type):
+        self.type = a_type
+        self.probability_history = []
+        self.estimation_history = []
+        self.action_probability = []
+
+    def add_estimation_history(self,probability,level, angle, radius):
+        new_parameter = Parameter(level, angle, radius)
+        self.estimation_history.append(new_parameter)
+        self.probability_history.append(probability)
+
+    def get_last_probability(self):
+        return self.probability_history[len(self.probability_history)-1]
+
+    def get_last_estimation(self):
+        return self.estimation_history[len(self.estimation_history)-1]
+
 
 class ParameterEstimation:
 
     def __init__(self):
-        types = ['l1', 'l2', 'f1', 'f2']
+
 
         # P(teta|H)
-        self.p_type_l1 = []
-        self.p_type_l2 = []
-        self.p_type_f1 = []
-        self.p_type_f2 = []
+        self.l1_estimation= TypeEstimation('l1')
+        self.l2_estimation = TypeEstimation('l2')
+        self.f1_estimation = TypeEstimation('f1')
+        self.f2_estimation = TypeEstimation('f2')
 
         # P(a|H,teta,p)
         self.p_action_parameter_type_l1 = []
@@ -28,34 +62,32 @@ class ParameterEstimation:
         self.p_action_parameter_type_f1 = []
         self.p_action_parameter_type_f2 = []
 
-        self.parameters_values_l1 = []
-        self.parameters_values_l2 = []
-        self.parameters_values_f1 = []
-        self.parameters_values_f2 = []
 
-    @staticmethod
-    def create_random_parameters():
-        tmp_parameter = list()
-        tmp_parameter.append(round(random.uniform(level_min, level_max), 2))  # 'level'
-        tmp_parameter.append(round(random.uniform(radius_min, radius_max), 2))  # 'radius'
-        tmp_parameter.append(round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-
-        return tmp_parameter
 
     # Initialisation random values for parameters of each type and probability of actions in time step 0
 
     def estimation_initialisation(self):
         # P(teta|H) in t = 0
-        self.p_type_l1.append(round(random.uniform(0, 1), 1))
-        self.p_type_l2.append(round(random.uniform(0, 1), 1))
-        self.p_type_f1.append(round(random.uniform(0, 1), 1))
-        self.p_type_f2.append(round(random.uniform(0, 1), 1))
+        self.l1_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
 
-        # parameters estimated values for each type
-        self.parameters_values_l1.append(self.create_random_parameters())
-        self.parameters_values_l2.append(self.create_random_parameters())
-        self.parameters_values_f1.append(self.create_random_parameters())
-        self.parameters_values_f2.append(self.create_random_parameters())
+                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.l2_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
+                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.f1_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
+                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.f2_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
+                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
 
     # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)=========================
     @staticmethod
@@ -77,13 +109,14 @@ class ParameterEstimation:
             tmp_angle = angle_min + (1.0 *(angle_max - angle_min) / data_numbers) * i
             tmp_level = level_min + (1.0 *(level_max - level_min) / data_numbers) * i
 
-            tmp_agent.set_parameters(tmp_level, tmp_radius, tmp_angle)
+            tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
 
-            tmp_agent = sim.run(tmp_agent)  # f(p)
+            tmp_agent = sim.move_a_agent(tmp_agent, True)  # f(p)
             p_action = tmp_agent.get_action_probability(action)
 
             if p_action is not None:
                 D.append([tmp_level,tmp_radius, tmp_angle,  p_action])
+
 
         # print '******End of generating data for updating parameter *******'
         # print '*********************************************************************************'
@@ -95,11 +128,6 @@ class ParameterEstimation:
         # f(p) is the probability of action which is taken by unknown agent with true parameters at time step t
         # (implementation of Algorithm 2 in the paper for updating parameter value)
 
-       # print
-       # print "**** start calculating gradient ascent ***"
-       # print
-        # print 'x_train:  ', x_train, '  y_train:  ', y_train
-
         step_size = 0.05
 
         reg = linear_model.LinearRegression()
@@ -108,11 +136,15 @@ class ParameterEstimation:
 
         gradient = reg.coef_
 
-        new_parameters = old_parameter + gradient * step_size
-        if new_parameters[0] > 1 or new_parameters[1] > 1 or new_parameters[2] > 1 or  new_parameters[0] < 0 or new_parameters[1] < 0 or new_parameters[2] < 0:
-            return old_parameter
-        else:
+        new_parameters = old_parameter.update(gradient * step_size)
+
+        if level_min <= new_parameters.level <= level_max or \
+                angle_min <= new_parameters.angle<= angle_max or \
+                radius_min <= new_parameters.radius <= radius_max :
             return new_parameters
+
+        else:
+            return old_parameter
 
     def bayesian_updating(self, x_train):
         pass
@@ -139,7 +171,7 @@ class ParameterEstimation:
         data_numbers = 10
 
         D = self.generate_data_for_update_parameter(sim, cur_agent, data_numbers, action)
-        #print D
+
         x_train = []
         y_train = []
 
@@ -154,38 +186,39 @@ class ParameterEstimation:
         last_parameters_value = 0
 
         if cur_agent.agent_type == 'l1':
-            last_parameters_value = self.parameters_values_l1[time_step - 1]
+            last_parameters_value = self.l1_estimation.estimation_history[time_step - 1]
 
         if cur_agent.agent_type == 'l2':
-            last_parameters_value = self.parameters_values_l2[time_step - 1]
+            last_parameters_value = self.l2_estimation.estimation_history[time_step - 1]
 
         if cur_agent.agent_type == 'f1':
-            last_parameters_value = self.parameters_values_f1[time_step - 1]
+            last_parameters_value = self.f1_estimation.estimation_history[time_step - 1]
 
         if cur_agent.agent_type == 'f2':
-            last_parameters_value = self.parameters_values_f2[time_step - 1]
-
+            last_parameters_value = self.f2_estimation.estimation_history[time_step - 1]
 
         # parameters value order is : radius , angle, level
-        estimated_parameters = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
+        estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
         # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
 
+
         ##print '***********************************************************************************************'
-        return estimated_parameters
+        return estimated_parameter
 
     def update_belief(self,t,agent_type):
 
         if agent_type == 'l1':
-            self.p_type_l1.append(self.p_type_l1[t - 1] * self.p_action_parameter_type_l1[t - 1])
+            self.l1_estimation.probability_history.append(self.l1_estimation.probability_history[t - 1] * self.p_action_parameter_type_l1[t - 1])
 
         if agent_type == 'l2':
-            self.p_type_l2.append(self.p_type_l2[t - 1] * self.p_action_parameter_type_l2[t - 1])
+            self.l2_estimation.probability_history.append(self.l2_estimation.probability_history[t - 1] * self.p_action_parameter_type_l2[t - 1])
 
         if agent_type == 'f1':
-            self.p_type_f1.append(self.p_type_f1[t - 1] * self.p_action_parameter_type_f1[t - 1])
+
+            self.f1_estimation.probability_history.append(self.f1_estimation.probability_history[t - 1] * self.p_action_parameter_type_f1[t - 1])
 
         if agent_type == 'f2':
-            self.p_type_f2.append(self.p_type_f2[t - 1] * self.p_action_parameter_type_f2[t - 1])
+            self.f2_estimation.probability_history.append(self.f2_estimation.probability_history[t - 1] * self.p_action_parameter_type_f2[t - 1])
 
     def update_internal_state(self):
         t = 0
@@ -250,25 +283,32 @@ class ParameterEstimation:
         # reward = (1/nu) * parameter_diff_sum
         # return ['l1']
 
-    def process_parameter_estimations(self, time_step, tmp_sim, agent_position, action, agent_index):
+    def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index):
+
+        new_parameters_estimation = None
+        tmp_sim = main_sim.copy()
         # Start parameter estimation
-        selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
+        selected_types = types #self.UCB_selection(time_step)  # returns l1, l2, f1, f2
         (x, y) = agent_position  # Position in the world e.g. 2,3
 
         # Estimate the parameters
-        for i in range(0, len(selected_types)):  # TODO: Why is this just 1?
+        for selected_type in selected_types:
             # Generates an Agent object
-            tmp_agent = agent.Agent(x, y, selected_types[i], agent_index)
+            tmp_agent = agent.Agent(x, y, agent_direction, selected_type, agent_index)
+
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
             new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
 
             # moving temp agent in previous map with new parameters
-            tmp_agent.set_parameters(new_parameters_estimation[0], new_parameters_estimation[1],
-                                     new_parameters_estimation[2])
+            tmp_agent.set_parameters(tmp_sim, new_parameters_estimation.level, new_parameters_estimation.radius,
+                                     new_parameters_estimation.angle)
+
 
             # Runs a simulator object
-            tmp_sim.run(tmp_agent)
+            tmp_agent = tmp_sim.move_a_agent(tmp_agent)
+
+
 
             # TODO: Always seems to return 0.01, is this right?
             action_prob = tmp_agent.get_action_probability(action)
@@ -277,22 +317,22 @@ class ParameterEstimation:
             self.update_internal_state()
 
             # Determine which list to append new parameter estimation and action prob to
-            if selected_types[i] == 'l1':
-                self.parameters_values_l1.append(new_parameters_estimation)
+            if selected_type == 'l1':
+                self.l1_estimation.estimation_history.append(new_parameters_estimation)
                 self.p_action_parameter_type_l1.append(action_prob)
 
-            if selected_types[i] == 'l2':
-                self.parameters_values_l2.append(new_parameters_estimation)
+            if selected_type == 'l2':
+                self.l2_estimation.estimation_history.append(new_parameters_estimation)
                 self.p_action_parameter_type_l2.append(action_prob)
 
-            if selected_types[i] == 'f1':
-                self.parameters_values_f1.append(new_parameters_estimation)
+            if selected_type == 'f1':
+                self.f1_estimation.estimation_history.append(new_parameters_estimation)
                 self.p_action_parameter_type_f1.append(action_prob)
 
-            if selected_types[i] == 'f2':
-                self.parameters_values_f2.append(new_parameters_estimation)
+            if selected_type == 'f2':
+                self.f2_estimation.estimation_history.append(new_parameters_estimation)
                 self.p_action_parameter_type_f2.append(action_prob)
 
-            self.update_belief(time_step, selected_types[i])
+            self.update_belief(time_step, selected_type)
 
         return new_parameters_estimation

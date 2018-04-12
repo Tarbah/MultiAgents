@@ -2,27 +2,54 @@ from numpy.random import choice
 import position
 import numpy as np
 from math import sqrt
+import parameter_estimation
 
 
 class Agent:
-    def __init__(self, x, y, direction, agent_type, index):
-        self.position = (x, y)
+    def __init__(self, x, y, direction, agent_type='l1', index='0'):
+        self.position = (int(x), int(y))
         self.visible_agents = []
         self.visible_items = []
-        self.direction = direction
+
+        if isinstance(direction, basestring):
+            self.direction = self.convert_direction(direction)
+        else:
+            self.direction = float(direction)
+            
         self.item_to_load = -1
         self.level = -1
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
         self.next_action = None
         self.index = index
         self.agent_type = agent_type
-        self.memory = position.position(0, 0)
+        self.memory = position.position(-1, -1)
+        self.estimated_parameter = self.initialise_parameter_estimation()
 
-    ################################################################################################################
+    ####################################################################################################################
+    def initialise_parameter_estimation(self):
+        param_estim = parameter_estimation.ParameterEstimation()
+        param_estim.estimation_initialisation()
+        return param_estim
+    ####################################################################################################################
     def reset_memory(self):
-        self.memory = position.position(0, 0)
+        self.memory = position.position(-1, -1)
+
+    ####################################################################################################################
+
+    def agent_is_stucked(self, sim):
+        (memory_x, memory_y) = self.memory.get_position()
+
+        destination_index = sim.find_item_by_location(memory_x, memory_y)
+
+        if destination_index != -1:
+            if self.next_action == 'L' and \
+                    self.is_agent_near_destination(memory_x, memory_y) and \
+                    self.level < sim.items[destination_index].level:
+                return True
+        return False
 
     ################################################################################################################
+
     def get_position(self):
         return self.position[0], self.position[1]
 
@@ -36,8 +63,12 @@ class Agent:
         
         (memory_x, memory_y) = self.get_memory()
 
-        
-        return ((x == other_x) and (y == other_y) and (memory_x == other_memory_x) and (memory_y == other_memory_y) and (self.agent_type == other_agent.agent_type) and (self.index == other_agent.index))
+        return x == other_x and y == other_y and \
+               memory_x == other_memory_x and memory_y == other_memory_y and \
+               self.agent_type == other_agent.agent_type and \
+               self.index == other_agent.index and \
+               self.direction == other_agent.direction
+
 
     ################################################################################################################
     def copy(self):
@@ -45,54 +76,52 @@ class Agent:
         (x, y) = self.position
 
         copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
+        copy_agent.level = self.level
 
         (memory_x, memory_y) = self.memory.get_position()
 
         copy_agent.memory = position.position(memory_x, memory_y)
 
-
         return copy_agent
-
-
 
     ################################################################################################################
 
-    def is_agent_face_to_item(self,sim):
+    def is_agent_face_to_item(self, sim):
 
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
 
         x, y = self.get_position()
 
-        if self.direction == 0 * np.pi / 2 :
-           # Agent face to West
-            x_diff = dx[2]
-            y_diff = dy[2]
+        if self.direction == 2 * np.pi / 2:
+            # Agent face to West
+            x_diff = dx[0]
+            y_diff = dy[0]
 
-        if self.direction == np.pi / 2 :
+        if self.direction == np.pi / 2:
             # Agent face to North
             x_diff = dx[1]
             y_diff = dy[1]
 
-        if  self.direction == 2 * np.pi / 2:
+        if self.direction == 0 * np.pi / 2:
             # Agent face to East
-            x_diff = dx[0]
-            y_diff = dy[0]
+            x_diff = dx[2]
+            y_diff = dy[2]
 
         if self.direction == 3 * np.pi / 2:
             # Agent face to South
             x_diff = dx[3]
             y_diff = dy[3]
 
-        if x + x_diff < sim.dim_w and x + x_diff >= 0 \
-                and y + y_diff < sim.dim_h and y + y_diff >= 0:
-             if sim.the_map[y + y_diff][x + x_diff] == 1 or sim.the_map[y + y_diff][x + x_diff] == 4:
-                 return True , ( x + x_diff , y + y_diff)
+        if 0 <= x + x_diff < sim.dim_w and 0 <= y + y_diff < sim.dim_h and \
+                sim.is_there_item_in_position(x + x_diff, y + y_diff) != -1:
 
-        return False ,(-1 ,-1)
+            return True, (x + x_diff, y + y_diff)
+
+        return False,(-1,-1)
 
     ################################################################################################################
 
@@ -101,7 +130,7 @@ class Agent:
          
         return memory_x, memory_y
     
-
+    ################################################################################################################
 
     def is_item_nearby(self, items):
 
@@ -115,9 +144,9 @@ class Agent:
                     return i
         return -1
 
+    ################################################################################################################
     def find_nearest_item(self, items):
 
-        pos = self.position
         minimum_distance = 10000
         nearest_item_index = -1
 
@@ -131,32 +160,70 @@ class Agent:
 
         return nearest_item_index
 
+    ####################################################################################################################
+    def estimate_parameter(self, sim, time_step):
+        self.estimated_parameter.process_parameter_estimations(time_step, sim,
+                                                               self.position,
+                                                               self.direction,
+                                                               self.next_action,
+                                                               self.index)
+
+    ####################################################################################################################
     def if_see_other_agent(self, agent):
         if self.distance(agent) < self.radius:
-
-            if self.direction - self.angle / 2 <= self.angle_of_gradient(agent) <= self.direction + self.angle / 2:
+            if -self.angle / 2 <= self.angle_of_gradient(agent,self.direction) <= self.angle / 2:
               return True
         return False
 
+    ################################################################################################################
+    ## The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
+        dx = [-1, 0, 1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0,-1]
+
+        x_diff = 0
+        y_diff = 0
 
         pos = self.position
 
+        if self.direction == 2 * np.pi / 2:
+            # Agent face to West
+            x_diff = dx[0]
+            y_diff = dy[0]
+
+        if self.direction == np.pi / 2:
+            # Agent face to North
+            x_diff = dx[1]
+            y_diff = dy[1]
+
+        if self.direction == 0 * np.pi / 2:
+            # Agent face to East
+            x_diff = dx[2]
+            y_diff = dy[2]
+
+        if self.direction == 3 * np.pi / 2:
+            # Agent face to South
+            x_diff = dx[3]
+            y_diff = dy[3]
+        
         (xI, yI) = (item_x, item_y)
         if (yI == pos[1] and abs(pos[0] - xI) == 1) or (xI == pos[0] and abs(pos[1] - yI) == 1):
-            return True
+            if ((pos[0] + x_diff == xI) and (pos[1] + y_diff == yI)):
+                return True
+            else:
+                return False
         else:
             return False
 
-    def set_parameters_array(self,parameters_probabilities):
-        self.set_parameters(parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
+    def set_parameters_array(self,sim,parameters_probabilities):
+        self.set_parameters(sim,parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
 
-    def set_parameters(self, level, radius, angle):
+    def set_parameters(self,sim, level, radius, angle):
 
-        width, hight = 10, 10
-        self.level = level
-        self.radius = radius * sqrt(width ** 2 + hight ** 2)
-        self.angle = 2 * np.pi * angle
+        width, hight = sim.dim_w, sim.dim_h
+        self.level = float(level)
+        self.radius = float(radius) * sqrt(width ** 2 + hight ** 2)
+        self.angle = 2 * np.pi * float(angle)
 
     def set_direction(self, direction):
         self.direction = direction
@@ -263,7 +330,7 @@ class Agent:
 
     def get_actions_probabilities(self):
 
-        actions_probabilities=[]
+        actions_probabilities = list()
         actions_probabilities.append(self.actions_probability['L'])
         actions_probabilities.append(self.actions_probability['N'])
         actions_probabilities.append(self.actions_probability['E'])
@@ -272,49 +339,63 @@ class Agent:
         return actions_probabilities
 
     def change_direction(self, dx, dy):
-        if dx == -1 and dy == 0:  # 'E':
+
+        if dx == 1 and dy == 0:  # 'E':
             self.direction = 0 * np.pi / 2
 
-        if dx == 0 and dy == 1:  # 'N':
+        if dx == 0 and dy == -1:  # 'N':
             self.direction = np.pi / 2
 
-        if dx == 1 and dy == 0:  # 'W':
+        if dx == -1 and dy == 0:  # 'W':
             self.direction = 2 * np.pi / 2
 
         if dx == 0 and dy == -1:  # 'S':
             self.direction = 3 * np.pi / 2
 
     def change_direction_with_action(self, action):
-        if action == 'E':  # 'E':
-            self.direction = 0 * np.pi / 2
 
-        if action == 'N' :  # 'N':
+        if action == 'W':  # 'W':
+            self.direction = 2 * np.pi / 2
+
+        if action == 'N':  # 'N':
             self.direction = np.pi / 2
 
-        if action == 'W' :  # 'W':
-            self.direction = 2 * np.pi / 2
+        if action == 'E':  # 'E':
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
-    def get_agent_direction(self):
+    def convert_direction(self,direction):
+        if (direction == 'N'):
+            return np.pi / 2
 
-        if self.direction == 0:
-            return 'W'
+        if (direction == 'W'):
+            return np.pi
+
+        if (direction == 'E'):
+            return 0
+
+        if (direction == 'S'):
+            return 3*np.pi/2
+            
+    def get_agent_direction(self):
 
         if self.direction == np.pi / 2:
             return 'N'
 
         if self.direction == np.pi:
+            return 'W'
+
+        if self.direction == 0:
             return 'E'
 
         if self.direction == 3 * np.pi / 2:
             return 'S'
 
-
-    def change_position_direction(self, n, m):
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+    def change_position_direction(self, dim_w , dim_h):
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
@@ -322,7 +403,7 @@ class Agent:
         if self.next_action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if self.next_action == 'N':
             x_diff = dx[1]
@@ -332,7 +413,7 @@ class Agent:
         if self.next_action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if self.next_action == 'S':
             x_diff = dx[3]
@@ -341,15 +422,15 @@ class Agent:
 
         x, y = self.get_position()
 
-        if x + x_diff < n and x + x_diff >= 0 and y + y_diff < m and y + y_diff >= 0:
+        if 0 <= x + x_diff < dim_w  and 0 <= y + y_diff < dim_h :
             self.position = (x + x_diff, y + y_diff)
 
         return self.position
 
-    def new_position_with_given_action(self, n, m, action):
+    def new_position_with_given_action(self, dim_w, dim_h, action):
 
-        dx = [1, 0, -1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [0, 1, 0, -1]
+        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
@@ -358,7 +439,7 @@ class Agent:
         if action == 'W':
             x_diff = dx[0]
             y_diff = dy[0]
-            self.direction = 0 * np.pi / 2
+            self.direction = 2 * np.pi / 2
 
         if action == 'N':
             x_diff = dx[1]
@@ -368,7 +449,7 @@ class Agent:
         if action == 'E':
             x_diff = dx[2]
             y_diff = dy[2]
-            self.direction = 2 * np.pi / 2
+            self.direction = 0 * np.pi / 2
 
         if action == 'S':
             x_diff = dx[3]
@@ -377,7 +458,7 @@ class Agent:
 
         x, y = self.get_position()
 
-        if x + x_diff < n and x + x_diff >= 0 and y + y_diff < m and y + y_diff >= 0:
+        if 0 <= x + x_diff < dim_w and 0 <= y + y_diff < dim_h:
             new_position = (x + x_diff, y + y_diff)
 
         return new_position
@@ -389,14 +470,20 @@ class Agent:
         self.actions_probability['S'] = s
         self.actions_probability['W'] = w
 
-    def angle_of_gradient(self, point):
+    ####################################################################################################################
+    def angle_of_gradient(self, point, direction):
 
         point_position = point.get_position()
         my_position = self.get_position()
-        if my_position[0] - point_position[0] == 0:
-            return np.pi / 2
-        else:
-            return np.arctan((my_position[1] - point_position[1]) * 1.0 / (my_position[0] - point_position[0]))
+
+        ## We need to rotate and translate the coordinate system first!
+        xt = point_position[0] - my_position[0]
+        yt = point_position[1] - my_position[1]
+
+        x = np.cos(direction)*xt + np.sin(direction)*yt
+        y = -np.sin(direction)*xt + np.cos(direction)*yt
+
+        return np.arctan2(y, x)
 
     def distance(self, point):
         point_position = point.get_position()
@@ -407,39 +494,75 @@ class Agent:
 
         return len(self.visible_items)
 
+    ####################################################################################################################
     def set_random_action(self):
-        actions = [ 'N', 'E', 'S', 'W']
+
+        actions = ['N', 'E', 'S', 'W', 'L']
         self.next_action = choice(actions)
         return
 
+    ####################################################################################################################
     def visible_agents_items(self, items, agents):
 
         self.visible_agents = list()
         self.visible_items = list()
 
-        for i in range(0, len(items)):
-
-            if not items[i].loaded:
-                if self.distance(items[i]) < self.radius:
-                    if self.direction - self.angle / 2 <= self.angle_of_gradient(
-                            items[i]) <= self.direction + self.angle / 2:
-                        self.visible_items.append(items[i])
+        for item in items:
+                
+            if not item.loaded:
+                if self.distance(item) < self.radius:
+                    if -self.angle / 2 <= self.angle_of_gradient(item, self.direction) <= self.angle / 2:
+                        self.visible_items.append(item)
 
         for i in range(0, len(agents)):
             if self.index != i:
                 if self.distance(agents[i]) < self.radius:
-                    if self.direction - self.angle / 2 <= self.angle_of_gradient(
-                            agents[i]) <= self.direction + self.angle / 2:
+                    if -self.angle / 2 <= self.angle_of_gradient(agents[i], self.direction) <= self.angle / 2:
                         self.visible_agents.append(agents[i])
 
+    ####################################################################################################################
+    def set_estimated_values(self):
 
-        return self.visible_items
+        max_prob = -1
+        type_prob = None
+        max_type = None
+        estimated_parameter = None
 
-    def choose_target(self, items, agents):
+        type_prob= self.estimated_parameter.l1_estimation.get_last_probability()
+        if type_prob > max_prob:
+            max_type = 'l1'
+            estimated_parameter = self.estimated_parameter.l1_estimation.get_last_estimation()
+            max_prob = type_prob
 
+        type_prob = self.estimated_parameter.l2_estimation.get_last_probability()
+        if type_prob > max_prob:
+            max_type = 'l2'
+            estimated_parameter = self.estimated_parameter.l2_estimation.get_last_estimation()
+            max_prob = type_prob
+
+        type_prob = self.estimated_parameter.f1_estimation.get_last_probability()
+        if type_prob > max_prob:
+            max_type = 'f1'
+            estimated_parameter = self.estimated_parameter.f1_estimation.get_last_estimation()
+            max_prob = type_prob
+
+        type_prob = self.estimated_parameter.f2_estimation.get_last_probability()
+        if type_prob > max_prob:
+            max_type = 'f2'
+            estimated_parameter = self.estimated_parameter.f2_estimation.get_last_estimation()
+
+
+        self.agent_type = max_type
+        self.level = estimated_parameter.level
+        self.angle = estimated_parameter.angle
+        self.radius = estimated_parameter.radius
+
+
+    ####################################################################################################################
+    def choose_target(self, items, agents, for_estimation=False):
 
         if len(self.visible_items) == 0:
-            return position.position(0, 0)
+            return position.position(-1, -1)
 
         max_index = -1
         max_distanse = 0
@@ -467,7 +590,7 @@ class Agent:
                         max_index = i
 
             if max_index == -1:
-                return position.position(0, 0)
+                return position.position(-1, -1)
             else:
                 return self.visible_items[max_index]
 
@@ -475,6 +598,11 @@ class Agent:
         # if agents and items visible, return item that furthest agent would choose if it had type L1;
         #  else, return 0
         if self.agent_type == "f1":
+            if for_estimation:
+                for visible_agent in self.visible_agents:
+                    visible_agent.set_estimated_values()
+
+
             if len(self.visible_items) == 0 and len(self.visible_agents) > 0:
 
                 for i in range(0, len(self.visible_agents)):
@@ -492,16 +620,16 @@ class Agent:
                         max_index = i
 
                 furthest_agent = self.visible_agents[max_index]
-                if furthest_agent!= -1:
+                if furthest_agent != -1:
                     if furthest_agent.agent_type == "l1":
 
                         furthest_agent.visible_agents_items(items, agents)
 
-                        return furthest_agent.choose_target()
+                        return furthest_agent.choose_target(items, agents)
                     else:
-                        return position.position(0, 0)
+                        return position.position(-1, -1)
             else:
-                return position.position(0, 0)
+                return position.position(-1, -1)
 
 
         # else, return 0
@@ -546,10 +674,11 @@ class Agent:
 
                         furthest_agent.visible_agents_items(items, agents)
 
-                        return furthest_agent.choose_target()
+                        return furthest_agent.choose_target(items, agents)
                     else:
-                        return position.position(0, 0)
+                        return position.position(-1, -1)
             else:
-                return position.position(0, 0)
+                return position.position(-1, -1)
 
-        return position.position(0, 0)
+        return position.position(-1, -1)
+

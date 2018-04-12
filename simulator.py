@@ -1,23 +1,118 @@
 # Types for agents are 'L1','L2','F1','F2'
 import agent
+import item
+import obstacle
 import position
 import a_star
 import numpy as np
 from numpy.random import choice
 
-dx = [1, 0, -1, 0]  # 0: left,  1:up, 2:right  3:down
-dy = [0, 1, 0, -1]
+from collections import defaultdict
+
+dx = [-1, 0, 1,  0]  # 0: left,  1:up, 2:right  3:down
+dy = [0,  1, 0, -1]
 actions = ['L', 'N', 'E', 'S', 'W']
 
 
+radius_max = 1
+radius_min = 0.1
+angle_max = 1
+angle_min = 0.1
+level_max = 1
+level_min = 0
+
+
 class simulator:
-    def __init__(self,the_map, items, agents, main_agent, dim_w, dim_h):
-        self.the_map = the_map
-        self.items = items
-        self.agents = agents
-        self.main_agent = main_agent
-        self.dim_w = dim_w  # Number of columns
-        self.dim_h = dim_h  # Number of rows
+    def __init__(self):
+        self.the_map = []
+        self.items = []
+        self.agents = []
+        self.obstacles = []
+        self.main_agent = None
+        self.dim_w = None  # Number of columns
+        self.dim_h = None  # Number of rows
+
+    def is_comment(self, string):
+        for pos in range(len(string)):
+            if (string[pos] == ' ' or string[pos] == '\t'):
+                continue
+            if (string[pos] == '#'):
+                return True
+            else:
+                return False
+    
+    def loader(self, path):
+        """
+        Takes in a csv file and stores the necessary instances for the simulation object. The file path referenced
+        should point to a file of a particular format - an example of which can be found in utils.py txt_generator().
+        The exact order of the file is unimportant - the three if statements will extract the needed information.
+        :param path: File path directory to a .csv file holding the simulation information
+        :return:
+        """
+        # Load and store csv file
+        info = defaultdict(list)
+        with open(path) as info_read:
+            for line in info_read:
+                if not self.is_comment(line):
+                    data = line.strip().split(',')
+                    key, val = data[0], data[1:]
+                    info[key].append(val)
+
+        print(info)
+        # Extract grid dimensions
+        self.dim_w = int(info['grid'][0][0])
+        self.dim_h = int(info['grid'][0][1])
+
+        # Add items and agents to the environment
+        i = 0
+        j = 0
+        l = 0
+        for k, v in info.items():
+            if 'item' in k:
+                self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
+                i += 1
+            elif 'agent' in k:
+
+                #import ipdb; ipdb.set_trace()
+                agnt = agent.Agent(v[0][0], v[0][1], v[0][2], v[0][3], j)
+                agnt.set_parameters(self,v[0][4], v[0][5], v[0][6])
+                self.agents.append(agnt)
+
+                j += 1
+            elif 'main' in k:
+                # x-coord, y-coord, direction, type, index
+                self.main_agent = agent.Agent(v[0][0], v[0][1], v[0][2], 'm', -1)
+                self.main_agent.level = v[0][2]
+            elif 'obstacle' in k:
+                self.obstacles.append(obstacle.Obstacle(v[0][0], v[0][1]))
+                l += 1
+
+
+        # Run Checks
+        assert len(self.items) == i, 'Incorrect Item Loading'
+        assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
+        assert len(self.obstacles) == l, 'Incorrect Obstacle Loading'
+
+        # Print Simulation Description
+        print('Grid Size: {} \n{} Items Loaded\n{} Agents Loaded\n{} Obstacles Loaded'.format(self.dim_w,
+                                                                                              len(self.items),
+                                                                                              len(self.agents),
+                                                                                              len(self.obstacles)))
+
+        # Update the map
+        self.update_the_map()
+
+    ################################################################################################################
+
+    def is_there_item_in_position(self, x, y):
+
+        for i in range(len(self.items)):
+            if not self.items[i].loaded:
+                (item_x, item_y) = self.items[i].get_position()
+                if (item_x, item_y) == (x, y):
+                    return i
+
+        return -1
 
     ###############################################################################################################
     def create_empty_map(self):
@@ -32,73 +127,63 @@ class simulator:
     ###############################################################################################################
     def equals(self, other_simulator):
 
-
         ## If I reached here the maps are equal. Now let's compare the items and agents
 
-        if (len(self.items) != len(other_simulator.items)):
+        if len(self.items) != len(other_simulator.items):
             return False
-
 
         for i in range(len(self.items)):
-            if (not self.items[i].equals(other_simulator.items[i])):
+            if not self.items[i].equals(other_simulator.items[i]):
                 return False
 
-        if (len(self.agents) != len(other_simulator.agents)):
+        if len(self.agents) != len(other_simulator.agents):
             return False
 
+        for i in range(len(self.items)):
+            if not self.items[i].equals(other_simulator.items[i]):
+                return False
 
         for i in range(len(self.agents)):
-            if (not self.agents[i].equals(other_simulator.agents[i])):
+            if not self.agents[i].equals(other_simulator.agents[i]):
                 return False
 
-        if (not self.main_agent.equals(other_simulator.main_agent)):
+        if not self.main_agent.equals(other_simulator.main_agent):
             return False
-
-
 
         return True
         
     ###############################################################################################################
     def copy(self):
-        copy_map = list()
-
-        ## m rows of n columns each, right?
-        ## why the map is addressed as [y][x] instead of [x][y]?
-        for i in range(self.dim_h):
-            row = list()
-            for j in range(self.dim_w):
-                row.append(self.the_map[i][j])
-
-            copy_map.append(list(row))
 
         copy_items = []
 
-        for i in range(len(self.items)):            
+        for i in range(len(self.items)):
             copy_item = self.items[i].copy()
             copy_items.append(copy_item)
 
-
         copy_agents = list()
-        
+
         for agent in self.agents:
             copy_agent = agent.copy()
             copy_agents.append(copy_agent)
 
+        copy_obstacles = []
+        for obs in self.obstacles:
+            copy_obstacle = obs.copy()
+            copy_obstacles.append(copy_obstacle)
 
         copy_main_agent = self.main_agent.copy()
 
-        tmp_sim = simulator(copy_map, copy_items, copy_agents, copy_main_agent, self.dim_h, self.dim_w)
-        
-        return tmp_sim
-                            
-            
-    ###############################################################################################################
+        tmp_sim = simulator()
+        tmp_sim.dim_h = self.dim_h
+        tmp_sim.dim_w = self.dim_w
+        tmp_sim.agents = copy_agents
+        tmp_sim.items = copy_items
+        tmp_sim.main_agent = copy_main_agent
+        tmp_sim.obstacles = copy_obstacles
+        tmp_sim.update_the_map()
 
-    def get_itemIndex_by_position(self, x, y):
-        for i in range(0, len(self.items)):
-            if self.items[i].get_position() == (x,y):
-                return i
-        return -1
+        return tmp_sim
 
     ###############################################################################################################
     def get_first_action(self,route):
@@ -132,18 +217,25 @@ class simulator:
         for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
             if self.items[i].loaded :
-                self.the_map[item_y][item_x] = 0
+                self.the_map[item_x][item_y] = 0
             else:
-                self.the_map[item_y][item_x] = 1
+                self.the_map[item_x][item_y] = 1
 
         for i in range(len(self.agents)):
             (agent_x, agent_y) = self.agents[i].get_position()
-            self.the_map[agent_y][agent_x] = 8
+            self.the_map[agent_x][agent_y] = 8
 
-        (m_agent_x, m_agent_y) = self.main_agent.get_position()
-        self.the_map[m_agent_y][m_agent_x] = 9
+            (memory_x, memory_y) = self.agents[i].get_memory()
+            if (memory_x, memory_y) != (-1, -1):
+                self.the_map[memory_x][memory_y] = 4
 
+        for i in range(len(self.obstacles)):
+            (obs_x, obs_y) = self.obstacles[i].get_position()
+            self.the_map[obs_x][obs_y] = 5
 
+        if self.main_agent is not None:
+            (m_agent_x, m_agent_y) = self.main_agent.get_position()
+            self.the_map[m_agent_x][m_agent_y] = 9
 
     ###############################################################################################################
     def find_agent_index(self,pos):
@@ -155,16 +247,16 @@ class simulator:
         return -1
 
     ###############################################################################################################
-    def remove_old_destination_in_map(self):
+    def remove_old_destination_in_map(self): #todo: check to delete
 
         for y in range(self.dim_h):
             for x in range(self.dim_w):
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
                 if xy == 4:
-                    self.the_map[y][x] = 1
+                    self.the_map[x][y] = 1
 
     ###############################################################################################################
-    def mark_route_map(self,route, xA, yA, dx, dy):
+    def mark_route_map(self,route, xA, yA): #todo: check to  delete
 
         x = xA
         y = yA
@@ -174,14 +266,14 @@ class simulator:
                 j = int(route[i])
                 x += dx[j]
                 y += dy[j]
-                self.the_map[y][x] = 3
+                self.the_map[x][y] = 3
 
     ###############################################################################################################
     def draw_map(self):
 
-        for y in range(self.dim_h):
+        for y in range(self.dim_h-1,-1,-1):
             for x in range(self.dim_w):
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
                 if xy == 0:
                     print '.',  # space
                 elif xy == 1:
@@ -192,6 +284,8 @@ class simulator:
                     print 'R',  # route
                 elif xy == 4:
                     print 'D',  # finish
+                elif xy == 5:
+                    print '+',  # Obstacle
                 elif xy == 8:
                     print 'A',  # A Agent
                 elif xy == 9:
@@ -201,13 +295,13 @@ class simulator:
     ################################################################################################################
     def draw_map_with_level(self):
 
-        for y in range(self.dim_h):
+        for y in range(self.dim_h-1,-1,-1):
 
             line_str = ""
             for x in range(self.dim_w):
-                item_index = self.find_item_by_location(x,y)
+                item_index = self.find_item_by_location(x, y)
 
-                xy = self.the_map[y][x]
+                xy = self.the_map[x][y]
 
                 if xy == 0:
                     line_str += ' . '
@@ -224,6 +318,9 @@ class simulator:
                 elif xy == 4:
                     line_str += ' D '
 
+                elif xy == 5:
+                    line_str += ' O '  # Obstacle
+
                 elif xy == 8:
                     line_str += ' A '
 
@@ -234,6 +331,7 @@ class simulator:
             print
 
     ################################################################################################################
+
     def find_item_by_location(self, x, y):
         for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
@@ -243,33 +341,17 @@ class simulator:
 
 
     ################################################################################################################
-    def agent_next_item(self, agent_position, item_position):
-
-        (xA, yA) = agent_position
-        (xI, yI) = item_position
-        if (yI == yA and abs(xA - xI) == 1) or (xI == xA and abs(yA - yI) == 1):
-            return True
-        else:
-            return False
-
-    ################################################################################################################
     def load_item(self, agent, destinantion_item_index):
 
-        (x_agent, y_agent) = agent.get_position()
-        (x_item, y_item) = self.items[destinantion_item_index].get_position()
         self.items[destinantion_item_index].loaded = True
-
-        distance_x = x_item - x_agent
-        distance_y = y_item - y_agent
-
-
-
-        agent.change_direction(distance_x, distance_y)
+        (agent_x , agent_y) = agent.get_position()
+        self.items[destinantion_item_index].remove_agent(agent_x , agent_y)
         agent.item_to_load = -1
 
+        # Empty the memory to choose new target
+        agent.reset_memory()
 
         return agent
-
 
     ################################################################################################################
     def run_and_update(self, a_agent):
@@ -280,43 +362,68 @@ class simulator:
 
         a_agent.next_action = next_action
 
-        a_reward = self.update(a_agent)
+        self.update(a_agent)
 
         return self.agents[a_agent.index]
 
     ################################################################################################################
-    def update(self, a_agent):
+    def update_all_A_agents(self):
+        reward = 0
 
-        if a_agent.next_action == 'L':
+        for i in range (len(self.agents)):
+            next_action = choice(actions, p=self.agents[i].get_actions_probabilities())  # random sampling the action
+
+            self.agents[i].next_action = next_action
+
+            ## DEBUG: For testing conflict cases
+            # if (i == 0):
+            #     self.agents[i].next_action = 'S'
+            # elif (i == 1):
+            #     self.agents[i].next_action = 'N'
+            # elif (i == 2):
+            #     self.agents[i].next_action = 'W'
+            # else:
+            #     self.agents[i].next_action = 'E'
+            
+            reward += self.update(i)
+
+        return reward
+
+    ################################################################################################################
+    def update(self, a_agent_index):
+        reward = 0
+        a_agent = self.agents[a_agent_index]
+        if a_agent.next_action == 'L' and a_agent.item_to_load != -1:
             destination = a_agent.item_to_load
+
             if destination.level <= a_agent.level:  # If there is a an item nearby loading process starts
 
                 # load item and and remove it from map  and get the direction of agent when reaching the item.
                 a_agent = self.load_item(a_agent, destination.index)
-
-                self.agents[a_agent.index] = a_agent
-
-                # Empty the memory to choose new target
-                self.agents[a_agent.index].memory = position.position(0, 0)
-                return 1
-
+                reward += 1
+            else:
+                if not self.items[destination.index].is_agent_in_loaded_list(a_agent):
+                    self.items[destination.index].agents_load_item.append(a_agent)
 
         else:
             # If there is no item to collect just move A agent
-            (new_position_x , new_position_y) = a_agent.change_position_direction(self.dim_h,self.dim_w)
+            (new_position_x, new_position_y) = a_agent.new_position_with_given_action(self.dim_h,self.dim_w
+                                                                                      , a_agent.next_action)
 
-            if self.position_is_empty(new_position_x,new_position_y):
+            if self.position_is_empty(new_position_x, new_position_y):
                 a_agent.position = (new_position_x, new_position_y)
-                self.agents[a_agent.index] = a_agent
+            else:
+                a_agent.change_direction_with_action(a_agent.next_action)
 
+        self.agents[a_agent_index] = a_agent
         self.update_the_map()
-        return 0
+        return reward
 
     ################################################################################################################
-    def destination_loaded_by_other_agents(self,agent):
+    def destination_loaded_by_other_agents(self, agent):
         # Check if item is collected by other agents so we need to ignore it and change the target.
 
-        (memory_x, memory_y) = agent.memory.get_position()
+        (memory_x, memory_y) = agent.get_memory()
         destination_index = self.find_item_by_location(memory_x, memory_y)
 
         item_loaded = False
@@ -329,9 +436,9 @@ class simulator:
     ################################################################################################################
     def position_is_empty(self, x, y):
 
-        for i in range (len(self.items)):
+        for i in range(len(self.items)):
             (item_x, item_y) = self.items[i].get_position()
-            if (item_x, item_y) == (x,y) :
+            if (item_x, item_y) == (x,y) and not self.items[i].loaded:
                 return False
 
         for i in range(len(self.agents)):
@@ -339,46 +446,78 @@ class simulator:
             if (agent_x, agent_y) == (x, y):
                 return False
 
-        (m_agent_x, m_agent_y) =self.main_agent.get_position()
-        if (m_agent_x, m_agent_y) == (x, y):
-            return False
+        if self.main_agent is not None:
+            (m_agent_x, m_agent_y) =self.main_agent.get_position()
+            if (m_agent_x, m_agent_y) == (x, y):
+                return False
 
         return True
 
     ################################################################################################################
+    def do_collaboration(self):
+        c_reward = 0
 
-    def move_a_agent(self, a_agent):
+        for item in self.items:
+            agents_total_level = 0
+            for agent in item.agents_load_item:
+                agents_total_level += agent.level
+            if agents_total_level >= item.level and item.agents_load_item !=[]:
+                item.loaded = True
+                for agent in item.agents_load_item:
+                    self.agents[agent.index].reset_memory()
+                item.agents_load_item = list()
+                c_reward += 1
+
+        self.update_the_map()
+
+        return
+    ####################################################################################################################
+
+    def move_a_agent(self, a_agent, for_estimation=False):
 
         location = a_agent.position  # Location of main agent
-        destination = position.position(0, 0)
-        target = position.position(0, 0)
+        destination = position.position(-1, -1)
+        target = position.position(-1, -1)
 
         if self.destination_loaded_by_other_agents(a_agent):  # item is loaded by other agents so reset the memory to choose new target.
             a_agent.reset_memory()
 
         # If the target is selected before we have it in memory variable and we can use it
-        if a_agent.memory.get_position() != (0, 0) and location != a_agent.memory: #here
+        if a_agent.memory.get_position() != (-1, -1) and location != a_agent.memory: #here
             destination = a_agent.memory
 
         else:  # If there is no target we should choose a target based on visible items and agents.
 
-            directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
+            ## TODO: Temporarily removed agent rotating to choose a target
+            ## TODO: This code is also not fully correct. After last pop, we will have len(direction) = 0
+            ## TODO: Also, perhaps we should not allow an agent to rotate to all directions in a single time step?
+            ## TODO: That would be the same as a full angular visibility?
+            # directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
 
-            while len(directions) > 0:
-                a_agent.visible_agents_items(self.items, self.agents)
-                target = a_agent.choose_target(self.items, self.agents)
+            # while len(directions) > 0:
 
-                if target.get_position() != (0, 0):
-                    destination = target
-                    break
+            #     a_agent.visible_agents_items(self.items, self.agents)
+            #     target = a_agent.choose_target(self.items, self.agents)
 
-                else:  # rotate agent to find an agent
-                    a_agent.direction = directions.pop()
+            #     if target.get_position() != (-1, -1):
+            #         destination = target
+            #         break
+
+            #     else:  # rotate agent to find an agent
+            #         a_agent.direction = directions.pop()
+
+
+            a_agent.visible_agents_items(self.items, self.agents)
+            target = a_agent.choose_target(self.items, self.agents,for_estimation )
+
+            if target.get_position() != (-1, -1):
+                destination = target
 
             a_agent.memory = destination
 
         # If there is no destination the probabilities for all of the actions are same.
-        if destination.get_position() == (0, 0): #here
+        if destination.get_position() == (-1, -1):
+
             a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
             a_agent.set_random_action()
             return a_agent
@@ -391,17 +530,17 @@ class simulator:
 
             if load:  # If there is a an item nearby loading process starts
                 a_agent.item_to_load = self.items[destination_index]
-                a_agent.set_actions_probabilities('L')
-                a_agent.next_action = 'L'
 
+                a_agent.set_actions_probabilities('L')
             else:
 
                 self.the_map[y_destination][x_destination] = 4  # Update map with target position
 
-                a = a_star.a_star(self.the_map)  # Find the whole path  to reach the destination with A Star
+                a = a_star.a_star(self, a_agent)  # Find the whole path  to reach the destination with A Star
                 (x_agent, y_agent) = a_agent.get_position()  # Get agent's current position
 
                 route = a.pathFind(x_agent, y_agent, x_destination, y_destination)
+                self.mark_route_map(route,x_agent, y_agent)
 
                 if len(route) == 0:
                     a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
@@ -409,9 +548,8 @@ class simulator:
                     return a_agent
 
                 action = self.get_first_action(route)  # Get first action of the path
-                a_agent.next_action = action
-
                 a_agent.set_actions_probabilities(action)
+                a_agent.next_action = action
 
             return a_agent
 
