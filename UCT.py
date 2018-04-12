@@ -3,8 +3,8 @@ from numpy.random import choice
 import gc
 
 ## TODO: Perhaps we should have a configuration file, besides the scenario file
-iteration_max = 1000
-max_depth = 100
+iteration_max = 10
+max_depth = 10
 
 totalItems = 0 ## TODO: Adding as a global variable for now
 

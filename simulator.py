@@ -356,7 +356,6 @@ class simulator:
     ################################################################################################################
     def run_and_update(self, a_agent):
 
-
         a_agent = self.move_a_agent(a_agent)
 
         next_action = choice(actions, p=a_agent.get_actions_probabilities())  # random sampling the action
@@ -472,10 +471,9 @@ class simulator:
         self.update_the_map()
 
         return
+    ####################################################################################################################
 
-    ################################################################################################################
-
-    def move_a_agent(self, a_agent):
+    def move_a_agent(self, a_agent, for_estimation=False):
 
         location = a_agent.position  # Location of main agent
         destination = position.position(-1, -1)
@@ -510,7 +508,7 @@ class simulator:
 
 
             a_agent.visible_agents_items(self.items, self.agents)
-            target = a_agent.choose_target(self.items, self.agents)
+            target = a_agent.choose_target(self.items, self.agents,for_estimation )
 
             if target.get_position() != (-1, -1):
                 destination = target
@@ -541,7 +539,6 @@ class simulator:
                 a = a_star.a_star(self, a_agent)  # Find the whole path  to reach the destination with A Star
                 (x_agent, y_agent) = a_agent.get_position()  # Get agent's current position
 
-
                 route = a.pathFind(x_agent, y_agent, x_destination, y_destination)
                 self.mark_route_map(route,x_agent, y_agent)
 
@@ -552,6 +549,7 @@ class simulator:
 
                 action = self.get_first_action(route)  # Get first action of the path
                 a_agent.set_actions_probabilities(action)
+                a_agent.next_action = action
 
             return a_agent
 
