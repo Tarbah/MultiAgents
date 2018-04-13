@@ -27,9 +27,6 @@ class Agent:
 
     ####################################################################################################################
     def initialise_parameter_estimation(self):
-        """
-        :return: Empty list
-        """
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
         return param_estim
@@ -554,7 +551,6 @@ class Agent:
             max_type = 'f2'
             estimated_parameter = self.estimated_parameter.f2_estimation.get_last_estimation()
 
-
         self.agent_type = max_type
         self.level = estimated_parameter.level
         self.angle = estimated_parameter.angle
@@ -605,32 +601,28 @@ class Agent:
                 for visible_agent in self.visible_agents:
                     visible_agent.set_estimated_values()
 
+            furthest_agent = None
+            for visible_agent in self.visible_agents:
+                if self.distance(visible_agent) > max_distanse:
+                    max_distanse = self.distance(visible_agent)
+                    furthest_agent = visible_agent
 
             if len(self.visible_items) == 0 and len(self.visible_agents) > 0:
-
-                for i in range(0, len(self.visible_agents)):
-                    if self.distance(self.visible_agents[i]) > max_distanse:
-                        max_distanse = self.distance(self.visible_agents[i])
-                        max_index = i
-
-                return self.visible_items[max_index]
+                return furthest_agent
 
             elif len(self.visible_items) > 0 and len(self.visible_agents) > 0:
 
-                for i in range(0, len(self.visible_agents)):
-                    if self.distance(self.visible_agents[i]) > max_distanse:
-                        max_distanse = self.distance(self.visible_agents[i])
-                        max_index = i
+                if furthest_agent is not None:
+                    furthest_agent.agent_type= 'l1'
+                    furthest_agent.level = self.level
+                    furthest_agent.radius = self.radius
+                    furthest_agent.angle = self.angle
 
-                furthest_agent = self.visible_agents[max_index]
-                if furthest_agent != -1:
-                    if furthest_agent.agent_type == "l1":
+                    furthest_agent.visible_agents_items(items, agents)
 
-                        furthest_agent.visible_agents_items(items, agents)
-
-                        return furthest_agent.choose_target(items, agents)
-                    else:
-                        return position.position(-1, -1)
+                    return furthest_agent.choose_target(items, agents)
+                else:
+                    return position.position(-1, -1)
             else:
                 return position.position(-1, -1)
 
