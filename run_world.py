@@ -48,14 +48,15 @@ while time_step < 100:
 
     print 'main run count: ', time_step
 
+    previous_sim = main_sim.copy()
+
     for i in range(len(main_sim.agents)):
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
-        main_sim.agents[i].estimate_parameter(main_sim, time_step)
 
     if main_sim.main_agent is not None:
         tmp_sim = main_sim.copy()
 
-        if (not reuseTree):
+        if not reuseTree:
             main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim, true_parameters)
         else:
             main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
@@ -70,6 +71,9 @@ while time_step < 100:
         print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
         
     main_sim.update_all_A_agents()
+
+    for agent in main_sim.agents:
+        agent.estimate_parameter(previous_sim, time_step)
 
     ## DEBUG
     for agent_i in range(len(main_sim.agents)):
