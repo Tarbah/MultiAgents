@@ -339,13 +339,12 @@ class simulator:
                 return i
         return -1
 
-
     ################################################################################################################
     def load_item(self, agent, destinantion_item_index):
 
         self.items[destinantion_item_index].loaded = True
-        (agent_x , agent_y) = agent.get_position()
-        self.items[destinantion_item_index].remove_agent(agent_x , agent_y)
+        (agent_x, agent_y) = agent.get_position()
+        self.items[destinantion_item_index].remove_agent(agent_x, agent_y)
         agent.item_to_load = -1
 
         # Empty the memory to choose new target
@@ -361,6 +360,7 @@ class simulator:
         next_action = choice(actions, p=a_agent.get_actions_probabilities())  # random sampling the action
 
         a_agent.next_action = next_action
+        a_agent.actions_history.append(next_action)
 
         self.update(a_agent)
 
@@ -374,6 +374,7 @@ class simulator:
             next_action = choice(actions, p=self.agents[i].get_actions_probabilities())  # random sampling the action
 
             self.agents[i].next_action = next_action
+            self.agents[i].actions_history.append(next_action)
 
             ## DEBUG: For testing conflict cases
             # if (i == 0):
@@ -508,7 +509,7 @@ class simulator:
 
 
             a_agent.visible_agents_items(self.items, self.agents)
-            target = a_agent.choose_target(self.items, self.agents,for_estimation )
+            target = a_agent.choose_target(self.items, self.agents)
 
             if target.get_position() != (-1, -1):
                 destination = target
@@ -549,7 +550,7 @@ class simulator:
 
                 action = self.get_first_action(route)  # Get first action of the path
                 a_agent.set_actions_probabilities(action)
-                a_agent.next_action = action
+
 
             return a_agent
 

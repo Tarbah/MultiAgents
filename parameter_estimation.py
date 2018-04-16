@@ -29,43 +29,94 @@ class Parameter:
 class TypeEstimation:
     def __init__(self, a_type):
         self.type = a_type
-        self.probability_history = []
+        self.type_probabilities = []
         self.estimation_history = []
-        self.action_probability = []
+        self.action_probabilities = []
+        self.internal_state = None
 
     def add_estimation_history(self,probability,level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
         self.estimation_history.append(new_parameter)
-        self.probability_history.append(probability)
+        self.type_probabilities.append(probability)
 
     def get_last_probability(self):
-        return self.probability_history[len(self.probability_history)-1]
+        return self.type_probabilities[len(self.type_probabilities)-1]
 
     def get_last_estimation(self):
         return self.estimation_history[len(self.estimation_history)-1]
+
+    def update_estimation(self,estimation , action_probability):
+        self.estimation_history.append(estimation)
+        self.action_probabilities.append(action_probability)
+
+    def get_value_for_update_belief(self):
+        t = len(self.type_probabilities) - 1
+        return self.type_probabilities[t - 1] * self.action_probabilities[t - 1]
+
+    def update_belief(self, belief_value):
+        self.type_probabilities.append(belief_value)
 
 
 class ParameterEstimation:
 
     def __init__(self):
 
-
         # P(teta|H)
         self.l1_estimation= TypeEstimation('l1')
         self.l2_estimation = TypeEstimation('l2')
         self.f1_estimation = TypeEstimation('f1')
         self.f2_estimation = TypeEstimation('f2')
+        self.sim = None
+        self.estimated_agent = None
 
-        # P(a|H,teta,p)
-        self.p_action_parameter_type_l1 = []
-        self.p_action_parameter_type_l2 = []
-        self.p_action_parameter_type_f1 = []
-        self.p_action_parameter_type_f2 = []
+    def update_internal_state(self, main_sim):
+        history_index = 0
 
+        for agent in main_sim.agents:
+            agent_index = agent.index
+            tmp_sim = agent.state_history[history_index]
+            tmp_agent = tmp_sim.agents[agent_index]
+
+            for type in types:
+
+                # update internal state for type l1
+                tmp_agent.agent_type = type
+
+                if type == 'l1':
+                    last_estimation = agent.estimated_parameter.l1_estimation.get_last_estimation()
+
+                if type == 'l2':
+                    last_estimation = agent.estimated_parameter.l2_estimation.get_last_estimation()
+
+                if type == 'f1':
+                    last_estimation = agent.estimated_parameter.f1_estimation.get_last_estimation()
+
+                if type == 'f2':
+                    last_estimation = agent.estimated_parameter.f2_estimation.get_last_estimation()
+
+                # set latest estimated values to the agent
+                tmp_agent.level = last_estimation.level
+                tmp_agent.radius = last_estimation.radius
+                tmp_agent.angle = last_estimation.angle
+
+                # find the target with
+                tmp_agent.visible_agents_items(tmp_sim.items, tmp_sim.agents)
+                target = tmp_agent.choose_target(tmp_sim.items, tmp_sim.agents)
+
+                if type == 'l1':
+                    last_estimation = agent.estimated_parameter.l1_estimation.internal_state = target
+
+                if type == 'l2':
+                    last_estimation = agent.estimated_parameter.l2_estimation.internal_state = target
+
+                if type == 'f1':
+                    last_estimation = agent.estimated_parameter.f1_estimation.internal_state = target
+
+                if type == 'f2':
+                    last_estimation = agent.estimated_parameter.f2_estimation.internal_state = target
 
 
     # Initialisation random values for parameters of each type and probability of actions in time step 0
-
     def estimation_initialisation(self):
         # P(teta|H) in t = 0
         self.l1_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
@@ -117,9 +168,6 @@ class ParameterEstimation:
             if p_action is not None:
                 D.append([tmp_level,tmp_radius, tmp_angle,  p_action])
 
-
-        # print '******End of generating data for updating parameter *******'
-        # print '*********************************************************************************'
         return D
 
     @staticmethod
@@ -139,8 +187,8 @@ class ParameterEstimation:
         new_parameters = old_parameter.update(gradient * step_size)
 
         if level_min <= new_parameters.level <= level_max or \
-                angle_min <= new_parameters.angle<= angle_max or \
-                radius_min <= new_parameters.radius <= radius_max :
+                angle_min <= new_parameters.angle <= angle_max or \
+                radius_min <= new_parameters.radius <= radius_max:
             return new_parameters
 
         else:
@@ -154,7 +202,7 @@ class ParameterEstimation:
         multiple_results = 1
         if agent_type.agent_type == 'l1':
             for i in range(0,time_step):
-                multiple_results = multiple_results * self.p_action_parameter_type_l1[i]
+                multiple_results = multiple_results #* self.p_action_parameter_type_l1[i]
 
         if agent_type.agent_type == 'l2':
             self.p_action_parameter_type_l2 = []
@@ -201,28 +249,24 @@ class ParameterEstimation:
         estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
         # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
 
-
-        ##print '***********************************************************************************************'
         return estimated_parameter
 
-    def update_belief(self,t,agent_type):
 
-        if agent_type == 'l1':
-            self.l1_estimation.probability_history.append(self.l1_estimation.probability_history[t - 1] * self.p_action_parameter_type_l1[t - 1])
+    def update_belief(self):
 
-        if agent_type == 'l2':
-            self.l2_estimation.probability_history.append(self.l2_estimation.probability_history[t - 1] * self.p_action_parameter_type_l2[t - 1])
+        l1_update_belief_value = self.l1_estimation.get_value_for_update_belief()
+        l2_update_belief_value = self.l2_estimation.get_value_for_update_belief()
+        f1_update_belief_value = self.f1_estimation.get_value_for_update_belief()
+        f2_update_belief_value = self.f2_estimation.get_value_for_update_belief()
 
-        if agent_type == 'f1':
+        # todo: calculation is not correct
+        belief_factor = 1 / l1_update_belief_value + l2_update_belief_value + f1_update_belief_value + f2_update_belief_value
 
-            self.f1_estimation.probability_history.append(self.f1_estimation.probability_history[t - 1] * self.p_action_parameter_type_f1[t - 1])
+        self.l1_estimation.update_belief(l1_update_belief_value * belief_factor)
+        self.l2_estimation.update_belief(l2_update_belief_value * belief_factor)
+        self.f1_estimation.update_belief(f1_update_belief_value * belief_factor)
+        self.f2_estimation.update_belief(f2_update_belief_value * belief_factor)
 
-        if agent_type == 'f2':
-            self.f2_estimation.probability_history.append(self.f2_estimation.probability_history[t - 1] * self.p_action_parameter_type_f2[t - 1])
-
-    def update_internal_state(self):
-        t = 0
-        #sim = simulator.simulator(map_history[0], initial_items, initial_agents, n, m)
 
     def nested_list_sum(self, nested_lists):
         if type(nested_lists) == list:
@@ -287,15 +331,19 @@ class ParameterEstimation:
 
         new_parameters_estimation = None
         tmp_sim = main_sim.copy()
+        self.sim = tmp_sim
+        (x, y) = agent_position  # Position in the world e.g. 2,3
+        self.estimated_agent = agent.Agent(x, y, agent_direction, None, agent_index)
+
         # Start parameter estimation
         selected_types = types #self.UCB_selection(time_step)  # returns l1, l2, f1, f2
-        (x, y) = agent_position  # Position in the world e.g. 2,3
+
 
         # Estimate the parameters
         for selected_type in selected_types:
             # Generates an Agent object
-            tmp_agent = agent.Agent(x, y, agent_direction, selected_type, agent_index)
-
+            tmp_agent = self.estimated_agent
+            tmp_agent.agent_type = selected_type
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
             new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
@@ -304,35 +352,29 @@ class ParameterEstimation:
             tmp_agent.set_parameters(tmp_sim, new_parameters_estimation.level, new_parameters_estimation.radius,
                                      new_parameters_estimation.angle)
 
-
             # Runs a simulator object
             tmp_agent = tmp_sim.move_a_agent(tmp_agent)
-
-
 
             # TODO: Always seems to return 0.01, is this right?
             action_prob = tmp_agent.get_action_probability(action)
 
-            # TODO: Does this do anything?
-            self.update_internal_state()
+            if time_step > 0:
+                self.update_internal_state(main_sim)
 
             # Determine which list to append new parameter estimation and action prob to
             if selected_type == 'l1':
-                self.l1_estimation.estimation_history.append(new_parameters_estimation)
-                self.p_action_parameter_type_l1.append(action_prob)
+                self.l1_estimation.update_estimation(new_parameters_estimation, action_prob)
 
             if selected_type == 'l2':
-                self.l2_estimation.estimation_history.append(new_parameters_estimation)
-                self.p_action_parameter_type_l2.append(action_prob)
+                self.l2_estimation.update_estimation(new_parameters_estimation, action_prob)
 
             if selected_type == 'f1':
-                self.f1_estimation.estimation_history.append(new_parameters_estimation)
-                self.p_action_parameter_type_f1.append(action_prob)
+                self.f1_estimation.update_estimation(new_parameters_estimation, action_prob)
 
             if selected_type == 'f2':
-                self.f2_estimation.estimation_history.append(new_parameters_estimation)
-                self.p_action_parameter_type_f2.append(action_prob)
+                self.f2_estimation.update_estimation(new_parameters_estimation, action_prob)
 
-            self.update_belief(time_step, selected_type)
+        self.update_belief()
 
         return new_parameters_estimation
+

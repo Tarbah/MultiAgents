@@ -1,9 +1,7 @@
 import simulator
 import UCT
-
 import sys
 import gc
-
 
 
 
@@ -16,6 +14,7 @@ import gc
 # if (int(sys.argv[2]) == 0):
 #     reuseTree = False
 # else:
+types = ['l1', 'l2', 'f1', 'f2']
 reuseTree = False
     
 main_sim = simulator.simulator()
@@ -51,9 +50,11 @@ while time_step < 100:
     previous_sim = main_sim.copy()
 
     for i in range(len(main_sim.agents)):
+        main_sim.agents[i].state_history.append(main_sim)
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
     if main_sim.main_agent is not None:
+        main_sim.main_agent.state_history.append(main_sim)
         tmp_sim = main_sim.copy()
 
         if not reuseTree:
@@ -69,7 +70,7 @@ while time_step < 100:
     ## DEBUG
     for agent_i in range(len(main_sim.agents)):
         print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
-        
+
     main_sim.update_all_A_agents()
 
     for agent in main_sim.agents:
@@ -82,8 +83,7 @@ while time_step < 100:
     main_sim.do_collaboration()
 
     time_step = time_step + 1
-    print('*******************************************************************************************************************')
-
+    print('***********************************************************************************************************')
 
     # import ipdb; ipdb.set_trace()
     
@@ -95,9 +95,16 @@ while time_step < 100:
         break
     print "left items", main_sim.items_left()
 
-print  time_step
+print time_step
 print "True parameters: ",true_level,true_radius,true_angle
-#print "last new_estimated_parameters", new_estimated_parameters
+# print "last new_estimated_parameters", new_estimated_parameters
+
+
+
+
+
+
+
 
 
 
