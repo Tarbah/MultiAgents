@@ -2,6 +2,7 @@ import random
 import agent
 from sklearn import linear_model
 import numpy as np
+import scipy.stats as st
 
 radius_max = 1
 radius_min = 0.1
@@ -15,9 +16,20 @@ types = ['l1', 'l2', 'f1', 'f2']
 
 class Parameter:
     def __init__(self, level, angle, radius):
+        """
+
+        :param level:
+        :param angle:
+        :param radius:
+        :param observation_history: List of lists whereby each individual list is of length 3, containing 3 observations,
+        one for each of the 3 parameters.
+        :param iteration: Counter of the number of times the updating method has been invoked.
+        """
         self.level = level
         self.angle = angle
         self.radius = radius
+        self.observation_history = []
+        self.iteration = 0
 
     def update(self, added_value):
         self.level += added_value[0]
@@ -194,8 +206,52 @@ class ParameterEstimation:
         else:
             return old_parameter
 
-    def bayesian_updating(self, x_train):
-        pass
+    def bayesian_updating(self, x_train, y_train, previous_estimate, observation):
+        # TODO: Remove when actually running - only here for reproducibility during testing.
+        np.random.seed(123)
+
+        # Fit polynomial
+        # TODO: Does this logic make sense?
+        # No intercept as this information will be last when covoluting
+        reg = linear_model.LinearRegression(fit_intercept=False)
+        reg.fit(x_train, y_train)
+
+        # Extract coefficients
+        # TODO: Check this returns a list
+        coefficients = reg.coef_
+
+        # Generate prior
+        if previous_estimate.iteration == 0:
+            beliefs = st.uniform.rvs(0, 1, size=3)
+        else:
+            beliefs = previous_estimate.observation_history[-1]
+
+        # Compute convolution
+        g_hat_coefficients = np.multiply(coefficients, beliefs)
+        g_hat = np.poly1d(g_hat_coefficients)
+
+        # Sample to get D
+        grid_size = 5
+        p_max = 1
+        p_min = 0
+        uniform_grid = np.linspace(p_min, p_max, grid_size)
+
+        # Fit new polynomial
+        h_hat = 
+
+
+
+        # Draw 6 samples and get h points
+        func_in = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
+        to_fit = func_in*
+
+
+        # Update past observations
+        previous_estimate.observation_history.append(observation)
+
+        # Increment iterator
+        previous_estimate.iteration += 1
+
 
     def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
 

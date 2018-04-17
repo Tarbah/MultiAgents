@@ -19,7 +19,7 @@ reuseTree = False
     
 main_sim = simulator.simulator()
 # main_sim.loader(sys.argv[1])
-main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/sim_2_agents.csv')
+main_sim.loader('Test Files/sim_2_agents.csv')
 # main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
 
 print('Simulation Successful')
