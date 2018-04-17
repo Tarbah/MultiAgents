@@ -21,15 +21,35 @@ class Agent:
         self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
         self.next_action = None
         self.index = index
+        self.actions_history = []
+        self.state_history = []
         self.agent_type = agent_type
         self.memory = position.position(-1, -1)
         self.estimated_parameter = self.initialise_parameter_estimation()
+        self.level = None
+        self.radius = None
+        self.angle = None
+
+    def set_parameters_array(self,sim,parameters_probabilities):
+        self.set_parameters(sim,parameters_probabilities[0], parameters_probabilities[1],parameters_probabilities[2])
+
+    def set_parameters(self,sim, level, radius, angle):
+
+        width, hight = sim.dim_w, sim.dim_h
+        self.level = float(level)
+        self.radius = float(radius) * sqrt(width ** 2 + hight ** 2)
+        self.angle = 2 * np.pi * float(angle)
+
+    def set_direction(self, direction):
+        self.direction = direction
+
 
     ####################################################################################################################
     def initialise_parameter_estimation(self):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
         return param_estim
+
     ####################################################################################################################
     def reset_memory(self):
         self.memory = position.position(-1, -1)
@@ -69,18 +89,23 @@ class Agent:
                self.index == other_agent.index and \
                self.direction == other_agent.direction
 
-
     ################################################################################################################
+
     def copy(self):
 
         (x, y) = self.position
 
-        copy_agent = Agent(x, y,self.direction, self.agent_type, self.index)
+        copy_agent = Agent(x, y, self.direction, self.agent_type, self.index)
         copy_agent.level = self.level
 
         (memory_x, memory_y) = self.memory.get_position()
 
         copy_agent.memory = position.position(memory_x, memory_y)
+
+        copy_agent.actions_history = self.actions_history
+        copy_agent.state_history = self.state_history
+
+        copy_agent.estimated_parameter = self.estimated_parameter
 
         return copy_agent
 
@@ -215,18 +240,6 @@ class Agent:
         else:
             return False
 
-    def set_parameters_array(self,sim,parameters_probabilities):
-        self.set_parameters(sim,parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
-
-    def set_parameters(self,sim, level, radius, angle):
-
-        width, hight = sim.dim_w, sim.dim_h
-        self.level = float(level)
-        self.radius = float(radius) * sqrt(width ** 2 + hight ** 2)
-        self.angle = 2 * np.pi * float(angle)
-
-    def set_direction(self, direction):
-        self.direction = direction
 
     def set_probability_main_action(self):
         if self.next_action == 'L':
@@ -366,17 +379,19 @@ class Agent:
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
-    def convert_direction(self,direction):
-        if (direction == 'N'):
+    @staticmethod
+    def convert_direction(direction):
+
+        if direction == 'N':
             return np.pi / 2
 
-        if (direction == 'W'):
+        if direction == 'W':
             return np.pi
 
-        if (direction == 'E'):
+        if direction == 'E':
             return 0
 
-        if (direction == 'S'):
+        if direction == 'S':
             return 3*np.pi/2
             
     def get_agent_direction(self):
@@ -556,25 +571,24 @@ class Agent:
         self.angle = estimated_parameter.angle
         self.radius = estimated_parameter.radius
 
-
     ####################################################################################################################
-    def choose_target(self, items, agents, for_estimation=False):
-
-        if len(self.visible_items) == 0:
-            return position.position(-1, -1)
+    def choose_target(self, items, agents):
 
         max_index = -1
-        max_distanse = 0
+        max_distance = 0
         # if items visible, return furthest one;
         # else, return 0
         if self.agent_type == "l1":
 
             for i in range(0, len(self.visible_items)):
-                if self.distance(self.visible_items[i]) > max_distanse:
+                if self.distance(self.visible_items[i]) > max_distance:
                     max_distanse = self.distance(self.visible_items[i])
                     max_index = i
 
-            return self.visible_items[max_index]
+            if max_index > -1:
+                return self.visible_items[max_index]
+            else:
+                return position.position(-1, -1)
 
         # if items visible, return item with highest level below own level,
         # or item with highest level if none are below own level;

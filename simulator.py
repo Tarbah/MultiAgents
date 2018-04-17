@@ -271,7 +271,7 @@ class simulator:
     ###############################################################################################################
     def draw_map(self):
 
-        for y in range(self.dim_h-1,-1,-1):
+        for y in range(self.dim_h-1, -1, -1):
             for x in range(self.dim_w):
                 xy = self.the_map[x][y]
                 if xy == 0:
@@ -294,20 +294,25 @@ class simulator:
 
     ################################################################################################################
     def draw_map_with_level(self):
-
-        for y in range(self.dim_h-1,-1,-1):
+        index = -1
+        for y in range(self.dim_h-1, -1, -1):
 
             line_str = ""
             for x in range(self.dim_w):
-                item_index = self.find_item_by_location(x, y)
 
                 xy = self.the_map[x][y]
+
+                if xy ==1:
+                    index = self.find_item_by_location(x, y)
+
+                if xy == 8:
+                    index = self.find_agent_index((x, y))
 
                 if xy == 0:
                     line_str += ' . '
 
                 elif xy == 1:
-                    line_str += str(self.items[item_index].level)
+                    line_str += str(self.items[index].level)
 
                 elif xy == 2:
                     line_str += ' S '
@@ -322,7 +327,17 @@ class simulator:
                     line_str += ' O '  # Obstacle
 
                 elif xy == 8:
-                    line_str += ' A '
+                    if self.agents[index].agent_type == 'f1':
+                        line_str += 'Af1'
+
+                    if self.agents[index].agent_type == 'l1':
+                        line_str += 'Al1'
+
+                    if self.agents[index].agent_type == 'f2':
+                        line_str += 'Af2'
+
+                    if self.agents[index].agent_type == 'l2':
+                        line_str += 'Al2'
 
                 elif xy == 9:
                     line_str += ' M '
@@ -506,9 +521,8 @@ class simulator:
             #     else:  # rotate agent to find an agent
             #         a_agent.direction = directions.pop()
 
-
             a_agent.visible_agents_items(self.items, self.agents)
-            target = a_agent.choose_target(self.items, self.agents,for_estimation )
+            target = a_agent.choose_target(self.items, self.agents)
 
             if target.get_position() != (-1, -1):
                 destination = target
