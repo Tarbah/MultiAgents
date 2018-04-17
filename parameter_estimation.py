@@ -206,6 +206,7 @@ class ParameterEstimation:
         else:
             return old_parameter
 
+    # TODO: I think there should be one polynomial for each parameter
     def bayesian_updating(self, x_train, y_train, previous_estimate, observation):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
@@ -225,26 +226,22 @@ class ParameterEstimation:
             beliefs = st.uniform.rvs(0, 1, size=3)
         else:
             beliefs = previous_estimate.observation_history[-1]
+            assert len(beliefs)==3, 'Non-uniform sampled beliefs of incorrect length'
 
         # Compute convolution
         g_hat_coefficients = np.multiply(coefficients, beliefs)
-        g_hat = np.poly1d(g_hat_coefficients)
+        g_hat = np.array(g_hat_coefficients)  # This may have to be np.poly1d instead of np.array
 
         # Sample to get D
         grid_size = 5
         p_max = 1
         p_min = 0
-        uniform_grid = np.linspace(p_min, p_max, grid_size)
+        X = np.linspace(p_min, p_max, grid_size)
+        y = np.array([np.sum(g_hat*X[i]) for i in range(len(X))])
 
-        # Fit new polynomial
-        h_hat = 
-
-
-
-        # Draw 6 samples and get h points
-        func_in = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
-        to_fit = func_in*
-
+        # Fit h
+        h_hat = linear_model.LinearRegression(fit_intercept=False)
+        h_hat.fit(X, y)
 
         # Update past observations
         previous_estimate.observation_history.append(observation)
