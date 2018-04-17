@@ -31,7 +31,7 @@ class Agent:
         self.angle = None
 
     def set_parameters_array(self,sim,parameters_probabilities):
-        self.set_parameters(sim,parameters_probabilities[0] , parameters_probabilities[1],parameters_probabilities[2])
+        self.set_parameters(sim,parameters_probabilities[0], parameters_probabilities[1],parameters_probabilities[2])
 
     def set_parameters(self,sim, level, radius, angle):
 
@@ -379,17 +379,19 @@ class Agent:
         if action == 'S':  # 'S':
             self.direction = 3 * np.pi / 2
 
-    def convert_direction(self,direction):
-        if (direction == 'N'):
+    @staticmethod
+    def convert_direction(direction):
+
+        if direction == 'N':
             return np.pi / 2
 
-        if (direction == 'W'):
+        if direction == 'W':
             return np.pi
 
-        if (direction == 'E'):
+        if direction == 'E':
             return 0
 
-        if (direction == 'S'):
+        if direction == 'S':
             return 3*np.pi/2
             
     def get_agent_direction(self):
@@ -572,21 +574,21 @@ class Agent:
     ####################################################################################################################
     def choose_target(self, items, agents):
 
-        if len(self.visible_items) == 0:
-            return position.position(-1, -1)
-
         max_index = -1
-        max_distanse = 0
+        max_distance = 0
         # if items visible, return furthest one;
         # else, return 0
         if self.agent_type == "l1":
 
             for i in range(0, len(self.visible_items)):
-                if self.distance(self.visible_items[i]) > max_distanse:
+                if self.distance(self.visible_items[i]) > max_distance:
                     max_distanse = self.distance(self.visible_items[i])
                     max_index = i
 
-            return self.visible_items[max_index]
+            if max_index > -1:
+                return self.visible_items[max_index]
+            else:
+                return position.position(-1, -1)
 
         # if items visible, return item with highest level below own level,
         # or item with highest level if none are below own level;
