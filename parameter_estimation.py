@@ -3,6 +3,7 @@ import agent
 from sklearn import linear_model
 import numpy as np
 import scipy.stats as st
+from scipy import integrate
 
 radius_max = 1
 radius_min = 0.1
@@ -30,11 +31,16 @@ class Parameter:
         self.radius = radius
         self.observation_history = []
         self.iteration = 0
+        self.min_max = [(0, 1), (0.1, 1), (0.1, 1)]
+        self.abu_level = []
+        self.abu_angle = []
+        self.abu_radius = []
 
     def update(self, added_value):
         self.level += added_value[0]
         self.angle += added_value[1]
         self.radius += added_value[2]
+
         return self
 
 
@@ -190,6 +196,9 @@ class ParameterEstimation:
 
         step_size = 0.05
 
+        print('X: \n{} Observations of length {}.\nValue: {}'.format(len(x_train), len(x_train[0]), x_train))
+        print('y: {} Observations\n Value: {}'.format(len(y_train), y_train))
+
         reg = linear_model.LinearRegression()
 
         reg.fit(x_train, y_train)
@@ -206,48 +215,85 @@ class ParameterEstimation:
         else:
             return old_parameter
 
-    # TODO: I think there should be one polynomial for each parameter
-    def bayesian_updating(self, x_train, y_train, previous_estimate, observation):
+    def bayesian_updating(self, x_train, y_train, previous_estimate, observation, polynomial_degree=4):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
 
-        # Fit polynomial
-        # TODO: Does this logic make sense?
-        # No intercept as this information will be last when covoluting
-        reg = linear_model.LinearRegression(fit_intercept=False)
-        reg.fit(x_train, y_train)
+        parameter_estimate = []
 
-        # Extract coefficients
-        # TODO: Check this returns a list
-        coefficients = reg.coef_
+        for i in range(len(x_train[0])):
+            # Get current independent variables
+            current_parameter_set = [elem[i] for elem in x_train]
 
-        # Generate prior
-        if previous_estimate.iteration == 0:
-            beliefs = st.uniform.rvs(0, 1, size=3)
-        else:
-            beliefs = previous_estimate.observation_history[-1]
-            assert len(beliefs)==3, 'Non-uniform sampled beliefs of incorrect length'
+            # Fit polynomial of degree 4 to the parameter being modelled
+            f_coefficients = np.polynomial.polyfit(current_parameter_set, y_train, deg=polynomial_degree, full=False)
 
-        # Compute convolution
-        g_hat_coefficients = np.multiply(coefficients, beliefs)
-        g_hat = np.array(g_hat_coefficients)  # This may have to be np.poly1d instead of np.array
+            # Generate prior
+            if previous_estimate.iteration == 0:
+                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree+1)
+            else:
+                beliefs = previous_estimate.observation_history[-1]
+                assert len(beliefs) == polynomial_degree+1, 'Non-uniform sampled beliefs of incorrect length'
 
-        # Sample to get D
-        grid_size = 5
-        p_max = 1
-        p_min = 0
-        X = np.linspace(p_min, p_max, grid_size)
-        y = np.array([np.sum(g_hat*X[i]) for i in range(len(X))])
+            # Compute convolution
+            # TODO: I'm not sure here the exact command to calculate g_hat.
+            g_hat_coefficients = np.multiply(f_coefficients, beliefs)
 
-        # Fit h
-        h_hat = linear_model.LinearRegression(fit_intercept=False)
-        h_hat.fit(X, y)
+            # Collect samples
+            # Number of evenly spaced points to compute polynomial at
+            spacing = polynomial_degree+1
+            assert spacing == len(f_coefficients), 'Uniform grid spacing and polynomial degree + 1 are not equal'
 
-        # Update past observations
-        previous_estimate.observation_history.append(observation)
+            # Obtain the parameter in questions upper and lower limits
+            p_min = previous_estimate.min_max[i][0]
+            p_max = previous_estimate.min_max[i][1]
 
-        # Increment iterator
-        previous_estimate.iteration += 1
+            # Generate equally spaced points, unique to the parameter being modelled
+            X = np.linspace(p_min, p_max, spacing)
+            y = np.array([X[i]*g_hat_coefficients for i in range(len(X))])
+            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
+
+            # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
+            # TODO: possilby remove D if not needed at the end
+            D = [(X[i], y[i]) for i in range(len(X))]
+
+            # Fit h
+            h_hat_coefficients = np.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+
+            # Integrate h to get I
+            # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
+            def integrand(x, a, b, c, d, e):
+                return a*x**4 + b*x**3 + c*x**2 + d*x + e
+            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients)  # Returns a single value
+
+            # Update beliefs
+            new_belief = np.divide(h_hat_coefficients/i_integral)  # returns an array
+
+            # Sample from beliefs
+            def polynomial_maximum(x, coefficients):
+                result = coefficients[0] + x*coefficients[1] + coefficients[2]*x**2 + \
+                         coefficients[3]*x**4 + coefficients[4]*x**4
+                return result
+
+            polynomial_max = 0
+            granularity = 1000
+            x_vals = np.linspace(p_min, p_max, granularity)
+            for j in range(len(x_vals)):
+                proposal = polynomial_maximum(x_vals[j], new_belief)
+                if proposal > polynomial_max:
+                    polynomial_max = proposal
+
+            parameter_estimate.append(polynomial_max)
+
+            # Update past observations
+            previous_estimate.observation_history.append(observation)
+
+            # Increment iterator
+            previous_estimate.iteration += 1
+
+        previous_estimate.abu_level = parameter_estimate[0]
+        previous_estimate.abu_radius = parameter_estimate[1]
+        previous_estimate.abu_angle = parameter_estimate[2]
 
 
     def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
@@ -313,7 +359,11 @@ class ParameterEstimation:
         f2_update_belief_value = self.f2_estimation.get_value_for_update_belief()
 
         # todo: calculation is not correct
-        belief_factor = 1 / l1_update_belief_value + l2_update_belief_value + f1_update_belief_value + f2_update_belief_value
+        if np.sum([l1_update_belief_value, l2_update_belief_value, f1_update_belief_value,f2_update_belief_value]) == 0:
+            belief_factor = 0
+        else:
+            belief_factor = 1 / l1_update_belief_value + l2_update_belief_value + \
+                            f1_update_belief_value + f2_update_belief_value
 
         self.l1_estimation.update_belief(l1_update_belief_value * belief_factor)
         self.l2_estimation.update_belief(l2_update_belief_value * belief_factor)
