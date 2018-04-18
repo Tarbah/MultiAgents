@@ -215,7 +215,7 @@ class ParameterEstimation:
         else:
             return old_parameter
 
-    def bayesian_updating(self, x_train, y_train, previous_estimate, observation, polynomial_degree=4):
+    def bayesian_updating(self, x_train, y_train, previous_estimate, observation, polynomial_degree=4, sampling='MAP'):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
 
@@ -269,21 +269,27 @@ class ParameterEstimation:
             # Update beliefs
             new_belief = np.divide(h_hat_coefficients/i_integral)  # returns an array
 
-            # Sample from beliefs
-            def polynomial_maximum(x, coefficients):
-                result = coefficients[0] + x*coefficients[1] + coefficients[2]*x**2 + \
-                         coefficients[3]*x**4 + coefficients[4]*x**4
+            def polynomial_evaluate(x, coefficients):
+                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
+                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
                 return result
 
-            polynomial_max = 0
-            granularity = 1000
-            x_vals = np.linspace(p_min, p_max, granularity)
-            for j in range(len(x_vals)):
-                proposal = polynomial_maximum(x_vals[j], new_belief)
-                if proposal > polynomial_max:
-                    polynomial_max = proposal
+            if sampling == 'MAP':
+                # Sample from beliefs
+                polynomial_max = 0
+                granularity = 1000
+                x_vals = np.linspace(p_min, p_max, granularity)
+                for j in range(len(x_vals)):
+                    proposal = polynomial_evaluate(x_vals[j], new_belief)
+                    if proposal > polynomial_max:
+                        polynomial_max = proposal
 
-            parameter_estimate.append(polynomial_max)
+                parameter_estimate.append(polynomial_max)
+
+            elif sampling == 'average':
+                x_random = np.random.uniform(low=p_min, high=p_max, size=10)
+                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
+                parameter_estimate.append(np.mean(evaluations))
 
             # Update past observations
             previous_estimate.observation_history.append(observation)
