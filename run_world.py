@@ -3,6 +3,17 @@ import UCT
 import sys
 import gc
 
+# ===========Configuration Values====================================================================================
+
+# type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
+type_selection_mode = 'AS'
+
+# Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
+parameter_estimation_mode = 'ABU'
+
+# If it is False we recreate the search tree for MCTS in each time step and
+# if it is True we will reuse the created tree from previous steps.
+reuseTree = False
 
 
 # ==============simulator initialisation=====================================================
@@ -15,23 +26,21 @@ import gc
 #     reuseTree = False
 # else:
 types = ['l1', 'l2', 'f1', 'f2']
-reuseTree = False
+
     
 main_sim = simulator.simulator()
 # main_sim.loader(sys.argv[1])
-main_sim.loader('Test Files/sim_2_agents.csv')
-# main_sim.loader('C:\\simulator\UCT\\Test Files\\A Tests\\test5.csv')
+main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/sim1.csv')
+# main_sim.loader('C:\\simulator\UCT\\Test Files\\sim1.csv')
 
 print('Simulation Successful')
 
 # ================create unknown agent  ================================================================
 
+for i in range(len(main_sim.agents)):
+    main_sim.agents[i].initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode)
 
-true_radius = 0.78
-true_angle = 0.72
-true_level = 0.5
-
-true_parameters = [true_level, true_radius, true_angle]
+main_sim.main_agent.initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode)
 
 main_agent = main_sim.main_agent
 
@@ -43,7 +52,7 @@ main_sim.draw_map()
 search_tree = None
 
 time_step = 0
-while time_step < 100:
+while time_step < 200:
 
     print 'main run count: ', time_step
 
@@ -58,9 +67,9 @@ while time_step < 100:
         tmp_sim = main_sim.copy()
 
         if not reuseTree:
-            main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim, true_parameters)
+            main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim)
         else:
-            main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim, true_parameters)
+            main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim)
 
         # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
@@ -95,9 +104,39 @@ while time_step < 100:
         break
     print "left items", main_sim.items_left()
 
-print time_step
-print "True parameters: ",true_level,true_radius,true_angle
-# print "last new_estimated_parameters", new_estimated_parameters
+
+for i in range(len(main_sim.agents)):
+    print main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities
+    print 'true values : level :', main_sim.agents[i].level, ' radius: ', main_sim.agents[i].radius, ' angle: '\
+        , main_sim.agents[i].angle
+
+    print 'l1', main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()
+    estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
+    print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
+         , estimated_value.angle
+
+    print 'l2', main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()
+    estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
+    print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: ' \
+        , estimated_value.angle
+
+    print 'f1', main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()
+    estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
+    print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: ' \
+        , estimated_value.angle
+
+    print 'f2', main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()
+    estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
+    print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
+        , estimated_value.angle
+    selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
+    estimated_value = main_sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+
+    print 'estimated values for highes property : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
+         , estimated_value.angle
+
+
+
 
 
 

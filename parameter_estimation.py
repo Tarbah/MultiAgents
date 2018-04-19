@@ -1,4 +1,5 @@
 import random
+from numpy.random import choice
 import agent
 from sklearn import linear_model
 import numpy as np
@@ -17,33 +18,18 @@ types = ['l1', 'l2', 'f1', 'f2']
 
 class Parameter:
     def __init__(self, level, angle, radius):
-        """
-
-        :param level:
-        :param angle:
-        :param radius:
-        :param observation_history: List of lists whereby each individual list is of length 3, containing 3 observations,
-        one for each of the 3 parameters.
-        :param iteration: Counter of the number of times the updating method has been invoked.
-        """
         self.level = level
         self.angle = angle
         self.radius = radius
-        self.observation_history = []
-        self.iteration = 0
-        self.min_max = [(0, 1), (0.1, 1), (0.1, 1)]
-        self.abu_level = []
-        self.abu_angle = []
-        self.abu_radius = []
 
     def update(self, added_value):
         self.level += added_value[0]
         self.angle += added_value[1]
         self.radius += added_value[2]
-
         return self
 
 
+########################################################################################################################
 class TypeEstimation:
     def __init__(self, a_type):
         self.type = a_type
@@ -57,7 +43,7 @@ class TypeEstimation:
         self.estimation_history.append(new_parameter)
         self.type_probabilities.append(probability)
 
-    def get_last_probability(self):
+    def get_last_type_probability(self):
         return self.type_probabilities[len(self.type_probabilities)-1]
 
     def get_last_estimation(self):
@@ -75,19 +61,141 @@ class TypeEstimation:
         self.type_probabilities.append(belief_value)
 
 
+########################################################################################################################
 class ParameterEstimation:
 
     def __init__(self):
 
         # P(teta|H)
-        self.l1_estimation= TypeEstimation('l1')
+        self.l1_estimation = TypeEstimation('l1')
         self.l2_estimation = TypeEstimation('l2')
         self.f1_estimation = TypeEstimation('f1')
         self.f2_estimation = TypeEstimation('f2')
         self.sim = None
         self.estimated_agent = None
+        # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
+        self.type_selection_mode = 'AS'
+        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
+        self.parameter_estimation_mode = 'ABU'
 
-    def update_internal_state(self, main_sim):
+    ####################################################################################################################
+
+        # Initialisation random values for parameters of each type and probability of actions in time step 0
+
+    def estimation_configuration(self, type_selection_mode, estimation_initialisation):
+        # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
+        self.type_selection_mode = type_selection_mode
+        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
+        self.estimation_initialisation = estimation_initialisation
+
+    ####################################################################################################################
+
+        # Initialisation random values for parameters of each type and probability of actions in time step 0
+
+    def estimation_initialisation(self):
+        # P(teta|H) in t = 0
+
+        l1_init_prob = round(random.uniform(0, 1), 1)
+        l2_init_prob = round(random.uniform(0, 1), 1)
+        f1_init_prob = round(random.uniform(0, 1), 1)
+        f2_init_prob = round(random.uniform(0, 1), 1)
+
+        # Normalising Probabilities
+
+        sum_prob = l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob
+        if sum_prob != 0:
+            l1_init_prob = round(l1_init_prob / sum_prob,2)
+            l2_init_prob = round(l2_init_prob / sum_prob,2)
+            f1_init_prob = round(f1_init_prob / sum_prob,2)
+            f2_init_prob = round(f2_init_prob / sum_prob,2)
+
+        diff = 1 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
+
+        f2_init_prob+= diff
+
+        print 'After Devision: ', l1_init_prob, l2_init_prob, f1_init_prob, f2_init_prob
+
+        self.l1_estimation.add_estimation_history(round(l1_init_prob, 2),
+                                                  round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                  round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                  round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.l2_estimation.add_estimation_history(round(l2_init_prob, 2),
+                                                  round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                  round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                  round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.f1_estimation.add_estimation_history(round(f1_init_prob, 2),
+                                                  round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                  round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                  round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+        self.f2_estimation.add_estimation_history(round(f2_init_prob, 2),
+                                                  round(random.uniform(level_min, level_max), 2),  # 'level'
+                                                  round(random.uniform(radius_min, radius_max), 2),  # 'radius'
+                                                  round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+
+    ####################################################################################################################
+    def get_sampled_probability(self):
+
+        type_probes = list()
+        type_probes.append(self.l1_estimation.get_last_type_probability())
+        type_probes.append(self.l2_estimation.get_last_type_probability())
+        type_probes.append(self.f1_estimation.get_last_type_probability())
+        type_probes.append(self.f2_estimation.get_last_type_probability())
+
+        print self.l1_estimation.type_probabilities
+        print self.l2_estimation.type_probabilities
+        print self.f1_estimation.type_probabilities
+        print self.f2_estimation.type_probabilities
+        print 'Sampling Probabilities: ', type_probes
+        selected_type = choice(types, p=type_probes)  # random sampling the action
+        print 'Selected '
+        return selected_type
+
+    ####################################################################################################################
+    def get_highest_probability(self):
+
+        highest_probability = -1
+        selected_type = ''
+
+        for type in types:
+            if type == 'l1':
+                tmp_prob = self.l1_estimation.get_last_type_probability()
+
+            if type == 'l2':
+                tmp_prob = self.l2_estimation.get_last_type_probability()
+
+            if type == 'f1':
+                tmp_prob = self.f1_estimation.get_last_type_probability()
+
+            if type == 'f2':
+                tmp_prob = self.f2_estimation.get_last_type_probability()
+
+            if tmp_prob > highest_probability:
+                highest_probability = tmp_prob
+                selected_type = type
+
+        return selected_type
+
+    ####################################################################################################################
+    def get_properties_for_selected_type(self , selected_type):
+
+        if selected_type == 'l1':
+            return self.l1_estimation.get_last_estimation()
+
+        if selected_type == 'l2':
+            return self.l2_estimation.get_last_estimation()
+
+        if selected_type == 'f1':
+            return self.f1_estimation.get_last_estimation()
+
+        if selected_type == 'f2':
+            return self.f2_estimation.get_last_estimation()
+
+    ####################################################################################################################
+    @staticmethod
+    def update_internal_state(main_sim):
         history_index = 0
 
         for agent in main_sim.agents:
@@ -134,31 +242,8 @@ class ParameterEstimation:
                     last_estimation = agent.estimated_parameter.f2_estimation.internal_state = target
 
 
-    # Initialisation random values for parameters of each type and probability of actions in time step 0
-    def estimation_initialisation(self):
-        # P(teta|H) in t = 0
-        self.l1_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
-
-                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
-                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
-                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-
-        self.l2_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
-                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
-                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
-                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-
-        self.f1_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
-                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
-                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
-                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-
-        self.f2_estimation.add_estimation_history(round(random.uniform(0, 1), 1),
-                                                 round(random.uniform(level_min, level_max), 2),  # 'level'
-                                                 round(random.uniform(radius_min, radius_max), 2),  # 'radius'
-                                                 round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-
-    # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)=========================
+    ####################################################################################################################
+    # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)==============================================
     @staticmethod
     def generate_data_for_update_parameter(sim, tmp_agent, data_numbers, action):
 
@@ -174,9 +259,9 @@ class ParameterEstimation:
             # tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
             # tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
 
-            tmp_radius = radius_min + (1.0 *(radius_max - radius_min) / data_numbers) * i
-            tmp_angle = angle_min + (1.0 *(angle_max - angle_min) / data_numbers) * i
-            tmp_level = level_min + (1.0 *(level_max - level_min) / data_numbers) * i
+            tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / data_numbers) * i
+            tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / data_numbers) * i
+            tmp_level = level_min + (1.0 * (level_max - level_min) / data_numbers) * i
 
             tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
 
@@ -188,6 +273,8 @@ class ParameterEstimation:
 
         return D
 
+    ####################################################################################################################
+
     @staticmethod
     def calculate_gradient_ascent(x_train, y_train, old_parameter):
         # p is parameter estimation value at time step t-1 and D is pair of (p,f(p))
@@ -195,9 +282,6 @@ class ParameterEstimation:
         # (implementation of Algorithm 2 in the paper for updating parameter value)
 
         step_size = 0.05
-
-        print('X: \n{} Observations of length {}.\nValue: {}'.format(len(x_train), len(x_train[0]), x_train))
-        print('y: {} Observations\n Value: {}'.format(len(y_train), y_train))
 
         reg = linear_model.LinearRegression()
 
@@ -207,100 +291,19 @@ class ParameterEstimation:
 
         new_parameters = old_parameter.update(gradient * step_size)
 
-        if level_min <= new_parameters.level <= level_max or \
-                angle_min <= new_parameters.angle <= angle_max or \
+        if level_min <= new_parameters.level <= level_max and \
+                angle_min <= new_parameters.angle <= angle_max and \
                 radius_min <= new_parameters.radius <= radius_max:
             return new_parameters
 
         else:
             return old_parameter
 
-    def bayesian_updating(self, x_train, y_train, previous_estimate, observation, polynomial_degree=4, sampling='MAP'):
-        # TODO: Remove when actually running - only here for reproducibility during testing.
-        np.random.seed(123)
+    ####################################################################################################################
+    def bayesian_updating(self, x_train):
+        pass
 
-        parameter_estimate = []
-
-        for i in range(len(x_train[0])):
-            # Get current independent variables
-            current_parameter_set = [elem[i] for elem in x_train]
-
-            # Fit polynomial of degree 4 to the parameter being modelled
-            f_coefficients = np.polynomial.polyfit(current_parameter_set, y_train, deg=polynomial_degree, full=False)
-
-            # Generate prior
-            if previous_estimate.iteration == 0:
-                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree+1)
-            else:
-                beliefs = previous_estimate.observation_history[-1]
-                assert len(beliefs) == polynomial_degree+1, 'Non-uniform sampled beliefs of incorrect length'
-
-            # Compute convolution
-            # TODO: I'm not sure here the exact command to calculate g_hat.
-            g_hat_coefficients = np.multiply(f_coefficients, beliefs)
-
-            # Collect samples
-            # Number of evenly spaced points to compute polynomial at
-            spacing = polynomial_degree+1
-            assert spacing == len(f_coefficients), 'Uniform grid spacing and polynomial degree + 1 are not equal'
-
-            # Obtain the parameter in questions upper and lower limits
-            p_min = previous_estimate.min_max[i][0]
-            p_max = previous_estimate.min_max[i][1]
-
-            # Generate equally spaced points, unique to the parameter being modelled
-            X = np.linspace(p_min, p_max, spacing)
-            y = np.array([X[i]*g_hat_coefficients for i in range(len(X))])
-            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
-
-            # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
-            # TODO: possilby remove D if not needed at the end
-            D = [(X[i], y[i]) for i in range(len(X))]
-
-            # Fit h
-            h_hat_coefficients = np.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
-
-            # Integrate h to get I
-            # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
-            def integrand(x, a, b, c, d, e):
-                return a*x**4 + b*x**3 + c*x**2 + d*x + e
-            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients)  # Returns a single value
-
-            # Update beliefs
-            new_belief = np.divide(h_hat_coefficients/i_integral)  # returns an array
-
-            def polynomial_evaluate(x, coefficients):
-                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
-                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
-                return result
-
-            if sampling == 'MAP':
-                # Sample from beliefs
-                polynomial_max = 0
-                granularity = 1000
-                x_vals = np.linspace(p_min, p_max, granularity)
-                for j in range(len(x_vals)):
-                    proposal = polynomial_evaluate(x_vals[j], new_belief)
-                    if proposal > polynomial_max:
-                        polynomial_max = proposal
-
-                parameter_estimate.append(polynomial_max)
-
-            elif sampling == 'average':
-                x_random = np.random.uniform(low=p_min, high=p_max, size=10)
-                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
-                parameter_estimate.append(np.mean(evaluations))
-
-            # Update past observations
-            previous_estimate.observation_history.append(observation)
-
-            # Increment iterator
-            previous_estimate.iteration += 1
-
-        previous_estimate.abu_level = parameter_estimate[0]
-        previous_estimate.abu_radius = parameter_estimate[1]
-        previous_estimate.abu_angle = parameter_estimate[2]
-
+    ####################################################################################################################
 
     def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
 
@@ -311,6 +314,7 @@ class ParameterEstimation:
 
         if agent_type.agent_type == 'l2':
             self.p_action_parameter_type_l2 = []
+
         if agent_type.agent_type == 'f1':
             self.p_action_parameter_type_f1 = []
 
@@ -319,8 +323,10 @@ class ParameterEstimation:
 
         return
 
+    ####################################################################################################################
     def parameter_estimation(self,time_step, cur_agent, sim, action):
 
+        estimated_parameter = None
         data_numbers = 10
 
         D = self.generate_data_for_update_parameter(sim, cur_agent, data_numbers, action)
@@ -350,13 +356,17 @@ class ParameterEstimation:
         if cur_agent.agent_type == 'f2':
             last_parameters_value = self.f2_estimation.estimation_history[time_step - 1]
 
-        # parameters value order is : radius , angle, level
-        estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
         # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
+
+        if self.parameter_estimation_mode == 'AGA':
+            estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
+
+        if self.parameter_estimation_mode == 'ABU':
+            estimated_parameter = self.bayesian_updating(x_train, y_train, last_parameters_value)
 
         return estimated_parameter
 
-
+    ####################################################################################################################
     def update_belief(self):
 
         l1_update_belief_value = self.l1_estimation.get_value_for_update_belief()
@@ -365,29 +375,113 @@ class ParameterEstimation:
         f2_update_belief_value = self.f2_estimation.get_value_for_update_belief()
 
         # todo: calculation is not correct
-        if np.sum([l1_update_belief_value, l2_update_belief_value, f1_update_belief_value,f2_update_belief_value]) == 0:
-            belief_factor = 0
-        else:
-            belief_factor = 1 / l1_update_belief_value + l2_update_belief_value + \
-                            f1_update_belief_value + f2_update_belief_value
+        sum_of_probabilities = l1_update_belief_value + l2_update_belief_value + f1_update_belief_value + f2_update_belief_value
+
+        if sum_of_probabilities != 0:
+            belief_factor = 1 / sum_of_probabilities
 
         self.l1_estimation.update_belief(l1_update_belief_value * belief_factor)
         self.l2_estimation.update_belief(l2_update_belief_value * belief_factor)
         self.f1_estimation.update_belief(f1_update_belief_value * belief_factor)
         self.f2_estimation.update_belief(f2_update_belief_value * belief_factor)
 
-
+    ####################################################################################################################
     def nested_list_sum(self, nested_lists):
         if type(nested_lists) == list:
             return np.sum(self.nested_list_sum(sublist) for sublist in nested_lists)
         else:
             return 1
 
+    ####################################################################################################################
+    def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=4, sampling='MAP'):
+        # TODO: Remove when actually running - only here for reproducibility during testing.
+        np.random.seed(123)
+
+        parameter_estimate = []
+
+        for i in range(len(x_train[0])):
+            # Get current independent variables
+            current_parameter_set = [elem[i] for elem in x_train]
+
+            # Fit polynomial of degree 4 to the parameter being modelled
+            f_coefficients = np.polynomial.polyfit(current_parameter_set, y_train, deg=polynomial_degree, full=False)
+
+            # Generate prior
+            if previous_estimate.iteration == 0:
+                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
+            else:
+                beliefs = previous_estimate.observation_history[-1]
+                assert len(beliefs) == polynomial_degree + 1, 'Non-uniform sampled beliefs of incorrect length'
+
+            # Compute convolution
+            # TODO: I'm not sure here the exact command to calculate g_hat.
+            g_hat_coefficients = np.multiply(f_coefficients, beliefs)
+
+            # Collect samples
+            # Number of evenly spaced points to compute polynomial at
+            spacing = polynomial_degree + 1
+            assert spacing == len(f_coefficients), 'Uniform grid spacing and polynomial degree + 1 are not equal'
+
+            # Obtain the parameter in questions upper and lower limits
+            p_min = previous_estimate.min_max[i][0]
+            p_max = previous_estimate.min_max[i][1]
+
+            # Generate equally spaced points, unique to the parameter being modelled
+            X = np.linspace(p_min, p_max, spacing)
+            y = np.array([X[i] * g_hat_coefficients for i in range(len(X))])
+            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
+
+            # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
+            # TODO: possilby remove D if not needed at the end
+            D = [(X[i], y[i]) for i in range(len(X))]
+
+            # Fit h
+            h_hat_coefficients = np.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+
+            # Integrate h to get I
+            # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
+            def integrand(x, a, b, c, d, e):
+                return a * x ** 4 + b * x ** 3 + c * x ** 2 + d * x + e
+
+            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients)  # Returns a single value
+
+            # Update beliefs
+            new_belief = np.divide(h_hat_coefficients / i_integral)  # returns an array
+
+            def polynomial_evaluate(x, coefficients):
+                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
+                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
+                return result
+
+            if sampling == 'MAP':
+                # Sample from beliefs
+                polynomial_max = 0
+                granularity = 1000
+                x_vals = np.linspace(p_min, p_max, granularity)
+                for j in range(len(x_vals)):
+                    proposal = polynomial_evaluate(x_vals[j], new_belief)
+                    if proposal > polynomial_max:
+                        polynomial_max = proposal
+
+                parameter_estimate.append(polynomial_max)
+
+            elif sampling == 'average':
+                x_random = np.random.uniform(low=p_min, high=p_max, size=10)
+                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
+                parameter_estimate.append(np.mean(evaluations))
+
+
+
+            # Increment iterator
+            previous_estimate.iteration += 1
+
+        previous_estimate.abu_level = parameter_estimate[0]
+        previous_estimate.abu_radius = parameter_estimate[1]
+        previous_estimate.abu_angle = parameter_estimate[2]
+
+    ####################################################################################################################
     def UCB_selection(self, time_step, final=False):
-        agent_types = [self.p_type_l1,
-                       self.p_type_l2,
-                       self.p_type_f1,
-                       self.p_type_f2]
+        agent_types = ['l1', 'l2', 'f1', 'f2']
 
         # Get the total number of probabilities
         prob_count = self.nested_list_sum(agent_types)
@@ -436,17 +530,22 @@ class ParameterEstimation:
         # reward = (1/nu) * parameter_diff_sum
         # return ['l1']
 
+    ###################################################################################################################
     def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index):
 
         new_parameters_estimation = None
+        selected_types= None
+
         tmp_sim = main_sim.copy()
         self.sim = tmp_sim
         (x, y) = agent_position  # Position in the world e.g. 2,3
         self.estimated_agent = agent.Agent(x, y, agent_direction, None, agent_index)
 
         # Start parameter estimation
-        selected_types = types #self.UCB_selection(time_step)  # returns l1, l2, f1, f2
-
+        if self.type_selection_mode == 'AS':
+            selected_types = types
+        if self.type_selection_mode == 'BS':
+            selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
 
         # Estimate the parameters
         for selected_type in selected_types:

@@ -25,38 +25,36 @@ class Agent:
         self.state_history = []
         self.agent_type = agent_type
         self.memory = position.position(-1, -1)
-        self.estimated_parameter = self.initialise_parameter_estimation()
+        self.estimated_parameter = None
         self.level = None
         self.radius = None
         self.angle = None
 
-    def set_parameters_array(self,sim,parameters_probabilities):
-        self.set_parameters(sim,parameters_probabilities[0], parameters_probabilities[1],parameters_probabilities[2])
+    ####################################################################################################################
+    def set_parameters(self, sim, level, radius, angle):
 
-    def set_parameters(self,sim, level, radius, angle):
-
-        width, hight = sim.dim_w, sim.dim_h
+        width, higth = sim.dim_w, sim.dim_h
         self.level = float(level)
-        self.radius = float(radius) * sqrt(width ** 2 + hight ** 2)
+        self.radius = float(radius) * sqrt(width ** 2 + higth ** 2)
         self.angle = 2 * np.pi * float(angle)
 
+    ####################################################################################################################
     def set_direction(self, direction):
         self.direction = direction
 
-
     ####################################################################################################################
-    def initialise_parameter_estimation(self):
+    def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        return param_estim
+        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode)
+        self.estimated_parameter = param_estim
 
     ####################################################################################################################
     def reset_memory(self):
         self.memory = position.position(-1, -1)
 
     ####################################################################################################################
-
-    def agent_is_stucked(self, sim):
+    def agent_is_stocked(self, sim):
         (memory_x, memory_y) = self.memory.get_position()
 
         destination_index = sim.find_item_by_location(memory_x, memory_y)
@@ -68,12 +66,11 @@ class Agent:
                 return True
         return False
 
-    ################################################################################################################
-
+    ####################################################################################################################
     def get_position(self):
         return self.position[0], self.position[1]
 
-    ################################################################################################################
+    ####################################################################################################################
     def equals(self, other_agent):
         (x, y) = self.position
          
@@ -89,8 +86,7 @@ class Agent:
                self.index == other_agent.index and \
                self.direction == other_agent.direction
 
-    ################################################################################################################
-
+    ####################################################################################################################
     def copy(self):
 
         (x, y) = self.position
@@ -109,8 +105,7 @@ class Agent:
 
         return copy_agent
 
-    ################################################################################################################
-
+    ####################################################################################################################
     def is_agent_face_to_item(self, sim):
 
         dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
@@ -201,7 +196,7 @@ class Agent:
         return False
 
     ################################################################################################################
-    ## The agent is "near" if it is next to the destination, and the heading is correct
+    # The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
         dx = [-1, 0, 1, 0]  # 0:W ,  1:N , 2:E  3:S
         dy = [ 0, 1, 0,-1]
@@ -233,7 +228,7 @@ class Agent:
         
         (xI, yI) = (item_x, item_y)
         if (yI == pos[1] and abs(pos[0] - xI) == 1) or (xI == pos[0] and abs(pos[1] - yI) == 1):
-            if ((pos[0] + x_diff == xI) and (pos[1] + y_diff == yI)):
+            if (pos[0] + x_diff == xI) and (pos[1] + y_diff == yI):
                 return True
             else:
                 return False
@@ -408,7 +403,7 @@ class Agent:
         if self.direction == 3 * np.pi / 2:
             return 'S'
 
-    def change_position_direction(self, dim_w , dim_h):
+    def change_position_direction(self, dim_w, dim_h):
         dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
         dy = [ 0, 1, 0, -1]
 
@@ -437,7 +432,7 @@ class Agent:
 
         x, y = self.get_position()
 
-        if 0 <= x + x_diff < dim_w  and 0 <= y + y_diff < dim_h :
+        if 0 <= x + x_diff < dim_w and 0 <= y + y_diff < dim_h:
             self.position = (x + x_diff, y + y_diff)
 
         return self.position
@@ -491,7 +486,7 @@ class Agent:
         point_position = point.get_position()
         my_position = self.get_position()
 
-        ## We need to rotate and translate the coordinate system first!
+        # We need to rotate and translate the coordinate system first!
         xt = point_position[0] - my_position[0]
         yt = point_position[1] - my_position[1]
 
@@ -681,4 +676,5 @@ class Agent:
                 return position.position(-1, -1)
 
         return position.position(-1, -1)
+
 
