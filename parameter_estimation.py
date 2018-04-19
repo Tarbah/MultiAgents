@@ -21,6 +21,11 @@ class Parameter:
         self.level = level
         self.angle = angle
         self.radius = radius
+        self.iteration = 0
+        self.min_max = [(0, 1), (0.1, 1), (0.1, 1)]
+        self.abu_level = []
+        self.abu_angle = []
+        self.abu_radius = []
 
     def update(self, added_value):
         self.level += added_value[0]
@@ -74,19 +79,19 @@ class ParameterEstimation:
         self.sim = None
         self.estimated_agent = None
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
-        self.type_selection_mode = 'AS'
+        self.type_selection_mode = None
         # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
-        self.parameter_estimation_mode = 'ABU'
+        self.parameter_estimation_mode = None
 
     ####################################################################################################################
 
         # Initialisation random values for parameters of each type and probability of actions in time step 0
 
-    def estimation_configuration(self, type_selection_mode, estimation_initialisation):
+    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode):
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = type_selection_mode
         # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
-        self.estimation_initialisation = estimation_initialisation
+        self.parameter_estimation_mode = parameter_estimation_mode
 
     ####################################################################################################################
 
@@ -111,7 +116,7 @@ class ParameterEstimation:
 
         diff = 1 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
 
-        f2_init_prob+= diff
+        f2_init_prob += diff
 
         print 'After Devision: ', l1_init_prob, l2_init_prob, f1_init_prob, f2_init_prob
 
@@ -357,7 +362,6 @@ class ParameterEstimation:
             last_parameters_value = self.f2_estimation.estimation_history[time_step - 1]
 
         # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
-
         if self.parameter_estimation_mode == 'AGA':
             estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
 
@@ -534,7 +538,7 @@ class ParameterEstimation:
     def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index):
 
         new_parameters_estimation = None
-        selected_types= None
+        selected_types = None
 
         tmp_sim = main_sim.copy()
         self.sim = tmp_sim
@@ -550,7 +554,7 @@ class ParameterEstimation:
         # Estimate the parameters
         for selected_type in selected_types:
             # Generates an Agent object
-            tmp_agent = self.estimated_agent
+            tmp_agent = self.estimated_agent.copy()
             tmp_agent.agent_type = selected_type
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
