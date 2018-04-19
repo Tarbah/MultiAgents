@@ -1,9 +1,6 @@
 from math import *
 from numpy.random import choice
 
-# TODO: Perhaps we should have a configuration file, besides the scenario file
-iteration_max = 10
-max_depth = 10
 
 totalItems = 0 # TODO: Adding as a global variable for now
 
@@ -155,250 +152,250 @@ class Node:
 
 
 ########################################################################################################################
+class UCT:
+    def __init__(self,reuseTree, iteration_max, max_depth):
+        self.reuseTree = reuseTree
+        self.iteration_max = iteration_max
+        self.max_depth = max_depth
 
-def do_move(sim, move):
+    def do_move(self,sim, move):
 
-    get_reward = 0
+        get_reward = 0
 
-    tmp_m_agent = sim.main_agent
+        tmp_m_agent = sim.main_agent
 
-    if move == 'L':
-        load_item, (item_position_x,  item_position_y) = tmp_m_agent.is_agent_face_to_item(sim)
-        if load_item:
-            destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
-            if sim.items [destinantion_item_index].level <= tmp_m_agent.level:
-                sim.items[destinantion_item_index].loaded = True
-                get_reward += float(1.0)
+        if move == 'L':
+            load_item, (item_position_x,  item_position_y) = tmp_m_agent.is_agent_face_to_item(sim)
+            if load_item:
+                destinantion_item_index = sim.find_item_by_location(item_position_x, item_position_y)
+                if sim.items [destinantion_item_index].level <= tmp_m_agent.level:
+                    sim.items[destinantion_item_index].loaded = True
+                    get_reward += float(1.0)
+                else:
+                    sim.items[destinantion_item_index].agents_load_item.append(tmp_m_agent)
+
+        else:
+            (x_new, y_new) = tmp_m_agent.new_position_with_given_action(sim.dim_w, sim.dim_h, move)
+
+            # If there new position is empty
+            if sim.position_is_empty(x_new, y_new):
+                tmp_m_agent.next_action = move
+                tmp_m_agent.change_position_direction(sim.dim_w, sim.dim_h)
+
             else:
-                sim.items[destinantion_item_index].agents_load_item.append(tmp_m_agent)
+                tmp_m_agent.change_direction_with_action(move)
 
-    else:
-        (x_new, y_new) = tmp_m_agent.new_position_with_given_action(sim.dim_w, sim.dim_h, move)
+            sim.main_agent = tmp_m_agent
 
-        # If there new position is empty
-        if sim.position_is_empty(x_new, y_new):
-            tmp_m_agent.next_action = move
-            tmp_m_agent.change_position_direction(sim.dim_w, sim.dim_h)
+        sim.update_the_map()
 
+        return get_reward
+
+    ################################################################################################################
+    def best_action(self,node):
+        Q_table = node.Q_table
+
+        maxA = None
+        maxQ = -1
+        for a in range(len(Q_table)):
+            if Q_table[a].QValue > maxQ:
+                maxQ = Q_table[a].QValue
+                maxA = Q_table[a].action
+
+        # maxA=node.uct_select_action()
+        return maxA
+
+    ################################################################################################################
+    def terminal(self,state):
+        if state.simulator.items_left() == 0:
+            return True
+
+        return False
+
+    ################################################################################################################
+    def leaf(self,main_time_step,  node):
+        if node.depth == main_time_step + self.max_depth + 1:
+            return True
+        return False
+
+    ################################################################################################################
+    def evaluate(self,node):
+        return node.expectedReward
+
+    ################################################################################################################
+    def select_action(self,node):
+        # If all *actions* of the current node have been tried at least once, then Select Child based on UCB
+
+        if node.untried_moves == []:
+            return node.uct_select_action()
+
+        # If there is some untried moves we will select a random move from the untried ones
+        if node.untried_moves != []:
+            move = choice(node.untried_moves)
+            node.untried_moves.remove(move)
+            return move
+
+
+    ################################################################################################################
+    def simulate_action(self,state, action):
+
+        sim = state.simulator.copy()
+        next_state = State(sim)
+
+        # Run the A agent to get the actions probabilities
+
+        for i in range(len(sim.agents)):
+            selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
+            agents_estimated_values = sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+            sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
+            sim.agents[i] = sim.move_a_agent(sim.agents[i])
+
+        m_reward = self.do_move(sim, action)
+
+        a_reward = sim.update_all_A_agents()
+
+        if sim.do_collaboration():
+            c_reward = float(1)
         else:
-            tmp_m_agent.change_direction_with_action(move)
+            c_reward = 0
 
-        sim.main_agent = tmp_m_agent
+        total_reward = float(m_reward + a_reward + c_reward) / totalItems
 
-    sim.update_the_map()
-
-    return get_reward
+        return next_state, total_reward
 
 
-################################################################################################################
-def best_action(node):
-    Q_table = node.Q_table
+    ################################################################################################################
 
-    maxA = None
-    maxQ = -1
-    for a in range(len(Q_table)):
-        if Q_table[a].QValue > maxQ:
-            maxQ = Q_table[a].QValue
-            maxA = Q_table[a].action
+    def find_new_root(self,previous_root,current_state):
 
-    # maxA=node.uct_select_action()
-    return maxA
+        # Initialise with new node, just in case the child was not yet expanded
+        root_node = Node(depth=previous_root.depth+1,state=current_state)
 
+        for child in previous_root.childNodes:
+            if child.state.equals(current_state):
+                root_node = child
+                break
 
-################################################################################################################
-def terminal(state):
-    if state.simulator.items_left() == 0:
-        return True
-
-    return False
+        return root_node
 
 
-################################################################################################################
-def leaf(main_time_step,  node):
-    if node.depth == main_time_step + max_depth + 1:
-        return True
-    return False
+    ################################################################################################################
+    def search(self,main_time_step,node):
 
+        state = node.state
 
-################################################################################################################
-def evaluate(node):
-    return node.expectedReward
+        if self.terminal(state):
+            return 0
 
+        if self.leaf(main_time_step,node):
+            return 0
 
-################################################################################################################
-def select_action(node):
-    # If all *actions* of the current node have been tried at least once, then Select Child based on UCB
-
-    if node.untried_moves == []:
-        return node.uct_select_action()
-
-    # If there is some untried moves we will select a random move from the untried ones
-    if node.untried_moves != []:
-        move = choice(node.untried_moves)
-        node.untried_moves.remove(move)
-        return move
-
-
-################################################################################################################
-def simulate_action(state, action):
-
-    sim = state.simulator.copy()
-    next_state = State(sim)
-
-    # Run the A agent to get the actions probabilities
-
-    for i in range(len(sim.agents)):
-        selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
-        agents_estimated_values = sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
-        sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
-        sim.agents[i] = sim.move_a_agent(sim.agents[i])
-
-    m_reward = do_move(sim, action)
-
-    a_reward = sim.update_all_A_agents()
-
-    if sim.do_collaboration():
-        c_reward = float(1)
-    else:
-        c_reward = 0
-
-    total_reward = float(m_reward + a_reward + c_reward) / totalItems
-
-    return next_state, total_reward
-
-
-################################################################################################################
-
-def find_new_root(previous_root,current_state):
-
-    # Initialise with new node, just in case the child was not yet expanded
-    root_node = Node(depth=previous_root.depth+1,state=current_state)
-
-    for child in previous_root.childNodes:
-        if child.state.equals(current_state):
-            root_node = child
-            break
-
-    return root_node
-
-
-################################################################################################################
-def search(main_time_step,node):
-
-    state = node.state
-
-    if terminal(state):
-        return 0
-
-    if leaf(main_time_step,node):
-        return 0
-
-    action = select_action(node)
-    # print ('---action:',action)
-    # print_Q_table(node)
-
-    (next_state, reward) = simulate_action(node.state, action)
-
-    # next_state.simulator.draw_map()
-    next_node = None
-    for child in node.childNodes:
-        if child.state.equals(next_state):
-            next_node = child
-            break
-
-    if next_node is None:
-        next_node = node.add_child(next_state)
-
-    discount_factor = 0.95
-    q = reward + discount_factor * search(main_time_step, next_node)
-
-    node.update(action, q)
-    node.visits += 1
-
-    return q
-
-
-########################################################################################################################
-def monte_carlo_planning(main_time_step, search_tree, simulator):
-    global root
-
-    current_state = State(simulator)
-
-    if search_tree is None:
-        root_node = Node(depth=0, state=current_state)
-    else:
-        root_node = find_new_root(search_tree , current_state)
-        print "----- Beginning of monte_carlo_planning ---- "
-        print "root node children:", len(root_node.childNodes)
-        
-    # print_Q_table(root_node)
-    time_step = 0
-
-    node = root_node
-    root = node
-
-    while time_step < iteration_max:
-        tmp_sim = simulator.copy()
-        node.state.simulator = tmp_sim
-        # print('monte_carlo_planning', time_step)
+        action = self.select_action(node)
+        # print ('---action:',action)
         # print_Q_table(node)
-        # print_nodes(node.childNodes)
-        # print('=================================================================')
-        search(main_time_step, node)
-        
-        time_step += 1
 
-    # print_search_tree(main_time_step)
-    # print('_________________________________________________________________________________________________________')
-    print "----- End of monte_carlo_planning ---- "
-    print_Q_table(node)
+        (next_state, reward) = self.simulate_action(node.state, action)
 
-    best_selected_action = best_action(node)
-    print "Selected Action: ", best_selected_action
+        # next_state.simulator.draw_map()
+        next_node = None
+        for child in node.childNodes:
+            if child.state.equals(next_state):
+                next_node = child
+                break
 
-    return best_selected_action, node
+        if next_node is None:
+            next_node = node.add_child(next_state)
 
+        discount_factor = 0.95
+        q = reward + discount_factor * self.search(main_time_step, next_node)
 
-########################################################################################################################
-def m_agent_planning(time_step,search_tree,sim):
-    global totalItems
+        node.update(action, q)
+        node.visits += 1
 
-    tmp_sim = sim.copy()
-    
-    # We need total items, because the QValues must be between 0 and 1
-    # If we are re-using the tree, I think we should use the initial number of items, and not update it
-    if search_tree is None:
-        totalItems = tmp_sim.items_left()
-
-    next_move, search_tree = monte_carlo_planning(time_step, search_tree,tmp_sim)
-
-    return next_move, search_tree
+        return q
 
 
-########################################################################################################################
-def print_search_tree(main_time_step):
+    ########################################################################################################################
+    def monte_carlo_planning(self,main_time_step, search_tree, simulator):
+        global root
 
-    node = root
+        current_state = State(simulator)
 
-    for i in range(max_depth + main_time_step ):
-        print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
-        print node.depth
-        print_nodes(node.childNodes)
-        if len(node.childNodes)>0 :
-            node = node.childNodes[0]
+        if search_tree is None:
+            root_node = Node(depth=0, state=current_state)
         else:
-            break
+            root_node = self.find_new_root(search_tree , current_state)
+            # print "----- Beginning of monte_carlo_planning ---- "
+            # print "root node children:", len(root_node.childNodes)
+
+        # print_Q_table(root_node)
+        time_step = 0
+
+        node = root_node
+        root = node
+
+        while time_step < self.iteration_max:
+            tmp_sim = simulator.copy()
+            node.state.simulator = tmp_sim
+            # print('monte_carlo_planning', time_step)
+            # print_Q_table(node)
+            # print_nodes(node.childNodes)
+            # print('=================================================================')
+            self.search(main_time_step, node)
+
+            time_step += 1
+
+        # print_search_tree(main_time_step)
+        # print('_________________________________________________________________________________________________________')
+        # print "----- End of monte_carlo_planning ---- "
+        # self.print_Q_table(node)
+
+        best_selected_action = self.best_action(node)
+        # print "Selected Action: ", best_selected_action
+
+        return best_selected_action, node
 
 
-########################################################################################################################
-def print_nodes(childNodes):
-    print('Total number of children:', len(childNodes))
-    for i in range(len(childNodes)):
-        print 'Node: ', i
-        print_Q_table(childNodes[i])
-        # print childNodes[i].state.simulator.draw_map()
+    ########################################################################################################################
+    def m_agent_planning(self,time_step,search_tree,sim):
+        global totalItems
 
-################################################################################################################
-def print_Q_table(node):
-    for a in range(len(node.Q_table)):
-        print "Action: ", node.Q_table[a].action, "QValue:", node.Q_table[a].QValue, "sumValue:", node.Q_table[a].sumValue, "trials:", node.Q_table[a].trials
+        tmp_sim = sim.copy()
+
+        # We need total items, because the QValues must be between 0 and 1
+        # If we are re-using the tree, I think we should use the initial number of items, and not update it
+        if search_tree is None:
+            totalItems = tmp_sim.items_left()
+
+        next_move, search_tree = self.monte_carlo_planning(time_step, search_tree,tmp_sim)
+
+        return next_move, search_tree
+
+
+    ########################################################################################################################
+    def print_search_tree(self,main_time_step):
+
+        node = root
+
+        for i in range(self.max_depth + main_time_step ):
+            print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+            print node.depth
+            self.print_nodes(node.childNodes)
+            if len(node.childNodes)>0 :
+                node = node.childNodes[0]
+            else:
+                break
+
+
+    ########################################################################################################################
+    def print_nodes(self, childNodes):
+        print('Total number of children:', len(childNodes))
+        for i in range(len(childNodes)):
+            print 'Node: ', i
+            self.print_Q_table(childNodes[i])
+            # print childNodes[i].state.simulator.draw_map()
+
+    ################################################################################################################
+    def print_Q_table(self, node):
+        for a in range(len(node.Q_table)):
+            print "Action: ", node.Q_table[a].action, "QValue:", node.Q_table[a].QValue, "sumValue:", node.Q_table[a].sumValue, "trials:", node.Q_table[a].trials

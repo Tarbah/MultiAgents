@@ -23,9 +23,6 @@ class Parameter:
         self.radius = radius
         self.iteration = 0
         self.min_max = [(0, 1), (0.1, 1), (0.1, 1)]
-        self.abu_level = []
-        self.abu_angle = []
-        self.abu_radius = []
 
     def update(self, added_value):
         self.level += added_value[0]
@@ -118,8 +115,6 @@ class ParameterEstimation:
 
         f2_init_prob += diff
 
-        print 'After Devision: ', l1_init_prob, l2_init_prob, f1_init_prob, f2_init_prob
-
         self.l1_estimation.add_estimation_history(round(l1_init_prob, 2),
                                                   round(random.uniform(level_min, level_max), 2),  # 'level'
                                                   round(random.uniform(radius_min, radius_max), 2),  # 'radius'
@@ -149,13 +144,8 @@ class ParameterEstimation:
         type_probes.append(self.f1_estimation.get_last_type_probability())
         type_probes.append(self.f2_estimation.get_last_type_probability())
 
-        print self.l1_estimation.type_probabilities
-        print self.l2_estimation.type_probabilities
-        print self.f1_estimation.type_probabilities
-        print self.f2_estimation.type_probabilities
-        print 'Sampling Probabilities: ', type_probes
         selected_type = choice(types, p=type_probes)  # random sampling the action
-        print 'Selected '
+
         return selected_type
 
     ####################################################################################################################
@@ -474,14 +464,13 @@ class ParameterEstimation:
                 evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
                 parameter_estimate.append(np.mean(evaluations))
 
-
-
             # Increment iterator
             previous_estimate.iteration += 1
 
-        previous_estimate.abu_level = parameter_estimate[0]
-        previous_estimate.abu_radius = parameter_estimate[1]
-        previous_estimate.abu_angle = parameter_estimate[2]
+        new_parameter = Parameter( parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
+        return  new_parameter
+
+
 
     ####################################################################################################################
     def UCB_selection(self, time_step, final=False):

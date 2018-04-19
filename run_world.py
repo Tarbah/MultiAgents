@@ -4,18 +4,22 @@ import sys
 import gc
 
 # ===========Configuration Values====================================================================================
+# ======== Estimation Configuration=================
 
 # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
 type_selection_mode = 'AS'
 
 # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
-parameter_estimation_mode = 'ABU'
+parameter_estimation_mode = 'AGA'
 
+
+# ======== MCTS Configuration=================
 # If it is False we recreate the search tree for MCTS in each time step and
 # if it is True we will reuse the created tree from previous steps.
 reuseTree = False
 
-
+iteration_max = 10
+max_depth = 10
 # ==============simulator initialisation=====================================================
 #
 # if (len(sys.argv) < 3):
@@ -25,6 +29,8 @@ reuseTree = False
 # if (int(sys.argv[2]) == 0):
 #     reuseTree = False
 # else:
+
+uct = UCT.UCT(reuseTree, iteration_max, max_depth)
 types = ['l1', 'l2', 'f1', 'f2']
 
     
@@ -67,27 +73,27 @@ while time_step < 200:
         tmp_sim = main_sim.copy()
 
         if not reuseTree:
-            main_agent_next_action, search_tree = UCT.m_agent_planning(0, None, tmp_sim)
+            main_agent_next_action, search_tree = uct.m_agent_planning(0, None, tmp_sim)
         else:
-            main_agent_next_action, search_tree = UCT.m_agent_planning(time_step, search_tree, tmp_sim)
+            main_agent_next_action, search_tree = uct.m_agent_planning(time_step, search_tree, tmp_sim)
 
         # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
 
-        r = UCT.do_move(main_sim, main_agent_next_action)
+        r = uct.do_move(main_sim, main_agent_next_action)
 
     ## DEBUG
-    for agent_i in range(len(main_sim.agents)):
-        print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
+    # for agent_i in range(len(main_sim.agents)):
+    #     print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
 
     main_sim.update_all_A_agents()
 
     for agent in main_sim.agents:
         agent.estimate_parameter(previous_sim, time_step)
 
-    ## DEBUG
-    for agent_i in range(len(main_sim.agents)):
-        print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
+    # ## DEBUG
+    # for agent_i in range(len(main_sim.agents)):
+    #     print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
     
     main_sim.do_collaboration()
 
