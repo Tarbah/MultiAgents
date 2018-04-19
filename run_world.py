@@ -2,46 +2,51 @@ import simulator
 import UCT
 import sys
 import gc
-
-# ===========Configuration Values====================================================================================
-# ======== Estimation Configuration=================
-
-# type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
-type_selection_mode = 'AS'
-
-# Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
-parameter_estimation_mode = 'AGA'
+from collections import defaultdict
 
 
-# ======== MCTS Configuration=================
-# If it is False we recreate the search tree for MCTS in each time step and
-# if it is True we will reuse the created tree from previous steps.
-reuseTree = False
-
-iteration_max = 10
-max_depth = 10
-# ==============simulator initialisation=====================================================
-#
-# if (len(sys.argv) < 3):
-#     print("Use: run_world.py [scenario file] [re-use tree]")
-#     sys.exit()
-#
-# if (int(sys.argv[2]) == 0):
-#     reuseTree = False
-# else:
-
-uct = UCT.UCT(reuseTree, iteration_max, max_depth)
 types = ['l1', 'l2', 'f1', 'f2']
 
-    
+iteration_max = None
+type_selection_mode = None
+parameter_estimation_mode = None
+reuseTree = None
+max_depth = None
+sim_path = None
+
+path = 'config.csv'
+info = defaultdict(list)
+with open(path) as info_read:
+    for line in info_read:
+        data = line.strip().split(',')
+        key, val = data[0], data[1:]
+        info[key].append(val)
+
+
+for k, v in info.items():
+    print k
+
+    if 'type_selection_mode' in k:
+        type_selection_mode = str(v[0][0]).strip()
+
+    if 'parameter_estimation_mode' in k:
+        parameter_estimation_mode = str(v[0][0]).strip()
+
+    if 'reuseTree' in k:
+        reuseTree = v[0][0]
+
+    if 'iteration_max' in k:
+        iteration_max = int(v[0][0])
+
+    if 'max_depth' in k:
+        max_depth = int(v[0][0])
+
+    if 'sim_path' in k:
+        sim_path = str(v[0][0]).strip()
+
+uct = UCT.UCT(reuseTree, iteration_max, max_depth)
 main_sim = simulator.simulator()
-# main_sim.loader(sys.argv[1])
-main_sim.loader('/home/elnaz/task_assignment_project/simulator/UCT/Test Files/sim1.csv')
-# main_sim.loader('C:\\simulator\UCT\\Test Files\\sim1.csv')
-
-print('Simulation Successful')
-
-# ================create unknown agent  ================================================================
+main_sim.loader(sim_path)
 
 for i in range(len(main_sim.agents)):
     main_sim.agents[i].initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode)
