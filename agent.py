@@ -8,45 +8,56 @@ import parameter_estimation
 class Agent:
     def __init__(self, x, y, direction, agent_type='l1', index='0'):
         self.position = (int(x), int(y))
-        self.visible_agents = []
-        self.visible_items = []
+        self.index = index
+        self.level = None
+        self.radius = None
+        self.co_radius = None
+        self.angle = None
+        self.co_angle = None
 
         if isinstance(direction, basestring):
             self.direction = self.convert_direction(direction)
         else:
             self.direction = float(direction)
-            
-        self.item_to_load = -1
-        self.level = -1
-        self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
-        self.next_action = None
-        self.index = index
-        self.actions_history = []
-        self.state_history = []
+
         self.agent_type = agent_type
+
         self.memory = position.position(-1, -1)
         self.estimated_parameter = None
-        self.level = None
-        self.radius = None
-        self.angle = None
+
+        self.item_to_load = -1
+        self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
+        self.visible_agents = []
+        self.visible_items = []
+        self.next_action = None
+        self.actions_history = []
+        self.state_history = []
+        self.state_dim = []
+        self.memory = position.position(-1, -1)
+        self.estimated_parameter = None
 
     ####################################################################################################################
     def set_parameters(self, sim, level, radius, angle):
 
-        width, higth = sim.dim_w, sim.dim_h
+        self.state_dim.append(sim.dim_w)
+        self.state_dim.append(sim.dim_h)
+
         self.level = float(level)
-        self.radius = float(radius) * sqrt(width ** 2 + higth ** 2)
-        self.angle = 2 * np.pi * float(angle)
+        self.radius = float(radius)
+        self.angle = float(angle)
+
+        self.co_radius = sqrt(sim.dim_w ** 2 + sim.dim_h ** 2)
+        self.co_angle = 2 * np.pi
 
     ####################################################################################################################
     def set_direction(self, direction):
         self.direction = direction
 
     ####################################################################################################################
-    def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode):
+    def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode,generated_data_number):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode)
+        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number)
         self.estimated_parameter = param_estim
 
     ####################################################################################################################
@@ -102,6 +113,14 @@ class Agent:
         copy_agent.state_history = self.state_history
 
         copy_agent.estimated_parameter = self.estimated_parameter
+        copy_agent.direction = self.direction
+        copy_agent.level = self.level
+        copy_agent.radius = self.radius
+        copy_agent.angle = self.angle
+
+        copy_agent.co_radius = self.co_radius
+        copy_agent.co_angle = self.co_angle
+        copy_agent.next_action = self.next_action
 
         return copy_agent
 
@@ -190,16 +209,19 @@ class Agent:
 
     ####################################################################################################################
     def if_see_other_agent(self, agent):
-        if self.distance(agent) < self.radius:
-            if -self.angle / 2 <= self.angle_of_gradient(agent,self.direction) <= self.angle / 2:
-              return True
+
+        angle = self.co_angle * self.angle
+        radius = self.co_radius * self.radius
+        if self.distance(agent) < radius:
+            if -angle / 2 <= self.angle_of_gradient(agent, self.direction) <= angle / 2:
+                return True
         return False
 
     ################################################################################################################
     # The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
         dx = [-1, 0, 1, 0]  # 0:W ,  1:N , 2:E  3:S
-        dy = [ 0, 1, 0,-1]
+        dy = [ 0, 1, 0, -1]
 
         x_diff = 0
         y_diff = 0
@@ -235,7 +257,7 @@ class Agent:
         else:
             return False
 
-
+    ################################################################################################################
     def set_probability_main_action(self):
         if self.next_action == 'L':
             self.actions_probability['L'] = 0.96
@@ -277,6 +299,7 @@ class Agent:
             self.actions_probability['W'] = 0.01
             return
 
+    ################################################################################################################
     def set_actions_probabilities(self,action):
 
         if action == 'L':
@@ -319,6 +342,7 @@ class Agent:
             self.actions_probability['W'] = 0.01
             return
 
+    ################################################################################################################
     def get_action_probability(self, action):
 
         if action == 'W':
@@ -336,6 +360,7 @@ class Agent:
         if action == 'S':
             return self.actions_probability['S']
 
+    ################################################################################################################
     def get_actions_probabilities(self):
 
         actions_probabilities = list()
@@ -346,6 +371,7 @@ class Agent:
         actions_probabilities.append(self.actions_probability['W'])
         return actions_probabilities
 
+    ################################################################################################################
     def change_direction(self, dx, dy):
 
         if dx == 1 and dy == 0:  # 'E':
@@ -360,6 +386,7 @@ class Agent:
         if dx == 0 and dy == -1:  # 'S':
             self.direction = 3 * np.pi / 2
 
+    ################################################################################################################
     def change_direction_with_action(self, action):
 
         if action == 'W':  # 'W':
@@ -500,6 +527,7 @@ class Agent:
         my_position = self.get_position()
         return sqrt((point_position[0] - my_position[0]) ** 2 + (point_position[1] - my_position[1]) ** 2)
 
+    ################################################################################################################
     def number_visible_items(self):
 
         return len(self.visible_items)
@@ -517,17 +545,20 @@ class Agent:
         self.visible_agents = list()
         self.visible_items = list()
 
+        radius = self.co_radius * self.radius
+        angle = self.angle * self.co_angle
+
         for item in items:
                 
             if not item.loaded:
-                if self.distance(item) < self.radius:
-                    if -self.angle / 2 <= self.angle_of_gradient(item, self.direction) <= self.angle / 2:
+                if self.distance(item) < radius:
+                    if -angle / 2 <= self.angle_of_gradient(item, self.direction) <= angle / 2:
                         self.visible_items.append(item)
 
         for i in range(0, len(agents)):
             if self.index != i:
-                if self.distance(agents[i]) < self.radius:
-                    if -self.angle / 2 <= self.angle_of_gradient(agents[i], self.direction) <= self.angle / 2:
+                if self.distance(agents[i]) < radius:
+                    if -angle / 2 <= self.angle_of_gradient(agents[i], self.direction) <= angle / 2:
                         self.visible_agents.append(agents[i])
 
     ####################################################################################################################
@@ -676,5 +707,6 @@ class Agent:
                 return position.position(-1, -1)
 
         return position.position(-1, -1)
+
 
 

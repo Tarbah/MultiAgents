@@ -39,6 +39,7 @@ class TypeEstimation:
         self.estimation_history = []
         self.action_probabilities = []
         self.internal_state = None
+        self.data_set = []
 
     def add_estimation_history(self,probability,level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -77,23 +78,32 @@ class ParameterEstimation:
         self.estimated_agent = None
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = None
-        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
+
+        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent ,
+        # ABU if it is Approximate Bayesian Updating
         self.parameter_estimation_mode = None
+        self.generated_data_number = None
+
+        self.estimated_data_set = list()
 
     ####################################################################################################################
 
-        # Initialisation random values for parameters of each type and probability of actions in time step 0
+    # Initialisation random values for parameters of each type and probability of actions in time step 0
 
-    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode):
+    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode, generated_data_number):
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = type_selection_mode
-        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent , ABU if it is Approximate Bayesian Updating
+
+        # Parameter estimation mode is AGA if it is Approximate Gradient Ascent ,
+        # ABU if it is Approximate Bayesian Updating
         self.parameter_estimation_mode = parameter_estimation_mode
+
+        # the number of data we want to generate for estimating
+        self.generated_data_number = generated_data_number
 
     ####################################################################################################################
 
-        # Initialisation random values for parameters of each type and probability of actions in time step 0
-
+    # Initialisation random values for parameters of each type and probability of actions in time step 0
     def estimation_initialisation(self):
         # P(teta|H) in t = 0
 
@@ -236,27 +246,26 @@ class ParameterEstimation:
                 if type == 'f2':
                     last_estimation = agent.estimated_parameter.f2_estimation.internal_state = target
 
-
     ####################################################################################################################
     # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)==============================================
-    @staticmethod
-    def generate_data_for_update_parameter(sim, tmp_agent, data_numbers, action):
+
+    def generate_data_for_update_parameter(self,sim, tmp_agent,  action):
 
         # print '*********************************************************************************'
         # print '******generating data for updating parameter *******'
 
         D = []  # D= (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
 
-        for i in range(0, data_numbers):
+        for i in range(0, self.generated_data_number):
 
             # Generating random values for parameters
             # tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
             # tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
             # tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
 
-            tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / data_numbers) * i
-            tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / data_numbers) * i
-            tmp_level = level_min + (1.0 * (level_max - level_min) / data_numbers) * i
+            tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
+            tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
+            tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
 
             tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
 
@@ -267,6 +276,40 @@ class ParameterEstimation:
                 D.append([tmp_level,tmp_radius, tmp_angle,  p_action])
 
         return D
+
+    # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)==============================================
+    ####################################################################################################################
+
+    def generate_data(self, sim_history , tmp_agent,  action_history, time_step):
+
+        sim = sim_history[time_step]
+        action = action_history[time_step]
+
+        for estimated_data in self.estimated_data_set:
+
+            tmp_agent.set_parameters(sim, estimated_data[0], estimated_data[1], estimated_data[2])
+            tmp_agent = sim.move_a_agent(tmp_agent, True)  # f(p)
+            p_action = tmp_agent.get_action_probability(action)
+
+            if p_action < 0.7:
+                self.estimated_data_set.remove(estimated_data)
+
+        for i in range(0,  self.generated_data_number):
+
+            # Generating random values for parameters
+            tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
+            tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+            tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
+
+            tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
+
+            tmp_agent = sim.move_a_agent(tmp_agent, True)  # f(p)
+            p_action = tmp_agent.get_action_probability(action)
+
+            if p_action > 0.7:
+                self.estimated_data_set.append([tmp_level, tmp_radius, tmp_angle])
+
+        return
 
     ####################################################################################################################
 
@@ -286,6 +329,9 @@ class ParameterEstimation:
 
         new_parameters = old_parameter.update(gradient * step_size)
 
+        new_parameters.level, new_parameters.angle, new_parameters.radius = \
+            round(new_parameters.level, 2), round(new_parameters.angle, 2), round(new_parameters.radius, 2)
+
         if level_min <= new_parameters.level <= level_max and \
                 angle_min <= new_parameters.angle <= angle_max and \
                 radius_min <= new_parameters.radius <= radius_max:
@@ -295,12 +341,8 @@ class ParameterEstimation:
             return old_parameter
 
     ####################################################################################################################
-    def bayesian_updating(self, x_train):
-        pass
 
-    ####################################################################################################################
-
-    def calculate_EGO(self,agent_type,time_step):  # Exact Global Optimisation
+    def calculate_EGO(self, agent_type, time_step):  # Exact Global Optimisation
 
         multiple_results = 1
         if agent_type.agent_type == 'l1':
@@ -322,9 +364,8 @@ class ParameterEstimation:
     def parameter_estimation(self,time_step, cur_agent, sim, action):
 
         estimated_parameter = None
-        data_numbers = 10
 
-        D = self.generate_data_for_update_parameter(sim, cur_agent, data_numbers, action)
+        D = self.generate_data_for_update_parameter(sim, cur_agent, action)
 
         x_train = []
         y_train = []
@@ -333,7 +374,7 @@ class ParameterEstimation:
             return
 
         # Extract x, y train from generated data
-        for i in range(0, data_numbers):
+        for i in range(0, self.generated_data_number):
             x_train.append(D[i][0:3])
             y_train.append(D[i][3])
 
@@ -368,16 +409,24 @@ class ParameterEstimation:
         f1_update_belief_value = self.f1_estimation.get_value_for_update_belief()
         f2_update_belief_value = self.f2_estimation.get_value_for_update_belief()
 
-        # todo: calculation is not correct
         sum_of_probabilities = l1_update_belief_value + l2_update_belief_value + f1_update_belief_value + f2_update_belief_value
+
+        belief_factor = 1
 
         if sum_of_probabilities != 0:
             belief_factor = 1 / sum_of_probabilities
 
-        self.l1_estimation.update_belief(l1_update_belief_value * belief_factor)
-        self.l2_estimation.update_belief(l2_update_belief_value * belief_factor)
-        self.f1_estimation.update_belief(f1_update_belief_value * belief_factor)
-        self.f2_estimation.update_belief(f2_update_belief_value * belief_factor)
+        l1_prob = round(l1_update_belief_value * belief_factor, 2)
+        l2_prob = round(l2_update_belief_value * belief_factor, 2)
+        f1_prob = round(f1_update_belief_value * belief_factor, 2)
+        f2_prob = round(f2_update_belief_value * belief_factor, 2)
+        diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
+        f2_prob += diff
+
+        self.l1_estimation.update_belief(l1_prob)
+        self.l2_estimation.update_belief(l2_prob)
+        self.f1_estimation.update_belief(f1_prob)
+        self.f2_estimation.update_belief(f2_prob)
 
     ####################################################################################################################
     def nested_list_sum(self, nested_lists):

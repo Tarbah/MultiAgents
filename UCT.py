@@ -153,11 +153,13 @@ class Node:
 
 ########################################################################################################################
 class UCT:
-    def __init__(self,reuseTree, iteration_max, max_depth):
-        self.reuseTree = reuseTree
+    def __init__(self,reuse_tree, iteration_max, max_depth, do_estimation):
+        self.reuse_tree = reuse_tree
         self.iteration_max = iteration_max
         self.max_depth = max_depth
+        self.do_estimation = do_estimation
 
+    ####################################################################################################################
     def do_move(self,sim, move):
 
         get_reward = 0
@@ -191,7 +193,7 @@ class UCT:
 
         return get_reward
 
-    ################################################################################################################
+    ####################################################################################################################
     def best_action(self,node):
         Q_table = node.Q_table
 
@@ -235,7 +237,6 @@ class UCT:
             node.untried_moves.remove(move)
             return move
 
-
     ################################################################################################################
     def simulate_action(self,state, action):
 
@@ -245,9 +246,11 @@ class UCT:
         # Run the A agent to get the actions probabilities
 
         for i in range(len(sim.agents)):
-            selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
-            agents_estimated_values = sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
-            sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
+            if self.do_estimation:
+                selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
+                agents_estimated_values = sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+                sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
+
             sim.agents[i] = sim.move_a_agent(sim.agents[i])
 
         m_reward = self.do_move(sim, action)
@@ -263,7 +266,6 @@ class UCT:
 
         return next_state, total_reward
 
-
     ################################################################################################################
 
     def find_new_root(self,previous_root,current_state):
@@ -277,7 +279,6 @@ class UCT:
                 break
 
         return root_node
-
 
     ################################################################################################################
     def search(self,main_time_step,node):

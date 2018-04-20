@@ -172,14 +172,15 @@ class simulator:
             copy_obstacle = obs.copy()
             copy_obstacles.append(copy_obstacle)
 
-        copy_main_agent = self.main_agent.copy()
-
         tmp_sim = simulator()
         tmp_sim.dim_h = self.dim_h
         tmp_sim.dim_w = self.dim_w
         tmp_sim.agents = copy_agents
         tmp_sim.items = copy_items
-        tmp_sim.main_agent = copy_main_agent
+        if self.main_agent is not None:
+            copy_main_agent = self.main_agent.copy()
+            tmp_sim.main_agent = copy_main_agent
+
         tmp_sim.obstacles = copy_obstacles
         tmp_sim.update_the_map()
 
@@ -366,11 +367,11 @@ class simulator:
 
         return self.agents[a_agent.index]
 
-    ################################################################################################################
+    ####################################################################################################################
     def update_all_A_agents(self):
         reward = 0
 
-        for i in range (len(self.agents)):
+        for i in range(len(self.agents)):
             next_action = choice(actions, p=self.agents[i].get_actions_probabilities())  # random sampling the action
 
             self.agents[i].next_action = next_action
