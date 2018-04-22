@@ -340,6 +340,32 @@ class ParameterEstimation:
         else:
             return old_parameter
 
+    def multivariate_bayesian(self, x_train, y_train, previous_estimate):
+        np.random.seed(123)
+
+        # Fit multivariate polynomial of degree 4
+        f_poly = linear_model.LinearRegression(fit_intercept=True)
+        f_poly.fit(x_train, y_train)
+
+        # Extract polynomial coefficients
+        f_coefficients = np.insert(f_poly.intercept_, 0, f_poly.coef_, axis = 0)
+
+        # Generate prior
+        if previous_estimate.iteration == 0:
+            beliefs = st.uniform.rvs(0, 1, size=4 + 1)
+        else:
+            beliefs = previous_estimate.observation_history[-1]
+
+        # Catch array broadcasting errors
+        assert len(beliefs)==len(f_coefficients), 'F coefficient and beliefs of differing lengths'
+
+        # Compute Improper Posterior Posterior
+        g = f_coefficients * beliefs
+
+        # Collect samples from g
+        sample_x = np.linspace(0, 1, 5)
+
+
     ####################################################################################################################
 
     def calculate_EGO(self, agent_type, time_step):  # Exact Global Optimisation
@@ -436,7 +462,7 @@ class ParameterEstimation:
             return 1
 
     ####################################################################################################################
-    def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=4, sampling='MAP'):
+    def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=4, sampling='average'):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
 
@@ -447,12 +473,14 @@ class ParameterEstimation:
             current_parameter_set = [elem[i] for elem in x_train]
 
             # Fit polynomial of degree 4 to the parameter being modelled
-            f_coefficients = np.polynomial.polyfit(current_parameter_set, y_train, deg=polynomial_degree, full=False)
+            f_coefficients = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
+                                                              deg=polynomial_degree, full=False)
 
             # Generate prior
             if previous_estimate.iteration == 0:
                 beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
             else:
+                # TODO: This command should collect the most recent belief set
                 beliefs = previous_estimate.observation_history[-1]
                 assert len(beliefs) == polynomial_degree + 1, 'Non-uniform sampled beliefs of incorrect length'
 
@@ -479,17 +507,23 @@ class ParameterEstimation:
             D = [(X[i], y[i]) for i in range(len(X))]
 
             # Fit h
-            h_hat_coefficients = np.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+            h_hat_coefficients = np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
 
             # Integrate h to get I
             # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
-            def integrand(x, a, b, c, d, e):
+            def integrand(x, coefficients):
+                a = coefficients[0]
+                b = coefficients[1]
+                c = coefficients[2]
+                d = coefficients[3]
+                e = coefficients[4]
                 return a * x ** 4 + b * x ** 3 + c * x ** 2 + d * x + e
 
-            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients)  # Returns a single value
+            print('Coefficients: {}'.format(type(h_hat_coefficients)))
+            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients[0])  # Returns a single value
 
             # Update beliefs
-            new_belief = np.divide(h_hat_coefficients / i_integral)  # returns an array
+            new_belief = np.divide(h_hat_coefficients, i_integral[0])  # returns an array
 
             def polynomial_evaluate(x, coefficients):
                 result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
@@ -503,6 +537,7 @@ class ParameterEstimation:
                 x_vals = np.linspace(p_min, p_max, granularity)
                 for j in range(len(x_vals)):
                     proposal = polynomial_evaluate(x_vals[j], new_belief)
+                    print('Proposal: {}'.format(proposal))
                     if proposal > polynomial_max:
                         polynomial_max = proposal
 
@@ -514,10 +549,13 @@ class ParameterEstimation:
                 parameter_estimate.append(np.mean(evaluations))
 
             # Increment iterator
-            previous_estimate.iteration += 1
 
-        new_parameter = Parameter( parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
-        return  new_parameter
+        new_parameter = Parameter(parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
+        print(parameter_estimate)
+        previous_estimate.iteration += 1
+        print('New Parameter:\n{}'.format(new_parameter))
+        return new_parameter
+
 
 
 
