@@ -282,10 +282,10 @@ class ParameterEstimation:
     # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)==============================================
     ####################################################################################################################
 
-    def generate_data(self, sim_history, tmp_agent,  action_history, time_step):
+    def generate_data(self,  tmp_agent,  time_step):
 
-        sim = sim_history[time_step]
-        action = action_history[time_step]
+        sim = tmp_agent.state_history[time_step-1]
+        action = tmp_agent.actions_history[time_step - 1]
 
         for estimated_data in self.estimated_data_set:
 
@@ -560,92 +560,6 @@ class ParameterEstimation:
             return np.sum(self.nested_list_sum(sublist) for sublist in nested_lists)
         else:
             return 1
-
-    ####################################################################################################################
-    def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=4, sampling='MAP'):
-        # TODO: Remove when actually running - only here for reproducibility during testing.
-        np.random.seed(123)
-
-        parameter_estimate = []
-
-        for i in range(len(x_train[0])):
-            # Get current independent variables
-            current_parameter_set = [elem[i] for elem in x_train]
-
-            # Fit polynomial of degree 4 to the parameter being modelled
-            f_coefficients = np.polynomial.polyfit(current_parameter_set, y_train, deg=polynomial_degree, full=False)
-
-            # Generate prior
-            if previous_estimate.iteration == 0:
-                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
-            else:
-                beliefs = previous_estimate.observation_history[-1]
-                assert len(beliefs) == polynomial_degree + 1, 'Non-uniform sampled beliefs of incorrect length'
-
-            # Compute convolution
-            # TODO: I'm not sure here the exact command to calculate g_hat.
-            g_hat_coefficients = np.multiply(f_coefficients, beliefs)
-
-            # Collect samples
-            # Number of evenly spaced points to compute polynomial at
-            spacing = polynomial_degree + 1
-            assert spacing == len(f_coefficients), 'Uniform grid spacing and polynomial degree + 1 are not equal'
-
-            # Obtain the parameter in questions upper and lower limits
-            p_min = previous_estimate.min_max[i][0]
-            p_max = previous_estimate.min_max[i][1]
-
-            # Generate equally spaced points, unique to the parameter being modelled
-            X = np.linspace(p_min, p_max, spacing)
-            y = np.array([X[i] * g_hat_coefficients for i in range(len(X))])
-            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
-
-            # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
-            # TODO: possilby remove D if not needed at the end
-            D = [(X[i], y[i]) for i in range(len(X))]
-
-            # Fit h
-            h_hat_coefficients = np.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
-
-            # Integrate h to get I
-            # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
-            def integrand(x, a, b, c, d, e):
-                return a * x ** 4 + b * x ** 3 + c * x ** 2 + d * x + e
-
-            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients)  # Returns a single value
-
-            # Update beliefs
-            new_belief = np.divide(h_hat_coefficients / i_integral)  # returns an array
-
-            def polynomial_evaluate(x, coefficients):
-                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
-                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
-                return result
-
-            if sampling == 'MAP':
-                # Sample from beliefs
-                polynomial_max = 0
-                granularity = 1000
-                x_vals = np.linspace(p_min, p_max, granularity)
-                for j in range(len(x_vals)):
-                    proposal = polynomial_evaluate(x_vals[j], new_belief)
-                    if proposal > polynomial_max:
-                        polynomial_max = proposal
-
-                parameter_estimate.append(polynomial_max)
-
-            elif sampling == 'average':
-                x_random = np.random.uniform(low=p_min, high=p_max, size=10)
-                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
-                parameter_estimate.append(np.mean(evaluations))
-
-            # Increment iterator
-            previous_estimate.iteration += 1
-
-        new_parameter = Parameter( parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
-        return  new_parameter
-
-
 
     ####################################################################################################################
     def UCB_selection(self, time_step, final=False):
