@@ -1,9 +1,10 @@
 import simulator
 import UCT
-import sys
-import gc
+import time
 from collections import defaultdict
-
+from copy import deepcopy
+import os
+import datetime
 
 types = ['l1', 'l2', 'f1', 'f2']
 
@@ -16,36 +17,13 @@ max_depth = None
 sim_path = None
 do_estimation = True
 
+now = datetime.datetime.now()
+sub_dir = now.strftime("%Y-%m-%d %H:%M")
 
-def print_result(main_sim):
-    for i in range(len(main_sim.agents)):
-        print 'true values : level :', main_sim.agents[i].level, ' radius: ', main_sim.agents[i].radius, ' angle: '\
-            , main_sim.agents[i].angle
+current_folder = "outputs/" + sub_dir + '/'
 
-        print 'l1', main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()
-        estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
-        print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
-             , estimated_value.angle
+os.mkdir(current_folder, 0755)
 
-        print 'l2', main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()
-        estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
-        print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: ' \
-            , estimated_value.angle
-
-        print 'f1', main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()
-        estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
-        print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: ' \
-            , estimated_value.angle
-
-        print 'f2', main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()
-        estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
-        print 'estimated values : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
-            , estimated_value.angle
-        selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
-        estimated_value = main_sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
-
-        print 'estimated values for highes property : level :', estimated_value.level, ' radius: ', estimated_value.radius, ' angle: '\
-             , estimated_value.angle
 
 path = 'config.csv'
 info = defaultdict(list)
@@ -81,8 +59,10 @@ for k, v in info.items():
         sim_path = str(v[0][0]).strip()
 
 uct = UCT.UCT(reuseTree, iteration_max, max_depth, do_estimation)
-main_sim = simulator.simulator()
+main_sim = simulator.Simulator()
 main_sim.loader(sim_path)
+logfile = main_sim.create_log_file(current_folder + "log.txt")
+
 for i in range(len(main_sim.agents)):
     print 'true values : level :', main_sim.agents[i].level, ' radius: ', main_sim.agents[i].radius, ' angle: ' \
         , main_sim.agents[i].angle
@@ -102,15 +82,18 @@ main_agent = main_sim.main_agent
 
 # real_sim.draw_map_with_level()
 main_sim.draw_map()
+main_sim.log_map(logfile)
 
 search_tree = None
 
 time_step = 0
-while time_step < 200:
+begin_time = time.time()
+
+while main_sim.items_left() > 0:
 
     print 'main run count: ', time_step
 
-    previous_sim = main_sim.copy()
+    previous_sim = deepcopy(main_sim)
 
     for i in range(len(main_sim.agents)):
         main_sim.agents[i].state_history.append(main_sim)
@@ -118,7 +101,8 @@ while time_step < 200:
 
     if main_sim.main_agent is not None:
         main_sim.main_agent.state_history.append(main_sim)
-        tmp_sim = main_sim.copy()
+        #tmp_sim = main_sim.copy()
+        tmp_sim = deepcopy(main_sim)
 
         if not reuseTree:
             main_agent_next_action, search_tree = uct.m_agent_planning(0, None, tmp_sim)
@@ -138,11 +122,8 @@ while time_step < 200:
     main_sim.do_collaboration()
 
     if do_estimation:
-        print_result(main_sim)
-        estimate_sim = main_sim.copy()
-
-        for i in range(len(estimate_sim.agents)):
-            estimate_sim.agents[i].estimate_parameter(previous_sim, time_step)
+        for i in range(len(main_sim.agents)):
+            main_sim.agents[i].estimate_parameter(previous_sim, time_step)
 
     # ## DEBUG
     # for agent_i in range(len(main_sim.agents)):
@@ -154,10 +135,72 @@ while time_step < 200:
     # import ipdb; ipdb.set_trace()
     
     main_sim.draw_map()
+    main_sim.log_map(logfile)
 
     # real_sim.draw_map_with_level()
 
     if main_sim.items_left() == 0:
         break
     print "left items", main_sim.items_left()
+
+end_time = time.time()
+
+
+def print_result(main_sim,  time_steps,  begin_time, end_time):
+
+    file = open(current_folder + "/results.txt", 'w')
+
+    file.write('sim width:' + str(main_sim.dim_w) + '\n')
+    file.write('sim height:' + str(main_sim.dim_h) + '\n')
+    file.write('agents counts:' + str(len(main_sim.agents)) + '\n')
+    file.write('items counts:' + str(len(main_sim.items)) + '\n')
+    file.write('time steps:' + str(time_steps) + '\n')
+    file.write('begin time:' + str(begin_time) + '\n')
+    file.write('end time:' + str(end_time) + '\n')
+    file.write('estimation mode:' + str(parameter_estimation_mode) + '\n')
+    file.write('type selection mode:' + str(type_selection_mode) + '\n')
+    file.write('iteration max:' + str(iteration_max) + '\n')
+    file.write('max depth:' + str(max_depth) + '\n')
+    file.write('generated data number:' + str(generated_data_number) + '\n')
+    file.write('reuseTree:' + str(reuseTree) + '\n')
+
+
+    for i in range(len(main_sim.agents)):
+        file.write('#level,radius,angle\n')
+        file.write('true type:' + str(main_sim.agents[i].agent_type) + '\n')
+        file.write('true parameters:' + str(main_sim.agents[i].level) + ',' + str(main_sim.agents[i].radius)+ ',' +
+                   str(main_sim.agents[i].angle) + '\n')
+
+        file.write('#probability of type ,level,radius,angle\n')
+        estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
+        file.write('l1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ',' + str(estimated_value.angle)
+                   + '\n')
+
+        estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
+        file.write('l2:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
+                   + str(estimated_value.angle) + '\n')
+
+        estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
+        file.write('f1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
+                   + str(estimated_value.angle) + '\n')
+
+        estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
+        file.write('f2:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
+                   + str(estimated_value.angle) + '\n')
+
+
+
+
+print_result(main_sim, time_step, begin_time, end_time)
+
+# selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
+# estimated_value = main_sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+#
+# file.write('highest property :' + str(selected_type) + ' level :' + str(estimated_value.level) + ', radius: ' +
+#            str(estimated_value.radius) + ' angle: ' + str(estimated_value.angle) + '\n')
+#
 

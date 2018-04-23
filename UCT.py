@@ -1,4 +1,5 @@
 from math import *
+from copy import deepcopy
 from numpy.random import choice
 
 
@@ -240,7 +241,7 @@ class UCT:
     ################################################################################################################
     def simulate_action(self,state, action):
 
-        sim = state.simulator.copy()
+        sim = deepcopy(state.simulator)
         next_state = State(sim)
 
         # Run the A agent to get the actions probabilities
@@ -248,7 +249,7 @@ class UCT:
         for i in range(len(sim.agents)):
             if self.do_estimation:
                 selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
-                agents_estimated_values = sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+                agents_estimated_values = sim.agents[i].estimated_parameter.get_parameters_for_selected_type(selected_type)
                 sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
 
             sim.agents[i] = sim.move_a_agent(sim.agents[i])
@@ -336,7 +337,7 @@ class UCT:
         root = node
 
         while time_step < self.iteration_max:
-            tmp_sim = simulator.copy()
+            tmp_sim = deepcopy(simulator)
             node.state.simulator = tmp_sim
             # print('monte_carlo_planning', time_step)
             # print_Q_table(node)
@@ -361,7 +362,7 @@ class UCT:
     def m_agent_planning(self,time_step,search_tree,sim):
         global totalItems
 
-        tmp_sim = sim.copy()
+        tmp_sim = deepcopy(sim)
 
         # We need total items, because the QValues must be between 0 and 1
         # If we are re-using the tree, I think we should use the initial number of items, and not update it

@@ -4,10 +4,10 @@ import item
 import obstacle
 import position
 import a_star
-import numpy as np
-from numpy.random import choice
 
+from numpy.random import choice
 from collections import defaultdict
+
 
 dx = [-1, 0, 1,  0]  # 0: left,  1:up, 2:right  3:down
 dy = [0,  1, 0, -1]
@@ -22,7 +22,7 @@ level_max = 1
 level_min = 0
 
 
-class simulator:
+class Simulator:
     def __init__(self):
         self.the_map = []
         self.items = []
@@ -32,11 +32,12 @@ class simulator:
         self.dim_w = None  # Number of columns
         self.dim_h = None  # Number of rows
 
-    def is_comment(self, string):
+    @staticmethod
+    def is_comment(string):
         for pos in range(len(string)):
-            if (string[pos] == ' ' or string[pos] == '\t'):
+            if string[pos] == ' ' or string[pos] == '\t':
                 continue
-            if (string[pos] == '#'):
+            if string[pos] == '#':
                 return True
             else:
                 return False
@@ -58,7 +59,7 @@ class simulator:
                     key, val = data[0], data[1:]
                     info[key].append(val)
 
-        print(info)
+        # print(info)
         # Extract grid dimensions
         self.dim_w = int(info['grid'][0][0])
         self.dim_h = int(info['grid'][0][1])
@@ -72,7 +73,6 @@ class simulator:
                 self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
                 i += 1
             elif 'agent' in k:
-
                 #import ipdb; ipdb.set_trace()
                 agnt = agent.Agent(v[0][0], v[0][1], v[0][2], v[0][3], j)
                 agnt.set_parameters(self,v[0][4], v[0][5], v[0][6])
@@ -87,7 +87,6 @@ class simulator:
                 self.obstacles.append(obstacle.Obstacle(v[0][0], v[0][1]))
                 l += 1
 
-
         # Run Checks
         assert len(self.items) == i, 'Incorrect Item Loading'
         assert len(self.agents) == j, 'Incorrect Ancillary Agent Loading'
@@ -98,7 +97,6 @@ class simulator:
                                                                                               len(self.items),
                                                                                               len(self.agents),
                                                                                               len(self.obstacles)))
-
         # Update the map
         self.update_the_map()
 
@@ -124,10 +122,10 @@ class simulator:
         for i in range(self.dim_h):
             self.the_map.append(list(row))
 
-    ###############################################################################################################
+    ####################################################################################################################
     def equals(self, other_simulator):
 
-        ## If I reached here the maps are equal. Now let's compare the items and agents
+        # If I reached here the maps are equal. Now let's compare the items and agents
 
         if len(self.items) != len(other_simulator.items):
             return False
@@ -152,7 +150,7 @@ class simulator:
 
         return True
         
-    ###############################################################################################################
+    ####################################################################################################################
     def copy(self):
 
         copy_items = []
@@ -172,7 +170,7 @@ class simulator:
             copy_obstacle = obs.copy()
             copy_obstacles.append(copy_obstacle)
 
-        tmp_sim = simulator()
+        tmp_sim = Simulator()
         tmp_sim.dim_h = self.dim_h
         tmp_sim.dim_w = self.dim_w
         tmp_sim.agents = copy_agents
@@ -186,7 +184,44 @@ class simulator:
 
         return tmp_sim
 
-    ###############################################################################################################
+    ####################################################################################################################
+    def create_log_file(self,path):
+        file = open(path, 'w')
+        return file
+
+    ####################################################################################################################
+    def log_map(self, file):
+        line =''
+        for y in range(self.dim_h - 1, -1, -1):
+            for x in range(self.dim_w):
+                xy = self.the_map[x][y]
+                if xy == 0:
+                    line = line + '.'  # space
+                elif xy == 1:
+                    line = line + 'I'  # Items
+                elif xy == 2:
+                    line = line + 'S'  # start
+                elif xy == 3:
+                    line = line + 'R'  # route
+                elif xy == 4:
+                    line = line + 'D'  # finish
+                elif xy == 5:
+                    line = line + '+'  # Obstacle
+                elif xy == 8:
+                    line = line + 'A'  # A Agent
+                elif xy == 9:
+                    line = line + 'M'  # Main Agent
+
+            file.write(line+ '\n')
+            line = ''
+        file.write('*********************\n')
+
+    ####################################################################################################################
+    def create_result_file(self, path):
+        file = open(path, 'w')
+        return file
+
+    ####################################################################################################################
     def get_first_action(self,route):
         #  This function is to find the first action afte finding the path by  A Star
 
@@ -341,11 +376,11 @@ class simulator:
         return -1
 
     ################################################################################################################
-    def load_item(self, agent, destinantion_item_index):
+    def load_item(self, agent, destination_item_index):
 
-        self.items[destinantion_item_index].loaded = True
+        self.items[destination_item_index].loaded = True
         (agent_x, agent_y) = agent.get_position()
-        self.items[destinantion_item_index].remove_agent(agent_x, agent_y)
+        self.items[destination_item_index].remove_agent(agent_x, agent_y)
         agent.item_to_load = -1
 
         # Empty the memory to choose new target

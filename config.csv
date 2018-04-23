@@ -1,5 +1,5 @@
 type_selection_mode , AS
-parameter_estimation_mode , ABU
+parameter_estimation_mode , AGA
 generated_data_number, 10
 reuseTree , False
 iteration_max , 10
