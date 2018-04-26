@@ -6,6 +6,10 @@ from copy import deepcopy
 import os
 import datetime
 
+import sys
+
+iMaxStackSize = 5000
+sys.setrecursionlimit(iMaxStackSize)
 types = ['l1', 'l2', 'f1', 'f2']
 
 iteration_max = None
@@ -20,9 +24,9 @@ do_estimation = True
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
 
-current_folder = "outputs/" + sub_dir + '/'
-
-os.mkdir(current_folder, 0755)
+current_folder = "outputs/"+ sub_dir + '/'
+if not os.path.exists(current_folder):
+    os.mkdir(current_folder, 0755)
 
 
 path = 'config.csv'
@@ -93,15 +97,13 @@ while main_sim.items_left() > 0:
 
     print 'main run count: ', time_step
 
-    previous_sim = deepcopy(main_sim)
-
     for i in range(len(main_sim.agents)):
         main_sim.agents[i].state_history.append(main_sim)
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
     if main_sim.main_agent is not None:
         main_sim.main_agent.state_history.append(main_sim)
-        #tmp_sim = main_sim.copy()
+        # tmp_sim = main_sim.copy()
         tmp_sim = deepcopy(main_sim)
 
         if not reuseTree:
@@ -123,13 +125,15 @@ while main_sim.items_left() > 0:
 
     if do_estimation:
         for i in range(len(main_sim.agents)):
-            main_sim.agents[i].estimate_parameter(previous_sim, time_step)
+
+            main_sim.agents[i].estimate_parameter(main_sim, time_step)
+
 
     # ## DEBUG
     # for agent_i in range(len(main_sim.agents)):
     #     print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
+    time_step += 1
 
-    time_step = time_step + 1
     print('***********************************************************************************************************')
 
     # import ipdb; ipdb.set_trace()
@@ -145,6 +149,8 @@ while main_sim.items_left() > 0:
 
 end_time = time.time()
 
+for i in range(len(main_sim.agents)):
+    print main_sim.agents[i].estimated_parameter.l1_estimation.data_set
 
 def print_result(main_sim,  time_steps,  begin_time, end_time):
 
@@ -193,9 +199,8 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
                    + str(estimated_value.angle) + '\n')
 
 
-
-
 print_result(main_sim, time_step, begin_time, end_time)
+
 
 # selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
 # estimated_value = main_sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)

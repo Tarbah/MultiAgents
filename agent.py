@@ -33,8 +33,7 @@ class Agent:
         self.actions_history = []
         self.state_history = []
         self.state_dim = []
-        self.memory = position.position(-1, -1)
-        self.estimated_parameter = None
+
 
     ####################################################################################################################
     def set_parameters(self, sim, level, radius, angle):
@@ -200,12 +199,14 @@ class Agent:
         return nearest_item_index
 
     ####################################################################################################################
-    def estimate_parameter(self, sim, time_step):
-        self.estimated_parameter.process_parameter_estimations(time_step, sim,
+    def estimate_parameter(self, current_sim, time_step):
+        self.estimated_parameter.process_parameter_estimations(time_step, current_sim,
                                                                self.position,
                                                                self.direction,
                                                                self.next_action,
-                                                               self.index)
+                                                               self.index,
+                                                               self.actions_history,
+                                                               self.state_history)
 
     ####################################################################################################################
     def if_see_other_agent(self, agent):

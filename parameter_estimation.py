@@ -42,6 +42,7 @@ class TypeEstimation:
         self.action_probabilities = []
         self.internal_state = None
         self.data_set = []
+        self.false_data_set = []
 
     def add_estimation_history(self,probability, level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -86,7 +87,7 @@ class ParameterEstimation:
         self.parameter_estimation_mode = None
         self.generated_data_number = None
 
-        self.estimated_data_set = list()
+
 
     ####################################################################################################################
 
@@ -261,13 +262,13 @@ class ParameterEstimation:
         for i in range(0, self.generated_data_number):
 
             # Generating random values for parameters
-            # tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
-            # tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-            # tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
+            tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
+            tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+            tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
 
-            tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
-            tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
-            tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
+            # tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
+            # tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
+            # tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
 
             tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
 
@@ -282,19 +283,45 @@ class ParameterEstimation:
     # =================Generating  D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)==============================================
     ####################################################################################################################
 
-    def generate_data(self,  tmp_agent,  time_step):
+    def generate_data(self,  cur_sim,  time_step, new_action, tmp_agent):
+        print 'direction in estimation', tmp_agent.direction
 
-        sim = tmp_agent.state_history[time_step-1]
-        action = tmp_agent.actions_history[time_step - 1]
+        data_set = list()
+        false_data_set = list()
 
-        for estimated_data in self.estimated_data_set:
+        if tmp_agent.agent_type == 'l1':
+            data_set = self.l1_estimation.data_set
+            false_data_set = self.l1_estimation.false_data_set
 
-            tmp_agent.set_parameters(sim, estimated_data[0], estimated_data[1], estimated_data[2])
-            tmp_agent = sim.move_a_agent(tmp_agent, True)  # f(p)
-            p_action = tmp_agent.get_action_probability(action)
+        if tmp_agent.agent_type == 'l2':
+            data_set = self.l2_estimation.data_set
+            false_data_set = self.l2_estimation.false_data_set
 
-            if p_action < 0.7:
-                self.estimated_data_set.remove(estimated_data)
+        if tmp_agent.agent_type == 'f1':
+            data_set = self.f1_estimation.data_set
+            false_data_set = self.f1_estimation.false_data_set
+
+        if tmp_agent.agent_type == 'f2':
+            data_set = self.f2_estimation.data_set
+            false_data_set = self.f2_estimation.false_data_set
+
+        if time_step > 0:
+            tmp_sim = deepcopy(tmp_agent.state_history[time_step - 1])
+
+            old_action = tmp_agent.actions_history[time_step - 1]
+
+            for estimated_data in data_set:
+
+                tmp_agent.set_parameters(tmp_sim, estimated_data[0], estimated_data[1], estimated_data[2])
+                tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
+                p_action = tmp_agent.get_action_probability(old_action)
+
+                if p_action < 0.7:
+                    data_set.remove(estimated_data)
+                else:
+                    false_data_set.append(estimated_data)
+
+        tmp_sim = deepcopy(cur_sim)
 
         for i in range(0,  self.generated_data_number):
 
@@ -302,14 +329,19 @@ class ParameterEstimation:
             tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
             tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
             tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
+            # tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
+            # tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
+            # tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
 
-            tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
+            tmp_agent.set_parameters(tmp_sim, tmp_level, tmp_radius, tmp_angle)
 
-            tmp_agent = sim.move_a_agent(tmp_agent, True)  # f(p)
-            p_action = tmp_agent.get_action_probability(action)
+            tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
+            p_action = tmp_agent.get_action_probability(new_action)
 
-            if p_action > 0.7:
-                self.estimated_data_set.append([tmp_level, tmp_radius, tmp_angle])
+            if p_action > 0.7 and [tmp_level, tmp_radius, tmp_angle] not in false_data_set :
+                data_set.append([tmp_level, tmp_radius, tmp_angle])
+            else:
+                false_data_set.append([tmp_level, tmp_radius, tmp_angle])
 
         return
 
@@ -483,45 +515,72 @@ class ParameterEstimation:
         print('New Parameter:\n{}'.format(new_parameter))
         return new_parameter
 
-
     ####################################################################################################################
-    def parameter_estimation(self,time_step, cur_agent, sim, action):
+    def parameter_estimation(self,time_step, cur_agent, current_sim, action , agent_index):
 
         estimated_parameter = None
 
-        D = self.generate_data_for_update_parameter(sim, cur_agent, action)
+        if self.parameter_estimation_mode == 'PF':
+            self.generate_data(current_sim, time_step, action, cur_agent)
+            current_data_set = list()
+            if cur_agent.agent_type == 'l1':
+                current_data_set = self.l1_estimation.data_set
 
-        x_train = []
-        y_train = []
+            if cur_agent.agent_type == 'l2':
+                current_data_set = self.l2_estimation.data_set
 
-        if len(D) == 0:
-            return
+            if cur_agent.agent_type == 'f1':
+                current_data_set = self.f1_estimation.data_set
 
-        # Extract x, y train from generated data
-        for i in range(0, self.generated_data_number):
-            x_train.append(D[i][0:3])
-            y_train.append(D[i][3])
+            if cur_agent.agent_type == 'f2':
+                current_data_set = self.f2_estimation.data_set
 
-        last_parameters_value = 0
+            if current_data_set ==[]:
+                return None
 
-        if cur_agent.agent_type == 'l1':
-            last_parameters_value = self.l1_estimation.estimation_history[time_step - 1]
+            np_dataset = np.array(current_data_set)
 
-        if cur_agent.agent_type == 'l2':
-            last_parameters_value = self.l2_estimation.estimation_history[time_step - 1]
+            estimated_parameter = list(np_dataset.mean(0))
+            new_parameter = Parameter(estimated_parameter[0], estimated_parameter[1], estimated_parameter[2])
 
-        if cur_agent.agent_type == 'f1':
-            last_parameters_value = self.f1_estimation.estimation_history[time_step - 1]
 
-        if cur_agent.agent_type == 'f2':
-            last_parameters_value = self.f2_estimation.estimation_history[time_step - 1]
+            return new_parameter
 
-        # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
-        if self.parameter_estimation_mode == 'AGA':
-            estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
+        else:
 
-        if self.parameter_estimation_mode == 'ABU':
-            estimated_parameter = self.bayesian_updating(x_train, y_train, last_parameters_value)
+            D = self.generate_data_for_update_parameter(current_sim, cur_agent, action)
+
+            x_train = []
+            y_train = []
+
+            if len(D) == 0:
+                return
+
+            # Extract x, y train from generated data
+            for i in range(0, self.generated_data_number):
+                x_train.append(D[i][0:3])
+                y_train.append(D[i][3])
+
+            last_parameters_value = 0
+
+            if cur_agent.agent_type == 'l1':
+                last_parameters_value = self.l1_estimation.get_last_estimation()
+
+            if cur_agent.agent_type == 'l2':
+                last_parameters_value = self.l2_estimation.get_last_estimation()
+
+            if cur_agent.agent_type == 'f1':
+                last_parameters_value = self.f1_estimation.get_last_estimation()
+
+            if cur_agent.agent_type == 'f2':
+                last_parameters_value = self.f2_estimation.get_last_estimation()
+
+            # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
+            if self.parameter_estimation_mode == 'AGA':
+                estimated_parameter = self.calculate_gradient_ascent(x_train, y_train, last_parameters_value)
+
+            if self.parameter_estimation_mode == 'ABU':
+                estimated_parameter = self.bayesian_updating(x_train, y_train, last_parameters_value)
 
         return estimated_parameter
 
@@ -546,9 +605,7 @@ class ParameterEstimation:
         f2_prob = round(f2_update_belief_value * belief_factor, 2)
         diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
         f2_prob += diff
-        print("probabilities : "
-               ""
-               "",  l1_prob , l2_prob, f1_prob ,  f2_prob)
+
         self.l1_estimation.update_belief(l1_prob)
         self.l2_estimation.update_belief(l2_prob)
         self.f1_estimation.update_belief(f1_prob)
@@ -613,7 +670,8 @@ class ParameterEstimation:
         # return ['l1']
 
     ###################################################################################################################
-    def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index):
+    def process_parameter_estimations(self, time_step, main_sim, agent_position,agent_direction, action, agent_index,
+                                      actions_history, state_history):
 
         new_parameters_estimation = None
         selected_types = None
@@ -634,36 +692,40 @@ class ParameterEstimation:
             # Generates an Agent object
             tmp_agent = deepcopy(self.estimated_agent)
             tmp_agent.agent_type = selected_type
+            tmp_agent.actions_history = actions_history
+            tmp_agent.state_history = state_history
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
-            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
+            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action ,agent_index)
 
-            # moving temp agent in previous map with new parameters
-            tmp_agent.set_parameters(tmp_sim, new_parameters_estimation.level, new_parameters_estimation.radius,
-                                     new_parameters_estimation.angle)
+            if new_parameters_estimation is not None:
+                # moving temp agent in previous map with new parameters
+                tmp_agent.set_parameters(tmp_sim, new_parameters_estimation.level, new_parameters_estimation.radius,
+                                         new_parameters_estimation.angle)
 
-            # Runs a simulator object
-            tmp_agent = tmp_sim.move_a_agent(tmp_agent)
+                # Runs a simulator object
+                tmp_agent = tmp_sim.move_a_agent(tmp_agent)
 
-            action_prob = tmp_agent.get_action_probability(action)
+                action_prob = tmp_agent.get_action_probability(action)
 
-            if time_step > 0:
-                self.update_internal_state(main_sim)
+                if time_step > 0:
+                    self.update_internal_state(tmp_sim)
 
-            # Determine which list to append new parameter estimation and action prob to
-            if selected_type == 'l1':
-                self.l1_estimation.update_estimation(new_parameters_estimation, action_prob)
+                # Determine which list to append new parameter estimation and action prob to
+                if selected_type == 'l1':
+                    self.l1_estimation.update_estimation(new_parameters_estimation, action_prob)
 
-            if selected_type == 'l2':
-                self.l2_estimation.update_estimation(new_parameters_estimation, action_prob)
+                if selected_type == 'l2':
+                    self.l2_estimation.update_estimation(new_parameters_estimation, action_prob)
 
-            if selected_type == 'f1':
-                self.f1_estimation.update_estimation(new_parameters_estimation, action_prob)
+                if selected_type == 'f1':
+                    self.f1_estimation.update_estimation(new_parameters_estimation, action_prob)
 
-            if selected_type == 'f2':
-                self.f2_estimation.update_estimation(new_parameters_estimation, action_prob)
+                if selected_type == 'f2':
+                    self.f2_estimation.update_estimation(new_parameters_estimation, action_prob)
 
-        self.update_belief()
+        if new_parameters_estimation is not None:
+            self.update_belief()
 
         return new_parameters_estimation
 

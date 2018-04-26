@@ -1,6 +1,6 @@
 type_selection_mode , AS
 parameter_estimation_mode , AGA
-generated_data_number, 10
+generated_data_number, 100
 reuseTree , False
 iteration_max , 10
 max_depth , 10

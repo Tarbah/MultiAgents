@@ -241,7 +241,7 @@ class UCT:
     ################################################################################################################
     def simulate_action(self,state, action):
 
-        sim = deepcopy(state.simulator)
+        sim = state.simulator.copy()
         next_state = State(sim)
 
         # Run the A agent to get the actions probabilities
