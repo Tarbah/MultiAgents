@@ -1,0 +1,8 @@
+type_selection_mode , AS
+parameter_estimation_mode , PF
+generated_data_number, 100
+reuseTree , False
+mcts_mode,MSPA
+iteration_max , 10
+max_depth , 10
+sim_path,simulator.csv
