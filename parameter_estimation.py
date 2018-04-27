@@ -270,13 +270,13 @@ class ParameterEstimation:
         for i in range(0, self.generated_data_number):
 
             # Generating random values for parameters
-            tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
-            tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-            tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
+            # tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
+            # tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
+            # tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
 
-            # tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
-            # tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
-            # tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
+            tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
+            tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
+            tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
 
             tmp_agent.set_parameters(sim, tmp_level, tmp_radius, tmp_angle)
 
