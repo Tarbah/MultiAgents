@@ -543,7 +543,6 @@ class Simulator:
             #     else:  # rotate agent to find an agent
             #         a_agent.direction = directions.pop()
 
-
             a_agent.visible_agents_items(self.items, self.agents)
             target = a_agent.choose_target(self.items, self.agents)
 

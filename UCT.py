@@ -154,11 +154,12 @@ class Node:
 
 ########################################################################################################################
 class UCT:
-    def __init__(self,reuse_tree, iteration_max, max_depth, do_estimation):
+    def __init__(self,reuse_tree, iteration_max, max_depth, do_estimation, mcts_mode):
         self.reuse_tree = reuse_tree
         self.iteration_max = iteration_max
         self.max_depth = max_depth
         self.do_estimation = do_estimation
+        self.mcts_mode = mcts_mode
 
     ####################################################################################################################
     def do_move(self,sim, move):
@@ -268,7 +269,6 @@ class UCT:
         return next_state, total_reward
 
     ################################################################################################################
-
     def find_new_root(self,previous_root,current_state):
 
         # Initialise with new node, just in case the child was not yet expanded
@@ -300,13 +300,23 @@ class UCT:
 
         # next_state.simulator.draw_map()
         next_node = None
-        for child in node.childNodes:
-            if child.state.equals(next_state):
-                next_node = child
-                break
+        if self.mcts_mode == 'MSPA':
+            for child in node.childNodes:
+                if child.state.equals(next_state):
+                    next_node = child
+                    break
 
-        if next_node is None:
-            next_node = node.add_child(next_state)
+            if next_node is None:
+                next_node = node.add_child(next_state)
+
+        if self.mcts_mode == 'OSPA':
+            for child in node.childNodes:
+                if child.state.equals(next_state):
+                    next_node = child
+                    break
+
+            if next_node is None:
+                next_node = node.add_child(next_state)
 
         discount_factor = 0.95
         q = reward + discount_factor * self.search(main_time_step, next_node)
@@ -316,8 +326,7 @@ class UCT:
 
         return q
 
-
-    ########################################################################################################################
+    ####################################################################################################################
     def monte_carlo_planning(self,main_time_step, search_tree, simulator):
         global root
 
@@ -357,8 +366,7 @@ class UCT:
 
         return best_selected_action, node
 
-
-    ########################################################################################################################
+    ####################################################################################################################
     def m_agent_planning(self,time_step,search_tree,sim):
         global totalItems
 
@@ -373,8 +381,7 @@ class UCT:
 
         return next_move, search_tree
 
-
-    ########################################################################################################################
+    ####################################################################################################################
     def print_search_tree(self,main_time_step):
 
         node = root
@@ -388,8 +395,7 @@ class UCT:
             else:
                 break
 
-
-    ########################################################################################################################
+    ####################################################################################################################
     def print_nodes(self, childNodes):
         print('Total number of children:', len(childNodes))
         for i in range(len(childNodes)):
@@ -397,7 +403,7 @@ class UCT:
             self.print_Q_table(childNodes[i])
             # print childNodes[i].state.simulator.draw_map()
 
-    ################################################################################################################
+    ####################################################################################################################
     def print_Q_table(self, node):
         for a in range(len(node.Q_table)):
             print "Action: ", node.Q_table[a].action, "QValue:", node.Q_table[a].QValue, "sumValue:", node.Q_table[a].sumValue, "trials:", node.Q_table[a].trials

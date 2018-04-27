@@ -20,6 +20,8 @@ reuseTree = None
 max_depth = None
 sim_path = None
 do_estimation = True
+# Multiple State Per Action (MSPA)/ One State Per Action (OSPA)
+mcts_mode = None
 
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
@@ -28,8 +30,12 @@ current_folder = "outputs/"+ sub_dir + '/'
 if not os.path.exists(current_folder):
     os.mkdir(current_folder, 0755)
 
+dir = ""
+if len(sys.argv) > 1 :
+    dir = str(sys.argv[1])
 
-path = 'config.csv'
+path = dir + 'config.csv'
+
 info = defaultdict(list)
 with open(path) as info_read:
     for line in info_read:
@@ -60,10 +66,14 @@ for k, v in info.items():
         max_depth = int(v[0][0])
 
     if 'sim_path' in k:
-        sim_path = str(v[0][0]).strip()
+        sim_path = dir + str(v[0][0]).strip()
 
-uct = UCT.UCT(reuseTree, iteration_max, max_depth, do_estimation)
+    if 'mcts_mode' in k:
+        mcts_mode = str(v[0][0]).strip()
+
+uct = UCT.UCT(reuseTree, iteration_max, max_depth, do_estimation, mcts_mode)
 main_sim = simulator.Simulator()
+print 'simulator path:' + sim_path
 main_sim.loader(sim_path)
 logfile = main_sim.create_log_file(current_folder + "log.txt")
 
@@ -170,7 +180,6 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     file.write('generated data number:' + str(generated_data_number) + '\n')
     file.write('reuseTree:' + str(reuseTree) + '\n')
 
-
     for i in range(len(main_sim.agents)):
         file.write('#level,radius,angle\n')
         file.write('true type:' + str(main_sim.agents[i].agent_type) + '\n')
@@ -182,21 +191,29 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
         file.write('l1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ',' + str(estimated_value.angle)
                    + '\n')
+        file.write( str(main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
         file.write('l2:' + str(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.type_probabilities) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
         file.write('f1:' + str(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.type_probabilities) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
         file.write('f2:' + str(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.type_probabilities) + '\n')
+        file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.get_estimation_history()) + '\n')
 
 
 print_result(main_sim, time_step, begin_time, end_time)

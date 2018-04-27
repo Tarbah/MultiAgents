@@ -66,6 +66,14 @@ class TypeEstimation:
     def update_belief(self, belief_value):
         self.type_probabilities.append(belief_value)
 
+    def get_estimation_history(self):
+        estimation_historty = "["
+        for est_hist in self.estimation_history:
+            estimation_historty += "[" + str(est_hist.level) + "," + str(est_hist.angle) + "," + str(est_hist.radius) + "],"
+
+        estimation_historty= estimation_historty [0:len(estimation_historty)-1]
+        estimation_historty += "]"
+        return estimation_historty
 
 ########################################################################################################################
 class ParameterEstimation:
@@ -516,7 +524,7 @@ class ParameterEstimation:
         return new_parameter
 
     ####################################################################################################################
-    def parameter_estimation(self,time_step, cur_agent, current_sim, action , agent_index):
+    def parameter_estimation(self,time_step, cur_agent, current_sim, action):
 
         estimated_parameter = None
 
@@ -696,7 +704,7 @@ class ParameterEstimation:
             tmp_agent.state_history = state_history
 
             # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
-            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action ,agent_index)
+            new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
 
             if new_parameters_estimation is not None:
                 # moving temp agent in previous map with new parameters
