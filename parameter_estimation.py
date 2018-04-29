@@ -6,7 +6,9 @@ import numpy as np
 import scipy.stats as st
 from scipy import integrate
 from copy import deepcopy
+import logging
 
+logging.basicConfig(filename='parameter_estimation.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 radius_max = 1
 radius_min = 0.1
@@ -94,6 +96,7 @@ class ParameterEstimation:
         # ABU if it is Approximate Bayesian Updating
         self.parameter_estimation_mode = None
         self.generated_data_number = None
+        self.iteration = 0
 
 
 
@@ -210,8 +213,8 @@ class ParameterEstimation:
             return self.f2_estimation.get_last_estimation()
 
     ####################################################################################################################
-    @staticmethod
-    def update_internal_state(main_sim):
+
+    def update_internal_state(self, main_sim):
         history_index = 0
 
         for agent in main_sim.agents:
@@ -235,6 +238,8 @@ class ParameterEstimation:
 
                 if type == 'f2':
                     last_estimation = agent.estimated_parameter.f2_estimation.get_last_estimation()
+
+                self.iteration += 1
 
                 # set latest estimated values to the agent
                 tmp_agent.level = last_estimation.level
@@ -404,29 +409,51 @@ class ParameterEstimation:
 
     ####################################################################################################################
     def multivariate_bayesian(self, x_train, y_train, previous_estimate):
-            np.random.seed(123)
+        # TODO: This method must be called once, not four times in a loop as is currently the case
+        np.random.seed(123)
 
-            # Fit multivariate polynomial of degree 4
-            f_poly = linear_model.LinearRegression(fit_intercept=True)
-            f_poly.fit(x_train, y_train)
+        # Fit multivariate polynomial of degree 4
+        f_poly = linear_model.LinearRegression(fit_intercept=True)
+        f_poly.fit(x_train, y_train)
 
-            # Extract polynomial coefficients
-            f_coefficients = np.insert(f_poly.intercept_, 0, f_poly.coef_, axis=0)
+        # Extract polynomial coefficients
+        f_coefficients = np.insert(f_poly.coef_, 0, f_poly.intercept_)
+        logging.info('f-hat Coefficients: {}'.format(f_coefficients))
 
-            # Generate prior
-            if previous_estimate.iteration == 0:
-                beliefs = st.uniform.rvs(0, 1, size=4 + 1)
-            else:
-                beliefs = previous_estimate.observation_history[-1]
+        # Generate prior
+        if self.iteration == 0:
+            beliefs = st.uniform.rvs(0, 1, size=4)
+            logging.info('Randomly Sampling Beliefs From Standard Uniform')
+        else:
+            beliefs = previous_estimate.observation_history[-1]
 
-            # Catch array broadcasting errors
-            assert len(beliefs) == len(f_coefficients), 'F coefficient and beliefs of differing lengths'
+        logging.info('Beliefs at Iteration {}: {}'.format(previous_estimate.iteration, beliefs))
 
-            # Compute Improper Posterior Posterior
-            g = f_coefficients * beliefs
+        # Catch array broadcasting errors
+        assert len(beliefs) == len(f_coefficients), 'F coefficient and beliefs of differing lengths'
+        if len(beliefs) != len(f_coefficients):
+            logging.warning('Iteration {}, beliefs and f-hat coefficients of differing lengths.'.format(self.iteration))
+            logging.warning('Beliefs Length: {}\nCoefficients Length: {}'.format(len(beliefs), len(f_coefficients)))
 
-            # Collect samples from g
-            sample_x = np.linspace(0, 1, 5)
+        # Compute Improper Posterior Posterior
+        g_hat = f_coefficients * beliefs
+        logging.info('Polynomial Convolution g-hat values: {}'.format(g_hat))
+
+        # Collect samples from g
+        sampled_x = np.linspace(0, 1, 4)
+        sampled_y = st.uniform.rvs(0.1, 1, 4)         # TODO: How can I get g(p^l) here?
+
+        # Fit h-hat
+        h_polynomial = linear_model.LinearRegression(fit_intercept=True)
+        h_polynomial.fit(sampled_x, sampled_y)
+        h_coefficients = np.insert(h_polynomial.coef_, 0, h_polynomial.intercept_)
+
+        # Integrate h-hat
+        def integrand(level, radius, angle, x):
+            pass
+
+        logging.info('Estimation Complete\n{}'.format('-'*100))
+
 
     ####################################################################################################################
     def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=4, sampling='average'):
@@ -589,6 +616,9 @@ class ParameterEstimation:
 
             if self.parameter_estimation_mode == 'ABU':
                 estimated_parameter = self.bayesian_updating(x_train, y_train, last_parameters_value)
+
+            if self.parameter_estimation_mode == 'MABU':
+                estimated_parameter = self.multivariate_bayesian(x_train, y_train, last_parameters_value)
 
         return estimated_parameter
 

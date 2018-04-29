@@ -1,5 +1,5 @@
 type_selection_mode , AS
-parameter_estimation_mode , PF
+parameter_estimation_mode , AGA
 generated_data_number, 100
 reuseTree , False
 mcts_mode,MSPA
