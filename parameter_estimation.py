@@ -733,6 +733,8 @@ class ParameterEstimation:
         if self.type_selection_mode == 'BS':
             selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
 
+        #selected_types = ['l1','l2','f1']
+        
         # Estimate the parameters
         for selected_type in selected_types:
             # Generates an Agent object
@@ -792,12 +794,12 @@ class ParameterEstimation:
         if sum_of_probabilities != 0:
             belief_factor = 1 / sum_of_probabilities
 
-        l1_prob = round(l1_update_belief_value * belief_factor, 2)
-        l2_prob = round(l2_update_belief_value * belief_factor, 2)
-        f1_prob = round(f1_update_belief_value * belief_factor, 2)
-        f2_prob = round(f2_update_belief_value * belief_factor, 2)
-        diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
-        f2_prob += diff
+        l1_prob = l1_update_belief_value * belief_factor
+        l2_prob = l2_update_belief_value * belief_factor
+        f1_prob = f1_update_belief_value * belief_factor
+        f2_prob = f2_update_belief_value * belief_factor
+        #diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
+        #f2_prob += diff
 
 
         self.l1_estimation.type_probabilities.append(l1_prob)

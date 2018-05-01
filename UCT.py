@@ -199,6 +199,8 @@ class UCT:
     def best_action(self,node):
         Q_table = node.Q_table
 
+        tieCases = []
+        
         maxA = None
         maxQ = -1
         for a in range(len(Q_table)):
@@ -206,6 +208,12 @@ class UCT:
                 maxQ = Q_table[a].QValue
                 maxA = Q_table[a].action
 
+        for a in range(len(Q_table)):
+            if (Q_table[a].QValue == maxQ):
+                tieCases.append(a);
+
+        maxA = Q_table[choice(tieCases)].action
+            
         # maxA=node.uct_select_action()
         return maxA
 
