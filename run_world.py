@@ -108,6 +108,7 @@ while main_sim.items_left() > 0:
     print 'main run count: ', time_step
 
     for i in range(len(main_sim.agents)):
+        main_sim.agents[i].old_direction = main_sim.agents[i].direction
         main_sim.agents[i].state_history.append(main_sim)
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
@@ -135,7 +136,6 @@ while main_sim.items_left() > 0:
 
     if do_estimation:
         for i in range(len(main_sim.agents)):
-
             main_sim.agents[i].estimate_parameter(main_sim, time_step)
 
 

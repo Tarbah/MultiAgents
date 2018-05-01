@@ -14,6 +14,7 @@ class Agent:
         self.co_radius = None
         self.angle = None
         self.co_angle = None
+        self.old_direction = None
 
         if isinstance(direction, basestring):
             self.direction = self.convert_direction(direction)
@@ -56,7 +57,7 @@ class Agent:
     def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode,generated_data_number):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number)
+        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number , 4)
         self.estimated_parameter = param_estim
 
     ####################################################################################################################
@@ -200,9 +201,8 @@ class Agent:
 
     ####################################################################################################################
     def estimate_parameter(self, current_sim, time_step):
-        self.estimated_parameter.process_parameter_estimations(time_step, current_sim,
-                                                               self.position,
-                                                               self.direction,
+        self.estimated_parameter.process_parameter_estimations(time_step,
+                                                               self.old_direction,
                                                                self.next_action,
                                                                self.index,
                                                                self.actions_history,

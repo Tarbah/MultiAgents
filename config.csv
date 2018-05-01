@@ -1,6 +1,6 @@
 type_selection_mode , AS
 parameter_estimation_mode , AGA
-generated_data_number, 100
+generated_data_number, 10
 reuseTree , False
 mcts_mode,MSPA
 iteration_max , 10
