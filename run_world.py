@@ -168,6 +168,10 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     file = open(current_folder + "/results.txt", 'w')
     pickleFile = open(current_folder + "/pickleResults.txt", 'wb')
 
+    dataList = []
+
+    systemDetails = {}
+
     file.write('sim width:' + str(main_sim.dim_w) + '\n')
     file.write('sim height:' + str(main_sim.dim_h) + '\n')
     file.write('agents counts:' + str(len(main_sim.agents)) + '\n')
@@ -181,6 +185,19 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     file.write('max depth:' + str(max_depth) + '\n')
     file.write('generated data number:' + str(generated_data_number) + '\n')
     file.write('reuseTree:' + str(reuseTree) + '\n')
+
+    systemDetails['simWidth'] = main_sim.dim_w
+    systemDetails['simHeight'] = main_sim.dim_h
+    systemDetails['agentsCounts'] = len(main_sim.agents)
+    systemDetails['itemsCounts'] =len(main_sim.items)
+    systemDetails['beginTime'] = begin_time
+    systemDetails['endTime'] = end_time
+    systemDetails['estimationMode'] = parameter_estimation_mode
+    systemDetails['typeSelectionMode'] = type_selection_mode
+    systemDetails['iterationMax'] = iteration_max
+    systemDetails['maxDepth'] = max_depth
+    systemDetails['generatedDataNumber'] = generated_data_number
+    systemDetails['reuseTree'] = reuseTree
 
     agentDictionary = {}
 
@@ -246,7 +263,11 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
 
         agentDictionary[i]=agentData
 
-    pickle.dump(agentDictionary,pickleFile)    
+    dataList.append(systemDetails)
+    dataList.append(agentDictionary)
+    print "writing to pickle file."
+    pickle.dump(dataList,pickleFile)
+    print "writing over "    
 
 
 print_result(main_sim, time_step, begin_time, end_time)
