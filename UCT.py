@@ -330,13 +330,14 @@ class UCT:
 
         if self.mcts_mode == 'OSPA':
             for child in node.childNodes:
-                if child.action.equals(action):
+                if child.action == action:
                     next_node = child
                     next_node.state = next_state
                     break
 
             if next_node is None:
-                next_node = node.add_child_one_state(next_state)
+
+                next_node = node.add_child_one_state(action,next_state)
 
         discount_factor = 0.95
         q = reward + discount_factor * self.search(main_time_step, next_node)
