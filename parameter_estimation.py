@@ -6,6 +6,7 @@ import numpy as np
 import scipy.stats as st
 from scipy import integrate
 from copy import deepcopy
+from copy import copy
 import logging
 
 logging.basicConfig(filename='parameter_estimation.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
@@ -47,7 +48,8 @@ class TypeEstimation:
         self.action_probabilities = []
         self.internal_state = None
         self.data_set = []
-        self.false_data_set = []
+        self.weight = []
+
 
     def add_estimation_history(self,probability, level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -68,8 +70,8 @@ class TypeEstimation:
         t = len(self.type_probabilities) - 1
         return self.type_probabilities[t - 1] * self.action_probabilities[t - 1]
 
-    def update_belief(self, belief_value):
-        self.type_probabilities.append(belief_value)
+    # def update_belief(self, belief_value):
+    #     self.type_probabilities.append(belief_value)
 
     def get_estimation_history(self):
         estimation_historty = "["
@@ -106,7 +108,7 @@ class ParameterEstimation:
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
 
-    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode, generated_data_number,polynomial_degree):
+    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode, generated_data_number,polynomial_degree, PF_threshold):
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = type_selection_mode
 
@@ -118,6 +120,7 @@ class ParameterEstimation:
         self.generated_data_number = generated_data_number
 
         self.polynomial_degree = polynomial_degree
+        self.PF_threshold = PF_threshold
 
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
@@ -299,23 +302,23 @@ class ParameterEstimation:
         print 'direction in estimation', tmp_agent.direction
 
         data_set = list()
-        false_data_set = list()
+        weight = list()
 
         if tmp_agent.agent_type == 'l1':
             data_set = self.l1_estimation.data_set
-            false_data_set = self.l1_estimation.false_data_set
+            weight = self.l1_estimation.weight
 
         if tmp_agent.agent_type == 'l2':
             data_set = self.l2_estimation.data_set
-            false_data_set = self.l2_estimation.false_data_set
+            weight = self.l2_estimation.weight
 
         if tmp_agent.agent_type == 'f1':
             data_set = self.f1_estimation.data_set
-            false_data_set = self.f1_estimation.false_data_set
+            weight = self.f1_estimation.weight
 
         if tmp_agent.agent_type == 'f2':
             data_set = self.f2_estimation.data_set
-            false_data_set = self.f2_estimation.false_data_set
+            weight = self.f2_estimation.weight
 
         if time_step > 0:
             tmp_sim = deepcopy(tmp_agent.state_history[time_step - 1])
@@ -327,33 +330,33 @@ class ParameterEstimation:
                 tmp_agent.set_parameters(tmp_sim, estimated_data[0], estimated_data[1], estimated_data[2])
                 tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
                 p_action = tmp_agent.get_action_probability(old_action)
+                index = data_set.index(estimated_data)
 
-                if p_action < 0.7:
-                    data_set.remove(estimated_data)
+                if p_action < self.PF_threshold:
+                    weight[index] *= 2
                 else:
-                    false_data_set.append(estimated_data)
+                    weight[index] /= 2
 
         tmp_sim = deepcopy(cur_sim)
 
         for i in range(0,  self.generated_data_number):
 
             # Generating random values for parameters
-            tmp_radius = (round(random.uniform(radius_min, radius_max), 2))  # 'radius'
-            tmp_angle = (round(random.uniform(angle_min, angle_max), 2))  # 'angle'
-            tmp_level = (round(random.uniform(level_min, level_max), 2))  # 'level'
-            # tmp_radius = radius_min + (1.0 * (radius_max - radius_min) / self.generated_data_number) * i
-            # tmp_angle = angle_min + (1.0 * (angle_max - angle_min) / self.generated_data_number) * i
-            # tmp_level = level_min + (1.0 * (level_max - level_min) / self.generated_data_number) * i
+            tmp_radius = random.uniform(radius_min, radius_max)  # 'radius'
+            tmp_angle = random.uniform(angle_min, angle_max)    # 'angle'
+            tmp_level = random.uniform(level_min, level_max)  # 'level'
 
             tmp_agent.set_parameters(tmp_sim, tmp_level, tmp_radius, tmp_angle)
 
             tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
             p_action = tmp_agent.get_action_probability(new_action)
-
-            if p_action > 0.7 and [tmp_level, tmp_radius, tmp_angle] not in false_data_set :
-                data_set.append([tmp_level, tmp_radius, tmp_angle])
+                # not in false_data_set :
+            data_set.append([tmp_level, tmp_radius, tmp_angle])
+            if p_action > self.PF_threshold:
+                weight.append(2)
             else:
-                false_data_set.append([tmp_level, tmp_radius, tmp_angle])
+                weight.append(0.5)
+
 
         return
 
@@ -569,26 +572,44 @@ class ParameterEstimation:
         if self.parameter_estimation_mode == 'PF':
             self.generate_data(current_sim, time_step, action, cur_agent)
             current_data_set = list()
+            current_weight = list()
             if cur_agent.agent_type == 'l1':
                 current_data_set = self.l1_estimation.data_set
+                current_weight = self.l1_estimation.weight
 
             if cur_agent.agent_type == 'l2':
                 current_data_set = self.l2_estimation.data_set
+                current_weight = self.l2_estimation.weight
 
             if cur_agent.agent_type == 'f1':
                 current_data_set = self.f1_estimation.data_set
+                current_weight = self.f1_estimation.weight
 
             if cur_agent.agent_type == 'f2':
                 current_data_set = self.f2_estimation.data_set
+                current_weight = self.f2_estimation.weight
 
-            if current_data_set ==[]:
+            if current_data_set == []:
                 return None
 
-            np_dataset = np.array(current_data_set)
 
-            estimated_parameter = list(np_dataset.mean(0))
-            new_parameter = Parameter(estimated_parameter[0], estimated_parameter[1], estimated_parameter[2])
+            a_data_set = np.transpose(np.array( current_data_set))
+            a_weights = np.array(current_weight)
 
+
+            levels = a_data_set [0, :]
+            ave_level = np.average(levels, weights=a_weights)
+
+            angle = a_data_set[1, :]
+            ave_angle = np.average(angle, weights=a_weights)
+
+            radius = a_data_set[1, :]
+            ave_radius = np.average(radius, weights=a_weights)
+
+
+
+            # estimated_parameter = list(np_dataset.mean(0))
+            new_parameter = Parameter(ave_level, ave_angle, ave_radius)
 
             return new_parameter
 
@@ -629,33 +650,6 @@ class ParameterEstimation:
                 estimated_parameter = self.bayesian_updating(x_train, y_train, last_parameters_value)
 
         return estimated_parameter
-
-    ####################################################################################################################
-    def update_belief(self):
-
-        l1_update_belief_value = self.l1_estimation.get_value_for_update_belief()
-        l2_update_belief_value = self.l2_estimation.get_value_for_update_belief()
-        f1_update_belief_value = self.f1_estimation.get_value_for_update_belief()
-        f2_update_belief_value = self.f2_estimation.get_value_for_update_belief()
-
-        sum_of_probabilities = l1_update_belief_value + l2_update_belief_value + f1_update_belief_value + f2_update_belief_value
-
-        belief_factor = 1
-
-        if sum_of_probabilities != 0:
-            belief_factor = 1 / sum_of_probabilities
-
-        l1_prob = round(l1_update_belief_value * belief_factor, 2)
-        l2_prob = round(l2_update_belief_value * belief_factor, 2)
-        f1_prob = round(f1_update_belief_value * belief_factor, 2)
-        f2_prob = round(f2_update_belief_value * belief_factor, 2)
-        diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
-        f2_prob += diff
-
-        self.l1_estimation.update_belief(l1_prob)
-        self.l2_estimation.update_belief(l2_prob)
-        self.f1_estimation.update_belief(f1_prob)
-        self.f2_estimation.update_belief(f2_prob)
 
     ####################################################################################################################
     def nested_list_sum(self, nested_lists):
@@ -733,8 +727,6 @@ class ParameterEstimation:
         if self.type_selection_mode == 'BS':
             selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
 
-        #selected_types = ['l1','l2','f1']
-        
         # Estimate the parameters
         for selected_type in selected_types:
             # Generates an Agent object
@@ -755,6 +747,7 @@ class ParameterEstimation:
                 tmp_agent = tmp_sim.move_a_agent(tmp_agent)
 
                 action_prob = tmp_agent.get_action_probability(action)
+                print 'action' , action, 'action_prob' , action_prob
 
                 if time_step > 0:
                     self.update_internal_state(tmp_sim)
@@ -798,15 +791,9 @@ class ParameterEstimation:
         l2_prob = l2_update_belief_value * belief_factor
         f1_prob = f1_update_belief_value * belief_factor
         f2_prob = f2_update_belief_value * belief_factor
-        #diff = 1 - (l1_prob + l2_prob + f1_prob + f2_prob)
-        #f2_prob += diff
 
-
-        self.l1_estimation.type_probabilities.append(l1_prob)
-
+        self.l1_estimation.type_probabilities.append( l1_prob)
         self.l2_estimation.type_probabilities.append( l2_prob)
-
         self.f1_estimation.type_probabilities.append( f1_prob)
-
         self.f2_estimation.type_probabilities.append( f2_prob)
 

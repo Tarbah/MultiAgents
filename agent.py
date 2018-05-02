@@ -27,7 +27,7 @@ class Agent:
         self.estimated_parameter = None
 
         self.item_to_load = -1
-        self.actions_probability = {'L': 0, 'N': 0, 'E': 0, 'S': 0, 'W': 0}
+        self.actions_probability = {'L': 0.01, 'N': 0.01, 'E': 0.01, 'S': 0.01, 'W': 0.01}
         self.visible_agents = []
         self.visible_items = []
         self.next_action = None
@@ -57,7 +57,7 @@ class Agent:
     def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode,generated_data_number):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number , 4)
+        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number , 4 , 0.7)
         self.estimated_parameter = param_estim
 
     ####################################################################################################################

@@ -554,7 +554,7 @@ class Simulator:
         # If there is no destination the probabilities for all of the actions are same.
         if destination.get_position() == (-1, -1):
 
-            a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
+            a_agent.set_actions_probability(0.2, 0.2, 0.2, 0.2, 0.2)
             a_agent.set_random_action()
             return a_agent
         else:
@@ -579,7 +579,7 @@ class Simulator:
                 self.mark_route_map(route,x_agent, y_agent)
 
                 if len(route) == 0:
-                    a_agent.set_actions_probability(0, 0.25, 0.25, 0.25, 0.25)
+                    a_agent.set_actions_probability(0.2, 0.2, 0.2, 0.2, 0.2)
                     a_agent.set_random_action()
                     return a_agent
 

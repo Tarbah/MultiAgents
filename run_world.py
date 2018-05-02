@@ -138,7 +138,6 @@ while main_sim.items_left() > 0:
         for i in range(len(main_sim.agents)):
             main_sim.agents[i].estimate_parameter(main_sim, time_step)
 
-
     # ## DEBUG
     # for agent_i in range(len(main_sim.agents)):
     #     print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
@@ -188,28 +187,28 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
 
         file.write('#probability of type ,level,radius,angle\n')
         estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
-        file.write('l1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write('l1:' + str(round(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability(),5)))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ',' + str(estimated_value.angle)
                    + '\n')
         file.write( str(main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
-        file.write('l2:' + str(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()))
+        file.write('l2:' + str(round(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability(),5)))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
-        file.write('f1:' + str(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()))
+        file.write('f1:' + str(round(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability(),5)))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()) + '\n')
 
         estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
-        file.write('f2:' + str(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()))
+        file.write('f2:' + str(round(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability(),5)))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.type_probabilities) + '\n')

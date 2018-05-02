@@ -42,6 +42,7 @@ class Node:
 
         self.untried_moves = self.create_possible_moves()
         self.childNodes = []
+        self.action = None
 
         self.visits = 0
 
@@ -102,6 +103,16 @@ class Node:
         self.childNodes.append(n)
 
         return n
+
+    def add_child_one_state(self, action , state):
+
+        n = Node(parent=self, depth=self.depth + 1, state=state)
+        n.action = action
+        self.childNodes.append(n)
+
+        return n
+
+
 
     def valid(self, action):
         (x, y) = self.state.simulator.main_agent.get_position()
@@ -196,11 +207,11 @@ class UCT:
         return get_reward
 
     ####################################################################################################################
-    def best_action(self,node):
+    def best_action(self, node):
         Q_table = node.Q_table
 
         tieCases = []
-        
+
         maxA = None
         maxQ = -1
         for a in range(len(Q_table)):
@@ -210,10 +221,10 @@ class UCT:
 
         for a in range(len(Q_table)):
             if (Q_table[a].QValue == maxQ):
-                tieCases.append(a);
+                tieCases.append(a)
 
         maxA = Q_table[choice(tieCases)].action
-            
+
         # maxA=node.uct_select_action()
         return maxA
 
@@ -319,12 +330,13 @@ class UCT:
 
         if self.mcts_mode == 'OSPA':
             for child in node.childNodes:
-                if child.state.equals(next_state):
+                if child.action.equals(action):
                     next_node = child
+                    next_node.state = next_state
                     break
 
             if next_node is None:
-                next_node = node.add_child(next_state)
+                next_node = node.add_child_one_state(next_state)
 
         discount_factor = 0.95
         q = reward + discount_factor * self.search(main_time_step, next_node)
