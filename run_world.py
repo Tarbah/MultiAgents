@@ -5,6 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 import os
 import datetime
+import pickle
 
 import sys
 
@@ -164,6 +165,11 @@ for i in range(len(main_sim.agents)):
 def print_result(main_sim,  time_steps,  begin_time, end_time):
 
     file = open(current_folder + "/results.txt", 'w')
+    pickleFile = open(current_folder + "/pickleResults.txt", 'wb')
+
+    dataList = []
+
+    systemDetails = {}
 
     file.write('sim width:' + str(main_sim.dim_w) + '\n')
     file.write('sim height:' + str(main_sim.dim_h) + '\n')
@@ -179,41 +185,88 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     file.write('generated data number:' + str(generated_data_number) + '\n')
     file.write('reuseTree:' + str(reuseTree) + '\n')
 
+    systemDetails['simWidth'] = main_sim.dim_w
+    systemDetails['simHeight'] = main_sim.dim_h
+    systemDetails['agentsCounts'] = len(main_sim.agents)
+    systemDetails['itemsCounts'] = len(main_sim.items)
+    systemDetails['beginTime'] = begin_time
+    systemDetails['endTime'] = end_time
+    systemDetails['estimationMode'] = parameter_estimation_mode
+    systemDetails['typeSelectionMode'] = type_selection_mode
+    systemDetails['iterationMax'] = iteration_max
+    systemDetails['maxDepth'] = max_depth
+    systemDetails['generatedDataNumber'] = generated_data_number
+    systemDetails['reuseTree'] = reuseTree
+
+    agentDictionary = {}
+
     for i in range(len(main_sim.agents)):
+        agentData = {}
         file.write('#level,radius,angle\n')
         file.write('true type:' + str(main_sim.agents[i].agent_type) + '\n')
         file.write('true parameters:' + str(main_sim.agents[i].level) + ',' + str(main_sim.agents[i].radius)+ ',' +
                    str(main_sim.agents[i].angle) + '\n')
+        agentData['trueType'] = main_sim.agents[i].agent_type
+        trueParameters = [main_sim.agents[i].level,main_sim.agents[i].radius,main_sim.agents[i].angle]
+        agentData['trueParameters'] = trueParameters
 
         file.write('#probability of type ,level,radius,angle\n')
         estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
-        file.write('l1:' + str(round(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability(),5)))
+        file.write('l1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ',' + str(estimated_value.angle)
                    + '\n')
+        agentData['l1Probability'] = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()
+        l1 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
+        agentData['l1'] = l1
+
         file.write( str(main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()) + '\n')
+        l1History = main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()
+        agentData['l1History'] = l1History
 
         estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
-        file.write('l2:' + str(round(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability(),5)))
+        file.write('l2:' + str(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()) + '\n')
+        agentData['l2Probability'] = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()
+        l2 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
+        agentData['l2'] = l2
+        l2History = main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()
+        agentData['l2History'] = l2History
 
         estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
-        file.write('f1:' + str(round(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability(),5)))
+        file.write('f1:' + str(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()) + '\n')
+        agentData['f1Probability'] = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()
+        f1 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
+        agentData['f1'] = f1
+        f1History = main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()
+        agentData['f1History'] = f1History
 
         estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
-        file.write('f2:' + str(round(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability(),5)))
+        file.write('f2:' + str(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                    + str(estimated_value.angle) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.type_probabilities) + '\n')
         file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.get_estimation_history()) + '\n')
+        agentData['f2Probability'] = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()
+        f2 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
+        agentData['f2'] = f2
+        f2History = main_sim.agents[i].estimated_parameter.f2_estimation.get_estimation_history()
+        agentData['f2History'] = f2History
 
+        agentDictionary[i]=agentData
+
+    dataList.append(systemDetails)
+    dataList.append(agentDictionary)
+    print "writing to pickle file."
+    pickle.dump(dataList,pickleFile)
+    print "writing over "
 
 print_result(main_sim, time_step, begin_time, end_time)
 
