@@ -603,7 +603,7 @@ class ParameterEstimation:
             angle = a_data_set[1, :]
             ave_angle = np.average(angle, weights=a_weights)
 
-            radius = a_data_set[1, :]
+            radius = a_data_set[2, :]
             ave_radius = np.average(radius, weights=a_weights)
 
 
