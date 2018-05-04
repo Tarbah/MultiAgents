@@ -100,26 +100,7 @@ for root, dirs, files in os.walk('outputs'):
             results.append(estimationDictionary)
 
 
-# plt.plot(xaxis,meanError)
-# plt.ylabel('mean Error values')
-# plt.xlabel('Type Selection Parameter '+ typeSelectionMode)
-# plt.show()
-#
-# fig, ax = plt.subplots()
-# ax.plot(xaxis, meanError, linestyle='-',color='cornflowerblue', linewidth=1)
-# ax.set_title('Type Selection Parameter '+ typeSelectionMode  )
-# ax.set_ylabel('mean Error values')
-# ax.set_xlabel('Type Selection Parameter '+ typeSelectionMode)
-# fig.savefig("plotResult.jpg")
 
- # fig, ax = plt.subplots()
- #        ax.plot([i for i in range(0, self.va.getFrameNum() - 1)], self.va.getDensitys(), linestyle='-', color='cornflowerblue',linewidth=1)
- #        ax.plot([i for i in range(0, self.va.getFrameNum() - 1)], self.va.getMeanD(), linestyle='-', color='red', linewidth=1)
- #        ax.plot([i for i in range(0, self.va.getFrameNum() - 1)],[self.va.getMeanD()[i] - self.va.getStandardDev()[i] for i in range(0, self.va.getFrameNum() - 1)], linestyle='-',                color='green', linewidth=1)
- #
- #        ax.set_ylabel('Density Estimation')
- #        ax.set_xlabel('Frame Numbers')
- #        fig.savefig("./plots/plotResult.jpg")
 
 AGA_errors = list()
 ABU_errors = list()
@@ -153,9 +134,6 @@ for result in results:
 AGA_ave_level = 0
 ABU_ave_level = 0
 PF_ave_level = 0
-# print(AGA_errors)
-# print(PF_errors)
-# print(ABU_errors)
 
 if len(AGA_errors):
     AGA_data_set = np.transpose(np.array(AGA_errors))
@@ -199,33 +177,6 @@ if len(ABU_errors):
     ABU_ave_radius = np.average(ABU_radius)
 
 ABU_ave_level = 0
-#
-# fig, ax = plt.subplots()
-#
-# y = []
-# y.append(PF_ave_level)
-# y.append(ABU_ave_level)
-# y.append(AGA_ave_level)
-# print y
-#
-#
-#
-# N = 3
-#
-# ind = np.arange(N)  # the x locations for the groups
-# width = 0.15       # the width of the bars
-#
-#
-# rects1 = ax.bar(ind, y , width, color='r')
-#
-# # add some text for labels, title and axes ticks
-# ax.set_ylabel('Error')
-# ax.set_xlabel('Estimation Method')
-# ax.set_title('Level')
-# ax.set_xticks(ind + width / 2)
-# ax.set_xticklabels(('PF' , 'ABU','AGA' ))
-# plt.show()
-
 ABU_ave_angle = 0
 ABU_ave_radius =0
 
