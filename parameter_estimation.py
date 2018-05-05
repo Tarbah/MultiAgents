@@ -525,7 +525,6 @@ class ParameterEstimation:
 
             # Update beliefs
             new_belief = np.divide(h_hat_coefficients.coef, definite_integral)  # returns an array
-            print(new_belief)
             def polynomial_evaluate(x, coefficients):
                 result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
                          coefficients[3] * x ** 4 + coefficients[4] * x ** 4
