@@ -481,7 +481,7 @@ class ParameterEstimation:
             current_parameter_set = [elem[i] for elem in x_train]
 
             # Fit polynomial of degree 4 to the parameter being modelled
-            f_coefficients = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
+            f_poly = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
                                                               deg=polynomial_degree, full=False)
 
             # Generate prior
@@ -490,16 +490,15 @@ class ParameterEstimation:
             else:
                 # TODO: This command should collect the most recent belief set
                 beliefs = previous_estimate.observation_history[-1]
-                assert len(beliefs) == polynomial_degree + 1, 'Non-uniform sampled beliefs of incorrect length'
+            belief_poly = np.polynomial.polynomial.Polynomial(coef=beliefs)
 
             # Compute convolution
-            # TODO: I'm not sure here the exact command to calculate g_hat.
-            g_hat_coefficients = np.multiply(f_coefficients, beliefs)
+            g_poly = belief_poly*f_poly
+            assert g_poly.degree()==8, 'g_hat has been incorrectly calculated. Degree not 8.'
 
             # Collect samples
             # Number of evenly spaced points to compute polynomial at
             spacing = polynomial_degree + 1
-            assert spacing == len(f_coefficients), 'Uniform grid spacing and polynomial degree + 1 are not equal'
 
             # Obtain the parameter in questions upper and lower limits
             p_min = previous_estimate.min_max[i][0]
@@ -507,7 +506,7 @@ class ParameterEstimation:
 
             # Generate equally spaced points, unique to the parameter being modelled
             X = np.linspace(p_min, p_max, spacing)
-            y = np.array([X[i] * g_hat_coefficients for i in range(len(X))])
+            y = np.array([g_poly(i) for i in X])
             assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
 
             # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
@@ -515,24 +514,18 @@ class ParameterEstimation:
             D = [(X[i], y[i]) for i in range(len(X))]
 
             # Fit h
-            h_hat_coefficients = np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+            h_hat_coefficients = np.poly1d(np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False))
 
-            # Integrate h to get I
-            # TODO: Possibly theres a more "elegant" way to write this function to allow for larger/smaller polynomial degrees.
-            def integrand(x, coefficients):
-                a = coefficients[0]
-                b = coefficients[1]
-                c = coefficients[2]
-                d = coefficients[3]
-                e = coefficients[4]
-                return a * x ** 4 + b * x ** 3 + c * x ** 2 + d * x + e
+            # Integrate h
+            h_one_d = np.poly1d(h_hat_coefficients.coef)
+            integration = np.polyint(h_one_d)
 
-            print('Coefficients: {}'.format(type(h_hat_coefficients)))
-            i_integral = integrate.quad(integrand, a=p_min, b=p_max, args=h_hat_coefficients[0])  # Returns a single value
+            # Compute I
+            definite_integral = integration(p_max)-integration(p_min)
 
             # Update beliefs
-            new_belief = np.divide(h_hat_coefficients, i_integral[0])  # returns an array
-
+            new_belief = np.divide(h_hat_coefficients.coef, definite_integral)  # returns an array
+            print(new_belief)
             def polynomial_evaluate(x, coefficients):
                 result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
                          coefficients[3] * x ** 4 + coefficients[4] * x ** 4
@@ -559,9 +552,9 @@ class ParameterEstimation:
             # Increment iterator
 
         new_parameter = Parameter(parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
-        print(parameter_estimate)
+        print('Parameter Estimate: {}'.format(parameter_estimate))
         previous_estimate.iteration += 1
-        print('New Parameter:\n{}'.format(new_parameter))
+        # TODO: store posterior values to be used as beliefs in next cycle
         return new_parameter
 
     ####################################################################################################################
