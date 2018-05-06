@@ -8,6 +8,7 @@ from scipy import integrate
 from copy import deepcopy
 from copy import copy
 import logging
+import sys
 
 logging.basicConfig(filename='parameter_estimation.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
@@ -104,6 +105,9 @@ class ParameterEstimation:
         self.generated_data_number = None
         self.polynomial_degree = None
         self.iteration = 0
+
+        ## Prior belief for ABU method
+        self.belief_poly = [None]*3
 
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
@@ -470,40 +474,99 @@ class ParameterEstimation:
 
 
     ####################################################################################################################
+    def findMin(self,polynomial):
+        derivative = polynomial.deriv()
+
+        roots = derivative.roots()
+
+        minValue = sys.maxsize
+
+        for r in roots:
+            if (polynomial(r) < minValue):
+                minValue = polynomial(r)
+
+        if (polynomial(polynomial.domain[0]) < minValue):
+            minValue = polynomial(polynomial.domain[0])
+
+        if (polynomial(polynomial.domain[1]) < minValue):
+            minValue = polynomial(polynomial.domain[1])
+
+        return minValue
+
+    def inversePolynomial(self,polynomialInput, y):
+        solutions = list()
+
+        polynomial = polynomialInput.copy()
+        
+        polynomial.coef[0] = polynomial.coef[0] - y
+
+        roots = polynomial.roots()
+
+        for r in roots:
+            if (r >= polynomial.domain[0] and r <= polynomial.domain[1]):
+                if (not (isinstance(r,complex))):
+                    solutions.append(r)
+                elif (r.imag == 0):
+                    solutions.append(r.real)
+
+        ## We should always have one solution for the inverse?
+        if (len(solutions) > 1):
+            print "Warning! Multiple solutions when sampling for ABU"
+        
+        return solutions[0]
+    
+    ## Inverse transform sampling
+    ## https://en.wikipedia.org/wiki/Inverse_transform_sampling
+    def sampleFromBelief(self,polynomial,sizeList):
+        returnMe = [None]*sizeList
+
+        ## To calculate the CDF, I will first get the integral. The lower part is the lowest possible value for the domain
+        ## Given a value x, the CDF will be the integral at x, minus the integral at the lowest possible value.
+        dist_integ = polynomial.integ()
+        lower_part = dist_integ(polynomial.domain[0])
+        cdf = dist_integ.copy()
+        cdf.coef[0] = cdf.coef[0] - lower_part
+    
+        for s in range(sizeList):
+            u = np.random.uniform(0,1)
+
+            returnMe[s] = self.inversePolynomial(cdf, u)
+
+        return returnMe
+    
     def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=2, sampling='average'):
         # TODO: Remove when actually running - only here for reproducibility during testing.
-        np.random.seed(123)
+#        np.random.seed(123)
 
         parameter_estimate = []
 
-        import ipdb; ipdb.set_trace()
-        
         for i in range(len(x_train[0])):
             # Get current independent variables
             current_parameter_set = [elem[i] for elem in x_train]
+
+            # Obtain the parameter in questions upper and lower limits
+            p_min = previous_estimate.min_max[i][0]
+            p_max = previous_estimate.min_max[i][1]
 
             # Fit polynomial to the parameter being modelled
             f_poly = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
                                                               deg=polynomial_degree, full=False)
             
-            f_poly = np.polynomial.polynomial.Polynomial(coef=f_poly)            
-
-            # Obtain the parameter in questions upper and lower limits
-            p_min = previous_estimate.min_max[i][0]
-            p_max = previous_estimate.min_max[i][1]
+            f_poly = np.polynomial.polynomial.Polynomial(coef=f_poly,domain=[p_min, p_max],window=[p_min, p_max])
             
             # Generate prior
-            if previous_estimate.iteration == 0:
+            if self.iteration == 0:
                 #beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
                 beliefs = [0]*(polynomial_degree + 1)
                 beliefs[0] = 1.0/(p_max - p_min)
+                
+                current_belief_poly = np.polynomial.polynomial.Polynomial(coef=beliefs,domain=[p_min, p_max],window=[p_min,p_max])
             else:
-                # TODO: This command should collect the most recent belief set
-                beliefs = previous_estimate.observation_history[-1]
-            belief_poly = np.polynomial.polynomial.Polynomial(coef=beliefs)
+                current_belief_poly = self.belief_poly[i]
+            
 
             # Compute convolution
-            g_poly = belief_poly*f_poly
+            g_poly = current_belief_poly*f_poly
 
             # Collect samples
             # Number of evenly spaced points to compute polynomial at
@@ -513,17 +576,23 @@ class ParameterEstimation:
 
             # Generate equally spaced points, unique to the parameter being modelled
             X = np.linspace(p_min, p_max, spacing)
-            y = np.array([g_poly(i) for i in X])
+            y = np.array([g_poly(j) for j in X])
 
             # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
             # TODO: possilby remove D if not needed at the end
-            D = [(X[i], y[i]) for i in range(len(X))]
+            D = [(X[j], y[j]) for j in range(len(X))]
 
             # Fit h
             h_hat_coefficients = np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+            
+            h_poly = np.polynomial.polynomial.Polynomial(coef=h_hat_coefficients,domain=[p_min, p_max],window=[p_min, p_max])
+
+            # "Lift" the polynomial. Perhaps this technique is different than the one in Albrecht and Stone 2017.
+            min_h = self.findMin(h_poly)
+            if (min_h < 0):
+                h_poly.coef[0] = h_poly.coef[0] - min_h
 
             # Integrate h
-            h_poly = np.polynomial.polynomial.Polynomial(coef=h_hat_coefficients)
             integration = h_poly.integ()
 
             # Compute I
@@ -531,8 +600,11 @@ class ParameterEstimation:
 
             # Update beliefs
             new_belief_coef = np.divide(h_poly.coef, definite_integral)  # returns an array
-            new_belief = np.polynomial.polynomial.Polynomial(coef=new_belief_coef)
+            new_belief = np.polynomial.polynomial.Polynomial(coef=new_belief_coef,domain=[p_min, p_max],window=[p_min, p_max])
 
+            self.belief_poly[i] = new_belief
+
+            # TODO: Not better to derivate and get the roots?
             if sampling == 'MAP':
                 # Sample from beliefs
                 polynomial_max = 0
@@ -547,16 +619,15 @@ class ParameterEstimation:
                 parameter_estimate.append(polynomial_max)
 
             elif sampling == 'average':
-                x_random = np.random.uniform(low=p_min, high=p_max, size=10)
-                evaluations = [new_belief(x_random[i]) for i in range(len(x_random))]
-                parameter_estimate.append(np.mean(evaluations))
+                x_random = self.sampleFromBelief(new_belief, 10)
+                parameter_estimate.append(np.mean(x_random))
 
             # Increment iterator
 
         new_parameter = Parameter(parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
         print('Parameter Estimate: {}'.format(parameter_estimate))
-        previous_estimate.iteration += 1
-        # TODO: store posterior values to be used as beliefs in next cycle
+        self.iteration += 1
+
         return new_parameter
 
     ####################################################################################################################
