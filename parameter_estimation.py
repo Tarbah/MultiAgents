@@ -475,7 +475,7 @@ class ParameterEstimation:
 
         # Collect samples from g
         sampled_x = np.linspace(0, 1, 4)
-        sampled_y = st.uniform.rvs(0.1, 1, 4)         # TODO: How can I get g(p^l) here?
+        sampled_y = st.uniform.rvs(0.1, 1, 4)  # TODO: How can I get g(p^l) here?
 
         # Fit h-hat
         h_polynomial = linear_model.LinearRegression(fit_intercept=True)
@@ -486,27 +486,38 @@ class ParameterEstimation:
         def integrand(level, radius, angle, x):
             pass
 
-        logging.info('Estimation Complete\n{}'.format('-'*100))
+        logging.info('Estimation Complete\n{}'.format('-' * 100))
 
+        ####################################################################################################################
 
-    ####################################################################################################################
-    def bayesian_updating(self, x_train, y_train, previous_estimate, polynomial_degree=4, sampling='average'):
+    def bayesian_updating(self, x_train, y_train, previous_estimate, polynomial_degree=2, sampling='average'):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
 
         parameter_estimate = []
 
+        # import ipdb;
+        # ipdb.set_trace()
+
         for i in range(len(x_train[0])):
             # Get current independent variables
             current_parameter_set = [elem[i] for elem in x_train]
 
-            # Fit polynomial of degree 4 to the parameter being modelled
+            # Fit polynomial to the parameter being modelled
             f_poly = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
                                                       deg=polynomial_degree, full=False)
 
+            f_poly = np.polynomial.polynomial.Polynomial(coef=f_poly)
+
+            # Obtain the parameter in questions upper and lower limits
+            p_min = previous_estimate.min_max[i][0]
+            p_max = previous_estimate.min_max[i][1]
+
             # Generate prior
             if previous_estimate.iteration == 0:
-                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
+                # beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
+                beliefs = [0] * (polynomial_degree + 1)
+                beliefs[0] = 1.0 / (p_max - p_min)
             else:
                 # TODO: This command should collect the most recent belief set
                 beliefs = previous_estimate.observation_history[-1]
@@ -514,43 +525,34 @@ class ParameterEstimation:
 
             # Compute convolution
             g_poly = belief_poly * f_poly
-            assert g_poly.degree() == 8, 'g_hat has been incorrectly calculated. Degree not 8.'
 
             # Collect samples
             # Number of evenly spaced points to compute polynomial at
-            spacing = polynomial_degree + 1
-
-            # Obtain the parameter in questions upper and lower limits
-            p_min = previous_estimate.min_max[i][0]
-            p_max = previous_estimate.min_max[i][1]
+            # TODO: Not sure why it was polynomial_degree + 1
+            # spacing = polynomial_degree + 1
+            spacing = len(x_train)
 
             # Generate equally spaced points, unique to the parameter being modelled
             X = np.linspace(p_min, p_max, spacing)
             y = np.array([g_poly(i) for i in X])
-            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
 
             # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
             # TODO: possilby remove D if not needed at the end
             D = [(X[i], y[i]) for i in range(len(X))]
 
             # Fit h
-            h_hat_coefficients = np.poly1d(np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False))
+            h_hat_coefficients = np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
 
             # Integrate h
-            h_one_d = np.poly1d(h_hat_coefficients.coef)
-            integration = np.polyint(h_one_d)
+            h_poly = np.polynomial.polynomial.Polynomial(coef=h_hat_coefficients)
+            integration = h_poly.integ()
 
             # Compute I
             definite_integral = integration(p_max) - integration(p_min)
 
             # Update beliefs
-            new_belief = np.divide(h_hat_coefficients.coef, definite_integral)  # returns an array
-            print(new_belief)
-
-            def polynomial_evaluate(x, coefficients):
-                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
-                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
-                return result
+            new_belief_coef = np.divide(h_poly.coef, definite_integral)  # returns an array
+            new_belief = np.polynomial.polynomial.Polynomial(coef=new_belief_coef)
 
             if sampling == 'MAP':
                 # Sample from beliefs
@@ -558,7 +560,7 @@ class ParameterEstimation:
                 granularity = 1000
                 x_vals = np.linspace(p_min, p_max, granularity)
                 for j in range(len(x_vals)):
-                    proposal = polynomial_evaluate(x_vals[j], new_belief)
+                    proposal = new_belief(x_vals[j])
                     print('Proposal: {}'.format(proposal))
                     if proposal > polynomial_max:
                         polynomial_max = proposal
@@ -567,7 +569,7 @@ class ParameterEstimation:
 
             elif sampling == 'average':
                 x_random = np.random.uniform(low=p_min, high=p_max, size=10)
-                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
+                evaluations = [new_belief(x_random[i]) for i in range(len(x_random))]
                 parameter_estimate.append(np.mean(evaluations))
 
             # Increment iterator
@@ -618,10 +620,6 @@ class ParameterEstimation:
 
             radius = a_data_set[2, :]
             ave_radius = np.average(radius, weights=a_weights)
-
-
-
-            # estimated_parameter = list(np_dataset.mean(0))
             new_parameter = Parameter(ave_level, ave_angle, ave_radius)
 
             return new_parameter

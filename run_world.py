@@ -27,7 +27,8 @@ mcts_mode = None
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
 
-current_folder = "outputs/"+ sub_dir + '/'
+current_folder = "outputs/"
+                 #+ sub_dir + '/'
 if not os.path.exists(current_folder):
     os.mkdir(current_folder, 0755)
 
@@ -65,15 +66,28 @@ for k, v in info.items():
     if 'max_depth' in k:
         max_depth = int(v[0][0])
 
+    if 'PF_add_threshold' in k:
+        PF_add_threshold = float(v[0][0])
+
+    if 'PF_del_threshold' in k:
+        PF_del_threshold = float(v[0][0])
+
+
+
+    if 'PF_weight' in k:
+        PF_weight = float(v[0][0])
+
     if 'sim_path' in k:
         sim_path = dir + str(v[0][0]).strip()
 
     if 'mcts_mode' in k:
         mcts_mode = str(v[0][0]).strip()
 
+
+
 uct = UCT.UCT(reuseTree, iteration_max, max_depth, do_estimation, mcts_mode)
 main_sim = simulator.Simulator()
-print 'simulator path:' + sim_path
+
 main_sim.loader(sim_path)
 logfile = main_sim.create_log_file(current_folder + "log.txt")
 
@@ -82,10 +96,14 @@ for i in range(len(main_sim.agents)):
         , main_sim.agents[i].angle
 
 for i in range(len(main_sim.agents)):
-    main_sim.agents[i].initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode, generated_data_number)
+    main_sim.agents[i].initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode,
+                                                       generated_data_number, PF_add_threshold,
+                                                       PF_del_threshold,  PF_weight)
 
 if main_sim.main_agent is not None:
-    main_sim.main_agent.initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode, generated_data_number)
+    main_sim.main_agent.initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode,
+                                                        generated_data_number, PF_add_threshold,
+                                                        PF_del_threshold, PF_weight)
 
 for i in range(len(main_sim.agents)):
         print 'true values : level :', main_sim.agents[i].level, ' radius: ', main_sim.agents[i].radius, ' angle: ' \
@@ -161,7 +179,7 @@ end_time = time.time()
 for i in range(len(main_sim.agents)):
     print main_sim.agents[i].estimated_parameter.l1_estimation.data_set
 
-def print_result(main_sim,  time_steps,  begin_time, end_time):
+def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode):
 
     file = open(current_folder + "/results.txt", 'w')
     pickleFile = open(current_folder + "/pickleResults.txt", 'wb')
@@ -197,6 +215,8 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     systemDetails['maxDepth'] = max_depth
     systemDetails['generatedDataNumber'] = generated_data_number
     systemDetails['reuseTree'] = reuseTree
+    systemDetails['mcts_mode'] = mcts_mode
+
 
     agentDictionary = {}
 
@@ -302,7 +322,7 @@ def print_result(main_sim,  time_steps,  begin_time, end_time):
     pickle.dump(dataList,pickleFile)
     print "writing over "
 
-print_result(main_sim, time_step, begin_time, end_time)
+print_result(main_sim, time_step, begin_time, end_time,mcts_mode)
 
 
 # selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
