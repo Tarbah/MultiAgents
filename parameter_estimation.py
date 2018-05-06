@@ -12,7 +12,6 @@ import logging
 logging.basicConfig(filename='parameter_estimation.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 
-
 radius_max = 1
 radius_min = 0.1
 angle_max = 1
@@ -48,8 +47,8 @@ class TypeEstimation:
         self.action_probabilities = []
         self.internal_state = None
         self.data_set = []
+        self.false_data_set = []
         self.weight = []
-
 
     def add_estimation_history(self,probability, level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -108,7 +107,9 @@ class ParameterEstimation:
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
 
-    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode, generated_data_number,polynomial_degree, PF_threshold):
+    def estimation_configuration(self, type_selection_mode, parameter_estimation_mode, generated_data_number,
+                                 polynomial_degree, PF_add_threshold,PF_del_threshold,PF_weight):
+
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = type_selection_mode
 
@@ -118,9 +119,12 @@ class ParameterEstimation:
 
         # the number of data we want to generate for estimating
         self.generated_data_number = generated_data_number
-
         self.polynomial_degree = polynomial_degree
-        self.PF_threshold = PF_threshold
+
+        self.PF_add_threshold = PF_add_threshold
+        self.PF_del_threshold = PF_del_threshold
+        self.PF_weight = PF_weight
+
 
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
@@ -303,26 +307,30 @@ class ParameterEstimation:
 
         data_set = list()
         weight = list()
+        false_data_set = list()
 
         if tmp_agent.agent_type == 'l1':
             data_set = self.l1_estimation.data_set
+            false_data_set = self.l1_estimation.false_data_set
             weight = self.l1_estimation.weight
 
         if tmp_agent.agent_type == 'l2':
             data_set = self.l2_estimation.data_set
+            false_data_set = self.l2_estimation.false_data_set
             weight = self.l2_estimation.weight
 
         if tmp_agent.agent_type == 'f1':
             data_set = self.f1_estimation.data_set
+            false_data_set = self.f1_estimation.false_data_set
             weight = self.f1_estimation.weight
 
         if tmp_agent.agent_type == 'f2':
             data_set = self.f2_estimation.data_set
+            false_data_set = self.f2_estimation.false_data_set
             weight = self.f2_estimation.weight
 
         if time_step > 0:
             tmp_sim = deepcopy(tmp_agent.state_history[time_step - 1])
-
             old_action = tmp_agent.actions_history[time_step - 1]
 
             for estimated_data in data_set:
@@ -332,30 +340,42 @@ class ParameterEstimation:
                 p_action = tmp_agent.get_action_probability(old_action)
                 index = data_set.index(estimated_data)
 
-                if p_action < self.PF_threshold:
-                    weight[index] *= 2
+                if p_action > self.PF_add_threshold:
+                    weight[index] *= self.PF_weight
                 else:
-                    weight[index] /= 2
+                    weight[index] /= self.PF_weight
+                    if weight[index] < self.PF_del_threshold:
+                        del(data_set[index])
+                        del (weight[index])
+                        false_data_set.append(estimated_data)
 
         tmp_sim = deepcopy(cur_sim)
 
-        for i in range(0,  self.generated_data_number):
+        count = 0
+        for i in range(len(weight)):
+            if weight[i]>self.PF_del_threshold:
+                count+= 1
+
+        for i in range(self.generated_data_number - count):
 
             # Generating random values for parameters
             tmp_radius = random.uniform(radius_min, radius_max)  # 'radius'
             tmp_angle = random.uniform(angle_min, angle_max)    # 'angle'
             tmp_level = random.uniform(level_min, level_max)  # 'level'
+            if [tmp_level, tmp_radius, tmp_angle] not in false_data_set:
 
-            tmp_agent.set_parameters(tmp_sim, tmp_level, tmp_radius, tmp_angle)
+                tmp_agent.set_parameters(tmp_sim, tmp_level, tmp_radius, tmp_angle)
 
-            tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
-            p_action = tmp_agent.get_action_probability(new_action)
-                # not in false_data_set :
-            data_set.append([tmp_level, tmp_radius, tmp_angle])
-            if p_action > self.PF_threshold:
-                weight.append(2)
-            else:
-                weight.append(0.5)
+                tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
+                p_action = tmp_agent.get_action_probability(new_action)
+
+                data_set.append([tmp_level, tmp_radius, tmp_angle])
+
+                if p_action >self.PF_add_threshold:
+
+                    weight.append(self.PF_weight)
+                else:
+                    weight.append(1/self.PF_weight)
 
 
         return
@@ -470,68 +490,67 @@ class ParameterEstimation:
 
 
     ####################################################################################################################
-    def bayesian_updating(self, x_train, y_train, previous_estimate,  polynomial_degree=2, sampling='average'):
+    def bayesian_updating(self, x_train, y_train, previous_estimate, polynomial_degree=4, sampling='average'):
         # TODO: Remove when actually running - only here for reproducibility during testing.
         np.random.seed(123)
 
         parameter_estimate = []
 
-        import ipdb; ipdb.set_trace()
-        
         for i in range(len(x_train[0])):
             # Get current independent variables
             current_parameter_set = [elem[i] for elem in x_train]
 
-            # Fit polynomial to the parameter being modelled
+            # Fit polynomial of degree 4 to the parameter being modelled
             f_poly = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
-                                                              deg=polynomial_degree, full=False)
-            
-            f_poly = np.polynomial.polynomial.Polynomial(coef=f_poly)            
+                                                      deg=polynomial_degree, full=False)
 
-            # Obtain the parameter in questions upper and lower limits
-            p_min = previous_estimate.min_max[i][0]
-            p_max = previous_estimate.min_max[i][1]
-            
             # Generate prior
             if previous_estimate.iteration == 0:
-                #beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
-                beliefs = [0]*(polynomial_degree + 1)
-                beliefs[0] = 1.0/(p_max - p_min)
+                beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
             else:
                 # TODO: This command should collect the most recent belief set
                 beliefs = previous_estimate.observation_history[-1]
             belief_poly = np.polynomial.polynomial.Polynomial(coef=beliefs)
 
             # Compute convolution
-            g_poly = belief_poly*f_poly
+            g_poly = belief_poly * f_poly
+            assert g_poly.degree() == 8, 'g_hat has been incorrectly calculated. Degree not 8.'
 
             # Collect samples
             # Number of evenly spaced points to compute polynomial at
-            # TODO: Not sure why it was polynomial_degree + 1
-            #spacing = polynomial_degree + 1
-            spacing = len(x_train)
+            spacing = polynomial_degree + 1
+
+            # Obtain the parameter in questions upper and lower limits
+            p_min = previous_estimate.min_max[i][0]
+            p_max = previous_estimate.min_max[i][1]
 
             # Generate equally spaced points, unique to the parameter being modelled
             X = np.linspace(p_min, p_max, spacing)
             y = np.array([g_poly(i) for i in X])
+            assert len(X) == len(y), 'X and y in D are of differing lengths. Resulting samples will be incorrect.'
 
             # Future polynomials are modelled using X and y, not D as it's simpler this way. I've left D in for now
             # TODO: possilby remove D if not needed at the end
             D = [(X[i], y[i]) for i in range(len(X))]
 
             # Fit h
-            h_hat_coefficients = np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False)
+            h_hat_coefficients = np.poly1d(np.polynomial.polynomial.polyfit(X, y, deg=polynomial_degree, full=False))
 
             # Integrate h
-            h_poly = np.polynomial.polynomial.Polynomial(coef=h_hat_coefficients)
-            integration = h_poly.integ()
+            h_one_d = np.poly1d(h_hat_coefficients.coef)
+            integration = np.polyint(h_one_d)
 
             # Compute I
-            definite_integral = integration(p_max)-integration(p_min)
+            definite_integral = integration(p_max) - integration(p_min)
 
             # Update beliefs
-            new_belief_coef = np.divide(h_poly.coef, definite_integral)  # returns an array
-            new_belief = np.polynomial.polynomial.Polynomial(coef=new_belief_coef)
+            new_belief = np.divide(h_hat_coefficients.coef, definite_integral)  # returns an array
+            print(new_belief)
+
+            def polynomial_evaluate(x, coefficients):
+                result = coefficients[0] + x * coefficients[1] + coefficients[2] * x ** 2 + \
+                         coefficients[3] * x ** 4 + coefficients[4] * x ** 4
+                return result
 
             if sampling == 'MAP':
                 # Sample from beliefs
@@ -539,7 +558,7 @@ class ParameterEstimation:
                 granularity = 1000
                 x_vals = np.linspace(p_min, p_max, granularity)
                 for j in range(len(x_vals)):
-                    proposal = new_belief(x_vals[j])
+                    proposal = polynomial_evaluate(x_vals[j], new_belief)
                     print('Proposal: {}'.format(proposal))
                     if proposal > polynomial_max:
                         polynomial_max = proposal
@@ -548,12 +567,12 @@ class ParameterEstimation:
 
             elif sampling == 'average':
                 x_random = np.random.uniform(low=p_min, high=p_max, size=10)
-                evaluations = [new_belief(x_random[i]) for i in range(len(x_random))]
+                evaluations = [polynomial_evaluate(x_random[i], new_belief) for i in range(len(x_random))]
                 parameter_estimate.append(np.mean(evaluations))
 
             # Increment iterator
 
-        new_parameter = Parameter(parameter_estimate[0],parameter_estimate[1], parameter_estimate[2])
+        new_parameter = Parameter(parameter_estimate[0], parameter_estimate[1], parameter_estimate[2])
         print('Parameter Estimate: {}'.format(parameter_estimate))
         previous_estimate.iteration += 1
         # TODO: store posterior values to be used as beliefs in next cycle
@@ -586,7 +605,6 @@ class ParameterEstimation:
 
             if current_data_set == []:
                 return None
-
 
             a_data_set = np.transpose(np.array( current_data_set))
             a_weights = np.array(current_weight)
@@ -791,4 +809,5 @@ class ParameterEstimation:
         self.l2_estimation.type_probabilities.append( l2_prob)
         self.f1_estimation.type_probabilities.append( f1_prob)
         self.f2_estimation.type_probabilities.append( f2_prob)
+
 
