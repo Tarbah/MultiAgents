@@ -36,9 +36,6 @@ for root, dirs, files in os.walk('outputs'):
             maxDepth = systemDetails['maxDepth']
             generatedDataNumber = systemDetails['generatedDataNumber']
             reuseTree = systemDetails['reuseTree']
-            PF_add_threshold = systemDetails['PF_add_threshold']
-            PF_del_threshold = systemDetails['PF_del_threshold']
-            PF_weight = systemDetails['PF_weight']
 
 
             agentDictionary = data[0]
@@ -115,7 +112,11 @@ for root, dirs, files in os.walk('outputs'):
             ax.plot([i for i in range(len(radius))], radius, linestyle='-', color='green',linewidth=1)
             title = ''
             title = title + 'Estimation method is ' + estimationDictionary['estimationMode']
-            if ( estimationDictionary['estimationMode'] == 'PF'):
+            if  estimationDictionary['estimationMode'] == 'PF':
+                PF_add_threshold = systemDetails['PF_add_threshold']
+                PF_del_threshold = systemDetails['PF_del_threshold']
+                PF_weight = systemDetails['PF_weight']
+
                 title += "Data number :"+ str(generatedDataNumber) + 'PF_add_threshold'+ str(PF_add_threshold)\
                          + 'PF_del_threshold' + str(PF_del_threshold) + 'PF_weight' + str(PF_weight)
 
