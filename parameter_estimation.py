@@ -133,26 +133,33 @@ class ParameterEstimation:
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
     def estimation_initialisation(self):
-        # P(teta|H) in t = 0
+        # # P(teta|H) in t = 0
 
-        l1_init_prob = round(random.uniform(0, 1), 1)
-        l2_init_prob = round(random.uniform(0, 1), 1)
-        f1_init_prob = round(random.uniform(0, 1), 1)
-        f2_init_prob = round(random.uniform(0, 1), 1)
+        # l1_init_prob = round(random.uniform(0, 1), 1)
+        # l2_init_prob = round(random.uniform(0, 1), 1)
+        # f1_init_prob = round(random.uniform(0, 1), 1)
+        # f2_init_prob = round(random.uniform(0, 1), 1)
 
-        # Normalising Probabilities
+        # # Normalising Probabilities
 
-        sum_prob = l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob
-        if sum_prob != 0:
-            l1_init_prob = round(l1_init_prob / sum_prob,2)
-            l2_init_prob = round(l2_init_prob / sum_prob,2)
-            f1_init_prob = round(f1_init_prob / sum_prob,2)
-            f2_init_prob = round(f2_init_prob / sum_prob,2)
+        # sum_prob = l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob
+        # if sum_prob != 0:
+        #     l1_init_prob = round(l1_init_prob / sum_prob,2)
+        #     l2_init_prob = round(l2_init_prob / sum_prob,2)
+        #     f1_init_prob = round(f1_init_prob / sum_prob,2)
+        #     f2_init_prob = round(f2_init_prob / sum_prob,2)
 
-        diff = 1 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
+        # diff = 1 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
 
-        f2_init_prob += diff
+        # f2_init_prob += diff
 
+        ## Uniform initial belief means that every type has the same initial probabilty
+        l1_init_prob = 0.25
+        l2_init_prob = 0.25
+        f1_init_prob = 0.25
+        f2_init_prob = 0.25
+
+        
         self.l1_estimation.add_estimation_history(round(l1_init_prob, 2),
                                                   round(random.uniform(level_min, level_max), 2),  # 'level'
                                                   round(random.uniform(radius_min, radius_max), 2),  # 'radius'
@@ -384,47 +391,103 @@ class ParameterEstimation:
 
         return
 
+    def get_parameter(self, parameter, index):
+        #TODO: Level = 0, angle = 1, radius = 2? Perhaps there should be a nicer way to do this
+
+        if (index == 0):
+            return parameter.level
+        if (index == 1):
+            return parameter.angle
+        if (index == 2):
+            return parameter.radius
+    
     ####################################################################################################################
-    def calculate_gradient_ascent(self,x_train, y_train, old_parameter):
+    def calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
         # p is parameter estimation value at time step t-1 and D is pair of (p,f(p))
         # f(p) is the probability of action which is taken by unknown agent with true parameters at time step t
         # (implementation of Algorithm 2 in the paper for updating parameter value)
 
         step_size = 0.05
+        
+        if (not univariate):
 
-        reg = linear_model.LinearRegression()
+            reg = linear_model.LinearRegression()
 
-        reg.fit(x_train, y_train)
+            reg.fit(x_train, y_train)
 
-        gradient = reg.coef_
+            gradient = reg.coef_
 
-        # f_coefficients = np.polynomial.polynomial.polyfit(x_train, y_train,
-        #                                                   deg=self.polynomial_degree, full=False)
+            # f_coefficients = np.polynomial.polynomial.polyfit(x_train, y_train,
+            #                                                   deg=self.polynomial_degree, full=False)
 
-        new_parameters = old_parameter.update(gradient * step_size)
+            new_parameters = old_parameter.update(gradient * step_size)
 
-        new_parameters.level, new_parameters.angle, new_parameters.radius = \
-            round(new_parameters.level, 2), round(new_parameters.angle, 2), round(new_parameters.radius, 2)
+            ## Not sure if we need this rounding
+            #new_parameters.level, new_parameters.angle, new_parameters.radius = \
+            #    round(new_parameters.level, 2), round(new_parameters.angle, 2), round(new_parameters.radius, 2)
 
-        if new_parameters.level < level_min:
-            new_parameters.level = level_min
+            if new_parameters.level < level_min:
+                new_parameters.level = level_min
 
-        if new_parameters.level > level_max:
-            new_parameters.level = level_max
+            if new_parameters.level > level_max:
+                new_parameters.level = level_max
 
-        if new_parameters.angle < angle_min:
-            new_parameters.angle = angle_min
+            if new_parameters.angle < angle_min:
+                new_parameters.angle = angle_min
 
-        if new_parameters.angle > angle_max:
-            new_parameters.angle = angle_max
+            if new_parameters.angle > angle_max:
+                new_parameters.angle = angle_max
 
-        if new_parameters.radius < radius_min:
-            new_parameters.radius = radius_min
+            if new_parameters.radius < radius_min:
+                new_parameters.radius = radius_min
 
-        if new_parameters.radius > radius_max:
-            new_parameters.radius = radius_max
+            if new_parameters.radius > radius_max:
+                new_parameters.radius = radius_max
 
-        return new_parameters
+            return new_parameters
+        
+        else:
+
+            #import ipdb; ipdb.set_trace()
+            
+            parameter_estimate = []
+
+            for i in range(len(x_train[0])):
+
+                # Get current independent variables
+                current_parameter_set = [elem[i] for elem in x_train]
+
+                # Obtain the parameter in questions upper and lower limits
+                p_min = old_parameter.min_max[i][0]
+                p_max = old_parameter.min_max[i][1]
+
+                # Fit polynomial to the parameter being modelled
+                f_poly = np.polynomial.polynomial.polyfit(current_parameter_set, y_train,
+                                                                  deg=polynomial_degree, full=False)
+
+                f_poly = np.polynomial.polynomial.Polynomial(coef=f_poly,domain=[p_min, p_max],window=[p_min, p_max])
+
+                # get gradient
+                f_poly_deriv = f_poly.deriv()
+
+                current_estimation = self.get_parameter(old_parameter,i)
+                
+                delta = f_poly_deriv(current_estimation)
+
+                # update parameter
+                new_estimation = current_estimation + step_size*delta
+
+                if (new_estimation < p_min):
+                    new_estimation = p_min
+                if (new_estimation > p_max):
+                    new_estimation = p_max
+                
+                parameter_estimate.append(new_estimation)
+
+            #print('Parameter Estimate: {}'.format(parameter_estimate))
+            
+            return Parameter(parameter_estimate[0], parameter_estimate[1], parameter_estimate[2])
+        
 
     ####################################################################################################################
     def calculate_EGO(self, agent_type, time_step):  # Exact Global Optimisation
