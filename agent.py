@@ -54,10 +54,13 @@ class Agent:
         self.direction = direction
 
     ####################################################################################################################
-    def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode,generated_data_number):
+    def initialise_parameter_estimation(self,type_selection_mode, parameter_estimation_mode,generated_data_number, PF_add_threshold,
+                                                       PF_del_threshold,  PF_weight):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number , 4 , 0.7)
+        polynomial_degree  =4
+        param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number ,
+                                             polynomial_degree, PF_add_threshold, PF_del_threshold,  PF_weight)
         self.estimated_parameter = param_estim
 
     ####################################################################################################################
