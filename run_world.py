@@ -23,12 +23,14 @@ sim_path = None
 do_estimation = True
 # Multiple State Per Action (MSPA)/ One State Per Action (OSPA)
 mcts_mode = None
+PF_add_threshold = None
+PF_del_threshold = None
+PF_weight = None
 
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
 
-current_folder = "outputs/"
-                 #+ sub_dir + '/'
+current_folder = "outputs/"+ sub_dir + '/'
 if not os.path.exists(current_folder):
     os.mkdir(current_folder, 0755)
 
@@ -71,8 +73,6 @@ for k, v in info.items():
 
     if 'PF_del_threshold' in k:
         PF_del_threshold = float(v[0][0])
-
-
 
     if 'PF_weight' in k:
         PF_weight = float(v[0][0])
@@ -216,6 +216,9 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode):
     systemDetails['generatedDataNumber'] = generated_data_number
     systemDetails['reuseTree'] = reuseTree
     systemDetails['mcts_mode'] = mcts_mode
+    systemDetails['PF_del_threshold'] = PF_del_threshold
+    systemDetails['PF_add_threshold'] = PF_add_threshold
+    systemDetails['PF_weight'] = PF_weight
 
 
     agentDictionary = {}
