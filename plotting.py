@@ -32,10 +32,12 @@ for root, dirs, files in os.walk('outputs'):
             estimationDictionary['estimationMode'] = systemDetails['estimationMode']
 
             estimationDictionary['timeSteps'] = systemDetails['timeSteps']
+            estimationDictionary['mcts_mode'] = systemDetails['mcts_mode']
             iterationMax = systemDetails['iterationMax']
             maxDepth = systemDetails['maxDepth']
             generatedDataNumber = systemDetails['generatedDataNumber']
             reuseTree = systemDetails['reuseTree']
+            mcts_mode = systemDetails['mcts_mode']
 
             agentDictionary = data[0]
             correctStep = []
@@ -125,6 +127,15 @@ ABU_comp_time = list()
 PF_comp_time = list()
 max_len_hist = 0
 
+O_AGA_timeSteps = []
+M_AGA_timeSteps = []
+
+O_ABU_timeSteps = []
+M_ABU_timeSteps = []
+
+O_PF_timeSteps = []
+M_PF_timeSteps = []
+
 for result in results:
     r = result['estimationHistError']
     p = result['historyParameters']
@@ -138,6 +149,11 @@ for result in results:
         AGA_errors.append(result['estimationError'])
         AGA_estimationHistError.append(r)
         AGA_estimationHist.append(p)
+        if result['mcts_mode']=='MSPA':
+            M_AGA_timeSteps.append(result['timeSteps'])
+        else:
+            O_AGA_timeSteps.append(result['timeSteps'])
+
         AGA_timeSteps.append(result['timeSteps'])
         AGA_comp_time.append(result['computationalTime'])
 
@@ -145,10 +161,18 @@ for result in results:
         ABU_errors.append(result['estimationError'])
         ABU_estimationHistError.append(result['estimationHistError'])
         ABU_estimationHist.append(p)
+        if result['mcts_mode']=='MSPA':
+            M_ABU_timeSteps.append(result['timeSteps'])
+        else:
+            O_ABU_timeSteps.append(result['timeSteps'])
         ABU_timeSteps.append(result['timeSteps'])
         ABU_comp_time.append(result['computationalTime'])
 
     if result['estimationMode'] == 'PF':
+        if result['mcts_mode'] == 'MSPA':
+            M_PF_timeSteps.append(result['timeSteps'])
+        else:
+            O_PF_timeSteps.append(result['timeSteps'])
         PF_errors.append(result['estimationError'])
         PF_estimationHistError.append(result['estimationHistError'])
         PF_timeSteps.append(result['timeSteps'])
@@ -157,7 +181,7 @@ for result in results:
 
 #print (AGA_estimationHistError)
 # Normalizing history
-difference =[x - y for x, y in zip(trueParameters, history)]
+
 
 for a in AGA_estimationHist:
 
@@ -372,6 +396,7 @@ width = 0.20       # the width of the bars
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
+
 level_vals = [PF_ave_level, ABU_ave_level, AGA_ave_level]
 rects1 = ax.bar(ind, level_vals, width, color='r')
 angle_vals = [PF_ave_angle,ABU_ave_angle,AGA_ave_angle]
@@ -385,10 +410,36 @@ ax.set_xlabel('Estimation Method')
 ax.set_xticks(ind+width)
 ax.set_xticklabels(('PF', 'ABU','AGA'))
 ax.legend((rects1[0], rects2[0], rects3[0]), ('level', 'angle', 'radius'))
-#plt.show()
+
 fig.savefig("./plots/errors_in_last_estimation.jpg")
 
 
 
-# fig.savefig("./plots/TotalLandmarks.jpg")
-# print estimationDictionary
+
+N = 3
+ind = np.arange(N)  # the x locations for the groups
+width = 0.10       # the width of the bars
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+
+OSPA = [np.mean(O_AGA_timeSteps),np.mean(O_ABU_timeSteps),np.mean(O_PF_timeSteps)]
+rects1 = ax.bar(ind, OSPA, width, color='r')
+
+
+MSPA = [np.mean(M_AGA_timeSteps),np.mean(M_ABU_timeSteps),np.mean(M_PF_timeSteps)]
+rects2 = ax.bar(ind+ width, MSPA, width, color='b')
+
+
+
+
+ax.set_title('MonteCarlo')
+ax.set_ylabel('Time Steps')
+ax.set_xlabel('Estimation Method')
+ax.set_xticks(ind+width)
+ax.set_xticklabels(('ABU','AGA','PF'))
+ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
+
+fig.savefig("./plots/MonteCarlo.jpg")
+
