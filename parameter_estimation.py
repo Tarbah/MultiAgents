@@ -341,14 +341,13 @@ class ParameterEstimation:
             weight = self.f2_estimation.weight
 
         if time_step > 0:
-            tmp_sim = deepcopy(tmp_agent.state_history[time_step - 1])
-            old_action = tmp_agent.actions_history[time_step - 1]
 
+            tmp_sim = deepcopy(cur_sim)
             for estimated_data in data_set:
 
                 tmp_agent.set_parameters(tmp_sim, estimated_data[0], estimated_data[1], estimated_data[2])
                 tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
-                p_action = tmp_agent.get_action_probability(old_action)
+                p_action = tmp_agent.get_action_probability(new_action)
                 index = data_set.index(estimated_data)
 
                 if p_action > self.PF_add_threshold:
@@ -362,12 +361,7 @@ class ParameterEstimation:
 
         tmp_sim = deepcopy(cur_sim)
 
-        count = 0
-        for i in range(len(weight)):
-            if weight[i]>self.PF_del_threshold:
-                count+= 1
-
-        for i in range(self.generated_data_number - count):
+        for i in range(self.generated_data_number - len(data_set)):
 
             # Generating random values for parameters
             tmp_radius = random.uniform(radius_min, radius_max)  # 'radius'
@@ -382,12 +376,22 @@ class ParameterEstimation:
 
                 data_set.append([tmp_level, tmp_radius, tmp_angle])
 
-                if p_action >self.PF_add_threshold:
-
-                    weight.append(self.PF_weight)
+                if p_action > self.PF_add_threshold:
+                    w = self.PF_weight
                 else:
-                    weight.append(1/self.PF_weight)
+                    w = 1 / self.PF_weight
 
+                # testing previous step
+                old_sim = deepcopy(tmp_agent.state_history[time_step - 1])
+                old_action = tmp_agent.actions_history[time_step - 1]
+                tmp_agent = old_sim.move_a_agent(tmp_agent, True)  # f(p)
+                p_action = tmp_agent.get_action_probability(old_action)
+
+                if p_action > self.PF_add_threshold:
+
+                    weight.append(w * self.PF_weight)
+                else:
+                    weight.append(w * 1/self.PF_weight)
 
         return
 
@@ -402,7 +406,7 @@ class ParameterEstimation:
             return parameter.radius
     
     ####################################################################################################################
-    def calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
+    def  calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
         # p is parameter estimation value at time step t-1 and D is pair of (p,f(p))
         # f(p) is the probability of action which is taken by unknown agent with true parameters at time step t
         # (implementation of Algorithm 2 in the paper for updating parameter value)
@@ -513,7 +517,7 @@ class ParameterEstimation:
         # TODO: This method must be called once, not four times in a loop as is currently the case
         np.random.seed(123)
 
-        # Fit multivariate polynomial of degree 4
+        # Fit multivariate polynomial of degree 4PF_O_2
         f_poly = linear_model.LinearRegression(fit_intercept=True)
         f_poly.fit(x_train, y_train)
 
@@ -740,9 +744,13 @@ class ParameterEstimation:
             if current_data_set == []:
                 return None
 
-            a_data_set = np.transpose(np.array( current_data_set))
-            a_weights = np.array(current_weight)
+            print(current_data_set)
+            print('--------------------------')
+            print(current_weight)
+            print('--------------------------')
 
+            a_data_set = np.transpose(np.array(current_data_set))
+            a_weights = np.array(current_weight)
 
             levels = a_data_set [0, :]
             ave_level = np.average(levels, weights=a_weights)
@@ -844,7 +852,7 @@ class ParameterEstimation:
         else:
             return ['f2']
 
-        # nu = 0.5
+        # nu = 0.1AGA_O_2
         # n = 10
         # parameter_diff_sum =0
         # for i in range (3):
@@ -878,7 +886,7 @@ class ParameterEstimation:
             tmp_agent.actions_history = actions_history
             tmp_agent.state_history = state_history
 
-            # Return new parameters, applying formulae stated in paper Section 5.2 - list of length 3
+            # Return new parameters, applying formulae stated in paper Section 1AGA_O_2.2 - list of length 3
             new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
 
             if new_parameters_estimation is not None:
