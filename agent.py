@@ -24,6 +24,7 @@ class Agent:
         self.agent_type = agent_type
 
         self.memory = position.position(-1, -1)
+        self.route_actions = None
         self.estimated_parameter = None
 
         self.item_to_load = -1
@@ -58,7 +59,7 @@ class Agent:
                                                        PF_del_threshold,  PF_weight):
         param_estim = parameter_estimation.ParameterEstimation()
         param_estim.estimation_initialisation()
-        polynomial_degree  =4
+        polynomial_degree = 4
         param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode,generated_data_number ,
                                              polynomial_degree, PF_add_threshold, PF_del_threshold,  PF_weight)
         self.estimated_parameter = param_estim

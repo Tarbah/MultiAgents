@@ -8,8 +8,12 @@ import datetime
 import pickle
 
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import parameter_estimation
 
-iMaxStackSize = 5000
+
+iMaxStackSize = 2000
 sys.setrecursionlimit(iMaxStackSize)
 types = ['l1', 'l2', 'f1', 'f2']
 
@@ -30,7 +34,8 @@ PF_weight = None
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
 
-current_folder = "outputs/"+ sub_dir + '/'
+current_folder = "outputs/"\
+                 # + sub_dir + '/'
 if not os.path.exists(current_folder):
     os.mkdir(current_folder, 0755)
 
@@ -96,16 +101,6 @@ for i in range(len(main_sim.agents)):
         , main_sim.agents[i].angle
 
 for i in range(len(main_sim.agents)):
-    main_sim.agents[i].initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode,
-                                                       generated_data_number, PF_add_threshold,
-                                                       PF_del_threshold,  PF_weight)
-
-if main_sim.main_agent is not None:
-    main_sim.main_agent.initialise_parameter_estimation(type_selection_mode, parameter_estimation_mode,
-                                                        generated_data_number, PF_add_threshold,
-                                                        PF_del_threshold, PF_weight)
-
-for i in range(len(main_sim.agents)):
         print 'true values : level :', main_sim.agents[i].level, ' radius: ', main_sim.agents[i].radius, ' angle: ' \
             , main_sim.agents[i].angle
 main_agent = main_sim.main_agent
@@ -121,24 +116,37 @@ search_tree = None
 time_step = 0
 begin_time = time.time()
 
+polynomial_degree = 4
+agants_parameter_estimation = []
+for i in range(len(main_sim.agents)):
+    param_estim = parameter_estimation.ParameterEstimation()
+    param_estim.estimation_initialisation()
+
+    param_estim.estimation_configuration(type_selection_mode, parameter_estimation_mode, generated_data_number,
+                                         polynomial_degree, PF_add_threshold, PF_del_threshold, PF_weight)
+
+
+    agants_parameter_estimation.append(param_estim)
+
+
 while main_sim.items_left() > 0:
 
     print 'main run count: ', time_step
+    tmp_sim = deepcopy(main_sim)
 
     for i in range(len(main_sim.agents)):
         main_sim.agents[i].old_direction = main_sim.agents[i].direction
-        main_sim.agents[i].state_history.append(main_sim)
+        # main_sim.agents[i].state_history.append(tmp_sim)
+        main_sim.agents[i].previous_state = tmp_sim
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
     if main_sim.main_agent is not None:
-        main_sim.main_agent.state_history.append(main_sim)
+        main_sim.main_agent.previous_state = tmp_sim
         # tmp_sim = main_sim.copy()
-        tmp_sim = deepcopy(main_sim)
-
         if not reuseTree:
-            main_agent_next_action, search_tree = uct.m_agent_planning(0, None, tmp_sim)
+            main_agent_next_action, search_tree = uct.m_agent_planning(0, None, tmp_sim,agants_parameter_estimation)
         else:
-            main_agent_next_action, search_tree = uct.m_agent_planning(time_step, search_tree, tmp_sim)
+            main_agent_next_action, search_tree = uct.m_agent_planning(time_step, search_tree, tmp_sim,agants_parameter_estimation)
 
         # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
@@ -153,8 +161,14 @@ while main_sim.items_left() > 0:
     main_sim.do_collaboration()
 
     if do_estimation:
-        for i in range(len(main_sim.agents)):
-            main_sim.agents[i].estimate_parameter(main_sim, time_step)
+        for i in range(len(agants_parameter_estimation)):
+            p_agent = main_sim.agents[i]
+            agants_parameter_estimation[i].process_parameter_estimations(time_step,
+                                                                     p_agent.old_direction,
+                                                                     p_agent.next_action,
+                                                                     p_agent.index,
+                                                                     p_agent.actions_history,
+                                                                     p_agent.previous_state)
 
     # ## DEBUG
     # for agent_i in range(len(main_sim.agents)):
@@ -175,11 +189,55 @@ while main_sim.items_left() > 0:
     print "left items", main_sim.items_left()
 
 end_time = time.time()
+#
+# for i in range(len(main_sim.agents)):
+#     print agants_parameter_estimation['estimated_parameters'][i]
 
-for i in range(len(main_sim.agents)):
-    print main_sim.agents[i].estimated_parameter.l1_estimation.data_set
+def plot_data_set(main_sim , estimated_parameter):
 
-def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode):
+    d = estimated_parameter.l1_estimation.data_set
+    true_level = main_sim.agents[0].level
+    true_angle = main_sim.agents[0].angle
+    true_radius = main_sim.agents[0].radius
+    a_data_set = np.transpose(np.array(d))
+
+    levels = a_data_set[0, :]
+    angle = a_data_set[1, :]
+    radius = a_data_set[2, :]
+    fig = plt.figure(1)
+    w = main_sim.agents[0].estimated_parameter.l1_estimation.weight
+    N = len(w)
+
+    colors = np.random.rand(N)
+    print colors
+    area = (10) ** 2  # 0 to 15 point radii
+
+    plt.subplot(3, 1, 1)
+    plt.scatter(w, levels, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_level for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Level dataset')
+    ax.legend(loc="upper right", shadow=True, fontsize='x-large')
+    plt.subplot(3, 1, 2)
+    plt.scatter(w, angle, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_angle for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Angle dataset')
+
+    plt.subplot(3, 1, 3)
+    plt.scatter(w, radius, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_radius for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('radius dataset')
+    ax.set_xlabel('weight')
+
+    fig.savefig("./plots/dataset.jpg")
+
+
+def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimated_parameter):
 
     file = open(current_folder + "/results.txt", 'w')
     pickleFile = open(current_folder + "/pickleResults.txt", 'wb')
@@ -236,85 +294,85 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode):
         file.write('#probability of type ,level,radius,angle\n')
         # L1 ******************************
 
-        estimated_value = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_estimation()
+        estimated_value = estimated_parameter[i].l1_estimation.get_last_estimation()
 
         # Result
-        file.write('l1:' + str(main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()))
+        file.write('l1:' + str(estimated_parameter[i].l1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ',' + str(estimated_value.angle)
                    + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()) + '\n')
+        file.write(str(estimated_parameter[i].l1_estimation.type_probabilities) + '\n')
+        file.write(str(estimated_parameter[i].l1_estimation.get_estimation_history()) + '\n')
 
         # pickleResults
-        agentData['l1LastProbability'] = main_sim.agents[i].estimated_parameter.l1_estimation.get_last_type_probability()
+        agentData['l1LastProbability'] = estimated_parameter[i].l1_estimation.get_last_type_probability()
         l1 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
         agentData['l1'] = l1
 
-        l1EstimationHistory = main_sim.agents[i].estimated_parameter.l1_estimation.get_estimation_history()
+        l1EstimationHistory = estimated_parameter[i].l1_estimation.get_estimation_history()
         agentData['l1EstimationHistory'] = l1EstimationHistory
-        agentData['l1TypeProbHistory'] = main_sim.agents[i].estimated_parameter.l1_estimation.type_probabilities
+        agentData['l1TypeProbHistory'] = estimated_parameter[i].l1_estimation.type_probabilities
         agentData['last_estimated_value'] = estimated_value
 
         # L2  ******************************
 
-        estimated_value = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_estimation()
+        estimated_value = estimated_parameter[i].l2_estimation.get_last_estimation()
 
         # Result
-        file.write('l2:' + str(main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()))
+        file.write('l2:' + str(estimated_parameter[i].l2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                        + str(estimated_value.angle) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.type_probabilities) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()) + '\n')
+        file.write(str(estimated_parameter[i].l2_estimation.type_probabilities) + '\n')
+        file.write(str(estimated_parameter[i].l2_estimation.get_estimation_history()) + '\n')
 
         # pickleResults
-        agentData['l2LastProbability'] = main_sim.agents[i].estimated_parameter.l2_estimation.get_last_type_probability()
+        agentData['l2LastProbability'] = estimated_parameter[i].l2_estimation.get_last_type_probability()
         l2 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
         agentData['l2'] = l2
-        l2EstimationHistory = main_sim.agents[i].estimated_parameter.l2_estimation.get_estimation_history()
+        l2EstimationHistory = estimated_parameter[i].l2_estimation.get_estimation_history()
         agentData['l2EstimationHistory'] = l2EstimationHistory
-        agentData['l2TypeProbHistory'] = main_sim.agents[i].estimated_parameter.l2_estimation.type_probabilities
+        agentData['l2TypeProbHistory'] = estimated_parameter[i].l2_estimation.type_probabilities
         agentData['last_estimated_value'] = estimated_value
 
         # F1  ******************************
 
-        estimated_value = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_estimation()
+        estimated_value = estimated_parameter[i].f1_estimation.get_last_estimation()
 
         # Result
-        file.write('f1:' + str(main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()))
+        file.write('f1:' + str(estimated_parameter[i].f1_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                        + str(estimated_value.angle) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.type_probabilities) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()) + '\n')
+        file.write(str(estimated_parameter[i].f1_estimation.type_probabilities) + '\n')
+        file.write(str(estimated_parameter[i].f1_estimation.get_estimation_history()) + '\n')
 
         # pickleResults
 
-        agentData['f1LastProbability'] = main_sim.agents[i].estimated_parameter.f1_estimation.get_last_type_probability()
+        agentData['f1LastProbability'] = estimated_parameter[i].f1_estimation.get_last_type_probability()
         f1 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
         agentData['f1'] = f1
-        f1EstimationHistory = main_sim.agents[i].estimated_parameter.f1_estimation.get_estimation_history()
+        f1EstimationHistory = estimated_parameter[i].f1_estimation.get_estimation_history()
         agentData['f1EstimationHistory'] = f1EstimationHistory
-        agentData['f1TypeProbHistory'] = main_sim.agents[i].estimated_parameter.f1_estimation.type_probabilities
+        agentData['f1TypeProbHistory'] = estimated_parameter[i].f1_estimation.type_probabilities
         agentData['last_estimated_value'] = estimated_value
 
         # F2  ******************************
 
-        estimated_value = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_estimation()
+        estimated_value = estimated_parameter[i].f2_estimation.get_last_estimation()
 
         # Result
-        file.write('f2:' + str(main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()))
+        file.write('f2:' + str(estimated_parameter[i].f2_estimation.get_last_type_probability()))
         file.write(',' + str(estimated_value.level) + ',' + str(estimated_value.radius) + ','
                        + str(estimated_value.angle) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.type_probabilities) + '\n')
-        file.write(str(main_sim.agents[i].estimated_parameter.f2_estimation.get_estimation_history()) + '\n')
+        file.write(str(estimated_parameter[i].f2_estimation.type_probabilities) + '\n')
+        file.write(str(estimated_parameter[i].f2_estimation.get_estimation_history()) + '\n')
 
         # pickleResults
 
-        agentData['f2LastProbability'] = main_sim.agents[i].estimated_parameter.f2_estimation.get_last_type_probability()
+        agentData['f2LastProbability'] = estimated_parameter[i].f2_estimation.get_last_type_probability()
         f2 = [estimated_value.level,estimated_value.radius,estimated_value.angle]
         agentData['f2'] = f2
-        f2EstimationHistory = main_sim.agents[i].estimated_parameter.f2_estimation.get_estimation_history()
+        f2EstimationHistory = estimated_parameter[i].f2_estimation.get_estimation_history()
         agentData['f2EstimationHistory'] = f2EstimationHistory
-        agentData['f2TypeProbHistory'] = main_sim.agents[i].estimated_parameter.f2_estimation.type_probabilities
+        agentData['f2TypeProbHistory'] = estimated_parameter[i].f2_estimation.type_probabilities
         agentData['last_estimated_value'] = estimated_value
 
         agentDictionary[i]=agentData
@@ -325,11 +383,12 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode):
     pickle.dump(dataList,pickleFile)
     print "writing over "
 
-print_result(main_sim, time_step, begin_time, end_time,mcts_mode)
+#plot_data_set(main_sim)
+print_result(main_sim, time_step, begin_time, end_time,mcts_mode,agants_parameter_estimation)
 
 
-# selected_type = main_sim.agents[i].estimated_parameter.get_highest_probability()
-# estimated_value = main_sim.agents[i].estimated_parameter.get_properties_for_selected_type(selected_type)
+# selected_type = estimated_parameter[i].get_highest_probability()
+# estimated_value = estimated_parameter[i].get_properties_for_selected_type(selected_type)
 #
 # file.write('highest property :' + str(selected_type) + ' level :' + str(estimated_value.level) + ', radius: ' +
 #            str(estimated_value.radius) + ' angle: ' + str(estimated_value.angle) + '\n')

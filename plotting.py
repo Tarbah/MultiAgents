@@ -6,106 +6,7 @@ import numpy as np
 
 
 results = list()
-
-for root, dirs, files in os.walk('outputs'):
-    if 'pickleResults.txt' in files:
-       # print root
-        with open(os.path.join(root,'pickleResults.txt'),"r") as pickleFile:
-
-            estimationDictionary = {}
-            dataList = pickle.load(pickleFile)
-
-            data = dataList[1]
-            systemDetails = dataList[0]
-
-            # Simulator Information
-            simWidth = systemDetails['simWidth']
-            simHeight = systemDetails['simHeight']
-            agentsCounts = systemDetails['agentsCounts']
-            itemsCounts = systemDetails['itemsCounts']
-
-            estimationDictionary['typeSelectionMode'] = systemDetails['typeSelectionMode']
-
-            beginTime = systemDetails['beginTime']
-            endTime = systemDetails['endTime']
-            estimationDictionary['computationalTime'] = int(endTime) - int(beginTime)
-            estimationDictionary['estimationMode'] = systemDetails['estimationMode']
-
-            estimationDictionary['timeSteps'] = systemDetails['timeSteps']
-            estimationDictionary['mcts_mode'] = systemDetails['mcts_mode']
-            iterationMax = systemDetails['iterationMax']
-            maxDepth = systemDetails['maxDepth']
-            generatedDataNumber = systemDetails['generatedDataNumber']
-            reuseTree = systemDetails['reuseTree']
-            mcts_mode = systemDetails['mcts_mode']
-
-            agentDictionary = data[0]
-            correctStep = []
-            historyParameters = [[]]
-
-            maxProbability = max(agentDictionary['l1LastProbability'],agentDictionary['l2LastProbability'],
-                                 agentDictionary['f1LastProbability'],agentDictionary['f2LastProbability'])
-
-            estimationDictionary['estimatedType'] = maxProbability
-            estimationDictionary['last_estimated_value'] = agentDictionary['last_estimated_value']
-
-            if maxProbability == agentDictionary['l1LastProbability']:
-                correctStep = agentDictionary['l1']
-                historyParameters = ast.literal_eval(agentDictionary['l1EstimationHistory'])
-
-            elif maxProbability == agentDictionary['l2LastProbability']:
-                correctStep = agentDictionary['l2']
-                historyParameters = ast.literal_eval(agentDictionary['l2EstimationHistory'])
-
-            elif maxProbability == agentDictionary['f1LastProbability']:
-                correctStep = agentDictionary['f1']
-                historyParameters = ast.literal_eval(agentDictionary['f1EstimationHistory'])
-
-            else:
-                correctStep = agentDictionary['f2']
-                historyParameters = ast.literal_eval(agentDictionary['f2EstimationHistory'])
-
-            estimationError = list()
-            estimationHistError = list()
-            meanEstimationError = []
-            i = 0
-            xaxis = []
-            trueParameters = agentDictionary['trueParameters']
-            print historyParameters
-            for history in historyParameters:
-                zip(trueParameters,history)
-                difference =[x - y for x, y in zip(trueParameters, history)]
-                # print (list(difference))
-                estimationHistError.append((list(difference)))
-                xaxis.append(i)
-                i = i + 1
-
-            # print(estimationHistError)
-            estimationDictionary['historyParameters'] = historyParameters
-            estimationDictionary['estimationHistError'] = estimationHistError
-            # print(estimationDictionary['estimationHistError'])
-
-            estimationDictionary['estimationError'] = estimationError
-
-            estimated_value = [estimationDictionary['last_estimated_value'].level , estimationDictionary['last_estimated_value'].angle,estimationDictionary['last_estimated_value'].radius]
-
-            diff = [x - y for x, y in zip(trueParameters, estimated_value)]
-
-            estimationDictionary['estimationError'] = diff
-
-            estimationDictionary['l1EstimationHistory'] = ast.literal_eval(agentDictionary['l1EstimationHistory'])
-            estimationDictionary['l2EstimationHistory'] = ast.literal_eval(agentDictionary['l2EstimationHistory'])
-            estimationDictionary['f1EstimationHistory'] = ast.literal_eval(agentDictionary['f1EstimationHistory'])
-            estimationDictionary['f2EstimationHistory'] = ast.literal_eval(agentDictionary['f2EstimationHistory'])
-
-            estimationDictionary['l1TypeProbHistory'] = agentDictionary['l1TypeProbHistory']
-            estimationDictionary['l2TypeProbHistory'] = agentDictionary['l2TypeProbHistory']
-            estimationDictionary['f1TypeProbHistory'] = agentDictionary['f1TypeProbHistory']
-            estimationDictionary['f2TypeProbHistory'] = agentDictionary['f2TypeProbHistory']
-
-            results.append(estimationDictionary)
-
-
+max_len_hist = 0
 AGA_errors = list()
 ABU_errors = list()
 PF_errors = list()
@@ -114,9 +15,7 @@ AGA_timeSteps = list()
 ABU_timeSteps = list()
 PF_timeSteps = list()
 
-AGA_estimationHistError = list()
-ABU_estimationHistError = list()
-PF_estimationHistError = list()
+AGA_estimationHistError = []
 
 AGA_estimationHist = list()
 ABU_estimationHist = list()
@@ -125,7 +24,6 @@ PF_estimationHist = list()
 AGA_comp_time = list()
 ABU_comp_time = list()
 PF_comp_time = list()
-max_len_hist = 0
 
 O_AGA_timeSteps = []
 M_AGA_timeSteps = []
@@ -136,310 +34,369 @@ M_ABU_timeSteps = []
 O_PF_timeSteps = []
 M_PF_timeSteps = []
 
-for result in results:
-    r = result['estimationHistError']
-    p = result['historyParameters']
 
-    arr = np.array(r)
+ave_aga_levels = []
+ave_aga_angle = []
+ave_aga_radius = []
+ave_abu_levels = []
+ave_abu_angle = []
+ave_abu_radius = []
+ave_pf_levels = []
+ave_pf_angle = []
+ave_pf_radius = []
 
-    if max_len_hist < len(result['estimationHistError']):
-        max_len_hist = len(result['estimationHistError'])
 
-    if result['estimationMode'] == 'AGA':
-        AGA_errors.append(result['estimationError'])
-        AGA_estimationHistError.append(r)
-        AGA_estimationHist.append(p)
-        if result['mcts_mode']=='MSPA':
-            M_AGA_timeSteps.append(result['timeSteps'])
-        else:
-            O_AGA_timeSteps.append(result['timeSteps'])
+def read_files():
+    for root, dirs, files in os.walk('outputs'):
+        if 'pickleResults.txt' in files:
+            print root
+            with open(os.path.join(root,'pickleResults.txt'),"r") as pickleFile:
 
-        AGA_timeSteps.append(result['timeSteps'])
-        AGA_comp_time.append(result['computationalTime'])
+                estimationDictionary = {}
+                dataList = pickle.load(pickleFile)
 
-    if result['estimationMode'] == 'ABU':
-        ABU_errors.append(result['estimationError'])
-        ABU_estimationHistError.append(result['estimationHistError'])
-        ABU_estimationHist.append(p)
-        if result['mcts_mode']=='MSPA':
-            M_ABU_timeSteps.append(result['timeSteps'])
-        else:
-            O_ABU_timeSteps.append(result['timeSteps'])
-        ABU_timeSteps.append(result['timeSteps'])
-        ABU_comp_time.append(result['computationalTime'])
+                data = dataList[1]
+                systemDetails = dataList[0]
 
-    if result['estimationMode'] == 'PF':
-        if result['mcts_mode'] == 'MSPA':
-            M_PF_timeSteps.append(result['timeSteps'])
-        else:
-            O_PF_timeSteps.append(result['timeSteps'])
-        PF_errors.append(result['estimationError'])
-        PF_estimationHistError.append(result['estimationHistError'])
-        PF_timeSteps.append(result['timeSteps'])
-        PF_estimationHist.append(p)
-        PF_comp_time.append(result['computationalTime'])
+                # Simulator Information
+                simWidth = systemDetails['simWidth']
+                simHeight = systemDetails['simHeight']
+                agentsCounts = systemDetails['agentsCounts']
+                itemsCounts = systemDetails['itemsCounts']
+                iterationMax = systemDetails['iterationMax']
+                maxDepth = systemDetails['maxDepth']
+                generatedDataNumber = systemDetails['generatedDataNumber']
+                reuseTree = systemDetails['reuseTree']
+                mcts_mode = systemDetails['mcts_mode']
 
-#print (AGA_estimationHistError)
+                estimationDictionary['typeSelectionMode'] = systemDetails['typeSelectionMode']
+
+                beginTime = systemDetails['beginTime']
+                endTime = systemDetails['endTime']
+
+                estimationDictionary['computationalTime'] = int(endTime) - int(beginTime)
+                estimationDictionary['estimationMode'] = systemDetails['estimationMode']
+                estimationDictionary['timeSteps'] = systemDetails['timeSteps']
+                estimationDictionary['mcts_mode'] = systemDetails['mcts_mode']
+
+                agentDictionary = data[0]
+                selected_type_prob = []
+                historyParameters = [[]]
+
+                maxProbability = max(agentDictionary['l1LastProbability'],agentDictionary['l2LastProbability'],
+                                     agentDictionary['f1LastProbability'],agentDictionary['f2LastProbability'])
+
+                estimationDictionary['estimatedType'] = maxProbability
+
+                if maxProbability == agentDictionary['l1LastProbability']:
+                    selected_type_prob = agentDictionary['l1']
+                    historyParameters = ast.literal_eval(agentDictionary['l1EstimationHistory'])
+
+                elif maxProbability == agentDictionary['l2LastProbability']:
+                    selected_type_prob = agentDictionary['l2']
+                    historyParameters = ast.literal_eval(agentDictionary['l2EstimationHistory'])
+
+                elif maxProbability == agentDictionary['f1LastProbability']:
+                    selected_type_prob = agentDictionary['f1']
+                    historyParameters = ast.literal_eval(agentDictionary['f1EstimationHistory'])
+
+                else:
+                    selected_type_prob = agentDictionary['f2']
+                    historyParameters = ast.literal_eval(agentDictionary['f2EstimationHistory'])
+
+                estimationDictionary['last_estimated_value'] = historyParameters[len(historyParameters)-1]
+
+                trueParameters = agentDictionary['trueParameters']
+
+                estimationDictionary['historyParameters'] = historyParameters
+
+                print  estimationDictionary['estimationMode']
+                last_estimated_value = [estimationDictionary['last_estimated_value'][0] , estimationDictionary['last_estimated_value'][1],estimationDictionary['last_estimated_value'][2]]
+
+                diff = [x - y for x, y in zip(trueParameters, last_estimated_value)]
+
+                estimationDictionary['estimationError'] = diff
+
+                results.append(estimationDictionary)
+    return results
+
+def extract_information():
+    global results
+    global max_len_hist
+    for result in results:
+
+        if max_len_hist < len(result['historyParameters']):
+            max_len_hist = len(result['historyParameters'])
+
+        if result['estimationMode'] == 'AGA':
+            AGA_errors.append(result['estimationError'])
+
+            AGA_estimationHist.append(result['historyParameters'])
+            AGA_timeSteps.append(result['timeSteps'])
+            AGA_comp_time.append(result['computationalTime'])
+
+            if result['mcts_mode']=='MSPA':
+                M_AGA_timeSteps.append(result['timeSteps'])
+            else:
+                O_AGA_timeSteps.append(result['timeSteps'])
+
+        if result['estimationMode'] == 'ABU':
+            ABU_errors.append(result['estimationError'])
+            # ABU_estimationHistError.append(result['estimationHistError'])
+            ABU_estimationHist.append(result['historyParameters'])
+            ABU_timeSteps.append(result['timeSteps'])
+            ABU_comp_time.append(result['computationalTime'])
+
+            if result['mcts_mode']=='MSPA':
+                M_ABU_timeSteps.append(result['timeSteps'])
+            else:
+                O_ABU_timeSteps.append(result['timeSteps'])
+
+        if result['estimationMode'] == 'PF':
+            PF_errors.append(result['estimationError'])
+            # PF_estimationHistError.append(result['estimationHistError'])
+            PF_timeSteps.append(result['timeSteps'])
+            PF_estimationHist.append(result['historyParameters'])
+            PF_comp_time.append(result['computationalTime'])
+
+            if result['mcts_mode'] == 'MSPA':
+                M_PF_timeSteps.append(result['timeSteps'])
+            else:
+                O_PF_timeSteps.append(result['timeSteps'])
+
 # Normalizing history
+def plot_history_of_estimation():
+    global ave_aga_levels
+    global ave_aga_angle
+    global ave_aga_radius
+    global ave_abu_levels
+    global ave_abu_angle
+    global ave_abu_radius
+    global ave_pf_levels
+    global ave_pf_angle
+    for a in AGA_estimationHist:
+
+        last_value = a[len(a)-1]
+        diff = max_len_hist - len(a)
+        for i in range(diff):
+            a.append(last_value)
+
+    aa = np.array(AGA_estimationHist)
+    ave = aa.mean(0)
+    a_data_set = np.transpose(ave)
+    ave_aga_levels = list(a_data_set[0, :])
+    ave_aga_angle = list(a_data_set[1, :])
+    ave_aga_radius = list(a_data_set[2, :])
+
+    for a in ABU_estimationHist:
+        last_value = a[len(a) - 1]
+        diff = max_len_hist - len(a)
+        for i in range(diff):
+            a.append(last_value)
+
+    aa = np.array(ABU_estimationHist)
+    ave = aa.mean(0)
+    a_data_set = np.transpose(ave)
+    ave_abu_levels = a_data_set[0, :]
+    ave_abu_angle = a_data_set[1, :]
+    ave_abu_radius = a_data_set[2, :]
+
+    for a in PF_estimationHist:
+        last_value = a[len(a) - 1]
+        diff = max_len_hist - len(a)
+        for i in range(diff):
+            a.append(last_value)
+
+    aa = np.array(PF_estimationHist)
+    ave = aa.mean(0)
+    a_data_set = np.transpose(ave)
+    ave_pf_levels = a_data_set[0, :]
+    ave_pf_angle = a_data_set[1, :]
+    ave_pf_radius = a_data_set[2, :]
+
+    fig = plt.figure(2)
+
+    plt.subplot(3,1,1)
+    plt.plot([i for i in range(len(ave_pf_levels))], ave_pf_levels, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+    plt.plot([i for i in range(len(ave_abu_levels))], ave_abu_levels, label='ABU', linestyle='-', color='red',linewidth=1)
+    plt.plot([i for i in range(len(ave_aga_levels))], ave_aga_levels, label='AGA', linestyle='-', color='green',linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Level ')
+    ax.legend(loc="upper center", shadow=False, fontsize='x-small')
+    plt.subplot(3,1,2)
+    plt.plot([i for i in range(len(ave_pf_angle))], ave_pf_angle, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+    plt.plot([i for i in range(len(ave_abu_angle))], ave_abu_angle, label='ABU', linestyle='-', color='red',linewidth=1)
+    plt.plot([i for i in range(len(ave_aga_angle))], ave_aga_angle, label='AGA', linestyle='-', color='green',linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Angle ')
+
+    plt.subplot(3,1,3)
+    plt.plot([i for i in range(len(ave_pf_radius))], ave_pf_radius, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+    plt.plot([i for i in range(len(ave_abu_radius))], ave_abu_radius, label='ABU', linestyle='-', color='red',linewidth=1)
+    plt.plot([i for i in range(len(ave_aga_radius))], ave_aga_radius, label='AGA', linestyle='-', color='green',linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Level ')
+    ax.set_xlabel('Step numbers')
+
+    fig.savefig("./plots/history_of_estimation.jpg")
+
+def plot_errors_in_history_estimation(level,angle,radius):
+    global ave_aga_levels
+    global ave_aga_angle
+    global ave_aga_radius
+    global ave_abu_levels
+    global ave_abu_angle
+    global ave_abu_radius
+    global ave_pf_levels
+    global ave_pf_angle
+    global ave_pf_levels
+
+    err_aga_levels = []
+    err_aga_angle = []
+    err_aga_radius = []
+    err_abu_levels = []
+    err_abu_angle = []
+    err_abu_radius = []
+    err_pf_levels = []
+    err_pf_angle = []
+    err_pf_radius = []
+
+    for i in range (max_len_hist):
+        err_aga_levels.append( ave_aga_levels[i] - level)
+        err_aga_angle.append(ave_aga_angle[i] - angle)
+        err_aga_radius.append(ave_aga_radius[i] - radius)
+        err_abu_levels.append(ave_abu_levels[i] - level)
+        err_abu_angle.append(ave_abu_angle[i] - angle)
+        err_abu_radius.append(ave_abu_radius[i] - radius)
+        err_pf_levels.append(ave_pf_levels[i] - level)
+        err_pf_angle.append(ave_pf_angle[i] - angle)
+        err_pf_radius.append(ave_pf_radius[i] - radius)
 
+        fig = plt.figure(1)
 
-for a in AGA_estimationHist:
-
-    last_value = a[len(a)-1]
-    diff = max_len_hist - len(a)
-    diff_arr = last_value * diff
-    for i in range(diff):
-        a.append(last_value)
-#
-aa = np.array(AGA_estimationHist)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-aga_levels = list(a_data_set[0, :])
-aga_angle = list(a_data_set[1, :])
-aga_radius = list(a_data_set[2, :])
-
-
-for a in ABU_estimationHist:
-    last_value = a[len(a) - 1]
-    diff = max_len_hist - len(a)
-    for i in range(diff):
-        a.append(last_value)
-
-
-aa = np.array(ABU_estimationHist)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-abu_levels = a_data_set[0, :]
-abu_angle = a_data_set[1, :]
-abu_radius = a_data_set[2, :]
-
-
-for a in PF_estimationHist:
-    last_value = a[len(a) - 1]
-    diff = max_len_hist - len(a)
-    for i in range(diff):
-        a.append(last_value)
-
-
-aa = np.array(PF_estimationHist)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-pf_levels = a_data_set[0, :]
-pf_angle = a_data_set[1, :]
-pf_radius = a_data_set[2, :]
-
-
-fig = plt.figure(2)
-
-plt.subplot(3,1,1)
-plt.plot([i for i in range(len(pf_levels))], pf_levels, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_levels))], abu_levels, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_levels))], aga_levels, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Level ')
-ax.legend(loc="upper center", shadow=False, fontsize='x-small')
-plt.subplot(3,1,2)
-plt.plot([i for i in range(len(pf_angle))], pf_angle, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_angle))], abu_angle, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_angle))], aga_angle, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Angle ')
-
-plt.subplot(3,1,3)
-plt.plot([i for i in range(len(pf_radius))], pf_radius, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_radius))], abu_radius, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_radius))], aga_radius, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Level ')
-ax.set_xlabel('Step numbers')
-
-
-fig.savefig("./plots/history_of_estimation.jpg")
-
-
-for a in ABU_estimationHistError:
-    last_value = a[len(a) - 1]
-    diff = max_len_hist - len(a)
-    diff_arr = last_value * diff
-    for i in range(diff):
-        a.append(last_value)
-
-aa = np.array(ABU_estimationHistError)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-abu_levels_err = a_data_set[0, :]
-abu_angle_err = a_data_set[1, :]
-abu_radius_err = a_data_set[2, :]
-
-
-for a in AGA_estimationHistError:
-    last_value = a[len(a) - 1]
-    diff = max_len_hist - len(a)
-    diff_arr = last_value * diff
-    for i in range(diff):
-        a.append(last_value)
-
-aa = np.array(AGA_estimationHistError)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-aga_levels_err = a_data_set[0, :]
-aga_angle_err = a_data_set[1, :]
-aga_radius_err = a_data_set[2, :]
+        plt.subplot(3,1,1)
+        plt.plot([i for i in range(len(err_pf_levels))], err_pf_levels, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+        plt.plot([i for i in range(len(err_abu_levels))], err_abu_levels, label='ABU', linestyle='-', color='red',linewidth=1)
+        plt.plot([i for i in range(len(err_aga_levels))], err_aga_levels, label='AGA', linestyle='-', color='green',linewidth=1)
+        ax = plt.gca()
+        ax.set_ylabel('Level Error')
+        ax.legend(loc="upper right", shadow=True, fontsize='x-large')
+        plt.subplot(3,1,2)
+        plt.plot([i for i in range(len(err_pf_angle))], err_pf_angle, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+        plt.plot([i for i in range(len(err_abu_angle))], err_abu_angle, label='ABU', linestyle='-', color='red',linewidth=1)
+        plt.plot([i for i in range(len(err_aga_angle))], err_aga_angle, label='AGA', linestyle='-', color='green',linewidth=1)
+        ax = plt.gca()
+        ax.set_ylabel('Angle Error')
 
-for a in PF_estimationHistError:
-    last_value = a[len(a) - 1]
-    diff = max_len_hist - len(a)
-    for i in range(diff):
-        a.append(last_value)
+        plt.subplot(3,1,3)
+        plt.plot([i for i in range(len(err_pf_radius))], err_pf_radius, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
+        plt.plot([i for i in range(len(err_abu_radius))], err_abu_radius, label='ABU', linestyle='-', color='red',linewidth=1)
+        plt.plot([i for i in range(len(err_aga_radius))], err_aga_radius, label='AGA', linestyle='-', color='green',linewidth=1)
+        ax = plt.gca()
+        ax.set_ylabel('radius Error')
+        ax.set_xlabel('Step numbers')
 
+        fig.savefig("./plots/errors_in_history_estimation.jpg")
 
-aa = np.array(PF_estimationHistError)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-pf_levels_err = a_data_set[0, :]
-pf_angle_err = a_data_set[1, :]
-pf_radius_err = a_data_set[2, :]
+def plot_errors_in_last_estimation():
+    AGA_ave_level = 0
+    ABU_ave_level = 0
+    PF_ave_level = 0
 
+    if len(AGA_errors):
+        AGA_data_set = np.transpose(np.array(AGA_errors))
 
-for a in AGA_estimationHistError:
+        AGA_levels = AGA_data_set[0, :]
+        AGA_ave_level = np.average(AGA_levels)
 
-    last_value = a[len(a)-1]
-    diff = max_len_hist - len(a)
-    diff_arr = last_value * diff
-    for i in range(diff):
-        a.append(last_value)
+        AGA_angle = AGA_data_set[1, :]
+        AGA_ave_angle = np.average(AGA_angle)
 
-aa = np.array(AGA_estimationHistError)
-ave = aa.mean(0)
-a_data_set = np.transpose(ave)
-pf_levels = list (a_data_set[0, :])
-pf_angle = list( a_data_set[1, :])
-pf_radius = list(a_data_set[2, :])
+        AGA_radius = AGA_data_set[2, :]
+        AGA_ave_radius = np.average(AGA_radius)
 
+    if len(PF_errors):
+        PF_data_set = np.transpose(np.array(PF_errors))
 
-fig = plt.figure(1)
+        PF_levels = PF_data_set[0, :]
+        PF_ave_level = np.average(PF_levels)
 
-plt.subplot(3,1,1)
-plt.plot([i for i in range(len(pf_levels_err))], pf_levels, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_levels_err))], abu_levels, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_levels_err))], aga_levels, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Level Error')
-ax.legend(loc="upper right", shadow=True, fontsize='x-large')
-plt.subplot(3,1,2)
-plt.plot([i for i in range(len(pf_angle_err))], pf_angle, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_angle_err))], abu_angle, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_angle_err))], aga_angle, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Angle Error')
+        PF_angle = PF_data_set[1, :]
+        PF_ave_angle = np.average(PF_angle)
 
-plt.subplot(3,1,3)
-plt.plot([i for i in range(len(pf_radius))], pf_radius, label='PF', linestyle='-', color='cornflowerblue',linewidth=1)
-plt.plot([i for i in range(len(abu_radius))], abu_radius, label='ABU', linestyle='-', color='red',linewidth=1)
-plt.plot([i for i in range(len(aga_radius))], aga_radius, label='AGA', linestyle='-', color='green',linewidth=1)
-ax = plt.gca()
-ax.set_ylabel('Level Error')
-ax.set_xlabel('Step numbers')
+        PF_radius = PF_data_set[2, :]
+        PF_ave_radius = np.average(PF_radius)
 
 
-fig.savefig("./plots/errors_in_history_estimation.jpg")
+    if len(ABU_errors):
+        ABU_data_set = np.transpose(np.array(ABU_errors))
 
+        ABU_levels = ABU_data_set [0, :]
+        ABU_ave_level = np.average(ABU_levels)
 
-AGA_ave_level = 0
-ABU_ave_level = 0
-PF_ave_level = 0
+        ABU_angle = ABU_data_set[1, :]
+        ABU_ave_angle = np.average(ABU_angle)
 
-if len(AGA_errors):
-    AGA_data_set = np.transpose(np.array(AGA_errors))
+        ABU_radius = ABU_data_set[2, :]
+        ABU_ave_radius = np.average(ABU_radius)
 
-    AGA_levels = AGA_data_set[0, :]
-    AGA_ave_level = np.average(AGA_levels)
+    N = 3
+    ind = np.arange(N)  # the x locations for the groups
+    width = 0.20  # the width of the bars
 
-    AGA_angle = AGA_data_set[1, :]
-    AGA_ave_angle = np.average(AGA_angle)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
 
-    AGA_radius = AGA_data_set[2, :]
-    AGA_ave_radius = np.average(AGA_radius)
+    level_vals = [PF_ave_level, ABU_ave_level, AGA_ave_level]
+    rects1 = ax.bar(ind, level_vals, width, color='r')
+    angle_vals = [PF_ave_angle, ABU_ave_angle, AGA_ave_angle]
+    rects2 = ax.bar(ind + width, angle_vals, width, color='g')
+    radius_vals = [PF_ave_radius, ABU_ave_radius, AGA_ave_radius]
+    rects3 = ax.bar(ind + width * 2, radius_vals, width, color='b')
 
-if len(PF_errors):
-    PF_data_set = np.transpose(np.array(PF_errors))
+    ax.set_title('Errors in Last estimation for different methods')
+    ax.set_ylabel('Error')
+    ax.set_xlabel('Estimation Method')
+    ax.set_xticks(ind + width)
+    ax.set_xticklabels(('PF', 'ABU', 'AGA'))
+    ax.legend((rects1[0], rects2[0], rects3[0]), ('level', 'angle', 'radius'))
 
-    PF_levels = PF_data_set[0, :]
-    PF_ave_level = np.average(PF_levels)
+    fig.savefig("./plots/errors_in_last_estimation.jpg")
 
-    PF_angle = PF_data_set[1, :]
-    PF_ave_angle = np.average(PF_angle)
 
-    PF_radius = PF_data_set[2, :]
-    PF_ave_radius = np.average(PF_radius)
+def plot_MonteCarlo():
 
+    N = 3
+    ind = np.arange(N)  # the x locations for the groups
+    width = 0.10       # the width of the bars
 
-if len(ABU_errors):
-    ABU_data_set = np.transpose(np.array(ABU_errors))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
 
-    ABU_levels = ABU_data_set [0, :]
-    ABU_ave_level = np.average(ABU_levels)
 
-    ABU_angle = ABU_data_set[1, :]
-    ABU_ave_angle = np.average(ABU_angle)
+    OSPA = [np.mean(O_AGA_timeSteps),np.mean(O_ABU_timeSteps),np.mean(O_PF_timeSteps)]
+    rects1 = ax.bar(ind, OSPA, width, color='r')
 
-    ABU_radius = ABU_data_set[2, :]
-    ABU_ave_radius = np.average(ABU_radius)
 
+    MSPA = [np.mean(M_AGA_timeSteps),np.mean(M_ABU_timeSteps),np.mean(M_PF_timeSteps)]
+    rects2 = ax.bar(ind+ width, MSPA, width, color='b')
 
 
 
-N = 3
-ind = np.arange(N)  # the x locations for the groups
-width = 0.20       # the width of the bars
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+    ax.set_title('MonteCarlo')
+    ax.set_ylabel('Time Steps')
+    ax.set_xlabel('Estimation Method')
+    ax.set_xticks(ind+width)
+    ax.set_xticklabels(('ABU','AGA','PF'))
+    ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
 
+    fig.savefig("./plots/MonteCarlo.jpg")
 
-level_vals = [PF_ave_level, ABU_ave_level, AGA_ave_level]
-rects1 = ax.bar(ind, level_vals, width, color='r')
-angle_vals = [PF_ave_angle,ABU_ave_angle,AGA_ave_angle]
-rects2 = ax.bar(ind+width, angle_vals, width, color='g')
-radius_vals = [PF_ave_radius,ABU_ave_radius,AGA_ave_radius]
-rects3 = ax.bar(ind+width*2, radius_vals, width, color='b')
 
-ax.set_title('Errors in Last estimation for different methods')
-ax.set_ylabel('Error')
-ax.set_xlabel('Estimation Method')
-ax.set_xticks(ind+width)
-ax.set_xticklabels(('PF', 'ABU','AGA'))
-ax.legend((rects1[0], rects2[0], rects3[0]), ('level', 'angle', 'radius'))
-
-fig.savefig("./plots/errors_in_last_estimation.jpg")
-
-
-
-
-N = 3
-ind = np.arange(N)  # the x locations for the groups
-width = 0.10       # the width of the bars
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-
-
-OSPA = [np.mean(O_AGA_timeSteps),np.mean(O_ABU_timeSteps),np.mean(O_PF_timeSteps)]
-rects1 = ax.bar(ind, OSPA, width, color='r')
-
-
-MSPA = [np.mean(M_AGA_timeSteps),np.mean(M_ABU_timeSteps),np.mean(M_PF_timeSteps)]
-rects2 = ax.bar(ind+ width, MSPA, width, color='b')
-
-
-
-
-ax.set_title('MonteCarlo')
-ax.set_ylabel('Time Steps')
-ax.set_xlabel('Estimation Method')
-ax.set_xticks(ind+width)
-ax.set_xticklabels(('ABU','AGA','PF'))
-ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
-
-fig.savefig("./plots/MonteCarlo.jpg")
-
+read_files()
+extract_information()
+plot_history_of_estimation()
+plot_errors_in_last_estimation()
+plot_errors_in_history_estimation()
+plot_MonteCarlo()

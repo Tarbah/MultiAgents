@@ -49,7 +49,9 @@ class TypeEstimation:
         self.internal_state = None
         self.data_set = []
         self.false_data_set = []
-        self.weight = []
+        self.choose_target_state = None
+        # self.weight = []
+
 
     def add_estimation_history(self,probability, level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -95,6 +97,7 @@ class ParameterEstimation:
         self.f2_estimation = TypeEstimation('f2')
         self.sim = None
         self.estimated_agent = None
+        self.action_step_num = 0
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = None
 
@@ -129,7 +132,7 @@ class ParameterEstimation:
         self.PF_del_threshold = PF_del_threshold
         self.PF_weight = PF_weight
 
-
+    ####################################################################################################################
     ####################################################################################################################
     # Initialisation random values for parameters of each type and probability of actions in time step 0
     def estimation_initialisation(self):
@@ -313,88 +316,167 @@ class ParameterEstimation:
         return D
 
     ####################################################################################################################
-    def generate_data(self,  cur_sim,  time_step, new_action, tmp_agent):
-        print 'direction in estimation', tmp_agent.direction
+    def set_choose_target_state(self,state, agent_type):
+        if agent_type == 'l1':
+
+            self.l1_estimation.choose_target_state = state
+
+        if agent_type == 'l2':
+
+            self.l2_estimation.choose_target_state = state
+
+        if agent_type == 'f1':
+
+             self.f1_estimation.choose_target_state = state
+
+        if agent_type == 'f2':
+
+            self.f2_estimation.choose_target_state = state
+
+    ####################################################################################################################
+    def choosing_false_parameters(self,false_data_set,choose_target_state,new_action,data_set,time_step):
+        remove_pf = []
+        if time_step > 0:
+            if choose_target_state is not None:
+                for i in range(len(data_set)):
+                    particle_filter = data_set[i]
+                    print particle_filter['route']
+                    print self.action_step_num
+                    print new_action
+                    if len(particle_filter['route']) > self.action_step_num :
+                        if particle_filter['route'][self.action_step_num] != new_action:
+                            false_data_set.append(particle_filter['parameter'])
+                            remove_pf.append(particle_filter)
+        return remove_pf
+    # ####################################################################################################################
+    def generate_data(self,  cur_sim,  time_step, new_action, cur_agent):
+        # print 'direction in estimation', tmp_agent.direction
 
         data_set = list()
         weight = list()
         false_data_set = list()
 
-        if tmp_agent.agent_type == 'l1':
+        if cur_agent.agent_type == 'l1':
             data_set = self.l1_estimation.data_set
             false_data_set = self.l1_estimation.false_data_set
-            weight = self.l1_estimation.weight
+            choose_target_state = self.l1_estimation.choose_target_state
 
-        if tmp_agent.agent_type == 'l2':
+        if cur_agent.agent_type == 'l2':
             data_set = self.l2_estimation.data_set
             false_data_set = self.l2_estimation.false_data_set
-            weight = self.l2_estimation.weight
+            choose_target_state = self.l2_estimation.choose_target_state
 
-        if tmp_agent.agent_type == 'f1':
+        if cur_agent.agent_type == 'f1':
             data_set = self.f1_estimation.data_set
             false_data_set = self.f1_estimation.false_data_set
-            weight = self.f1_estimation.weight
+            choose_target_state = self.f1_estimation.choose_target_state
 
-        if tmp_agent.agent_type == 'f2':
+        if cur_agent.agent_type == 'f2':
             data_set = self.f2_estimation.data_set
             false_data_set = self.f2_estimation.false_data_set
-            weight = self.f2_estimation.weight
+            choose_target_state = self.f2_estimation.choose_target_state
 
-        if time_step > 0:
+        remove_pf = []
+        if new_action != 'L':
+            remove_pf = self.choosing_false_parameters(false_data_set,choose_target_state,new_action,data_set,time_step)
 
-            tmp_sim = deepcopy(cur_sim)
-            for estimated_data in data_set:
+        actions_history = cur_agent.actions_history
 
-                tmp_agent.set_parameters(tmp_sim, estimated_data[0], estimated_data[1], estimated_data[2])
-                tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
-                p_action = tmp_agent.get_action_probability(new_action)
-                index = data_set.index(estimated_data)
+        if time_step == 0:
+            choose_target_state = deepcopy(cur_sim)
+            self.set_choose_target_state(cur_sim ,cur_agent.agent_type)
+        else:
+            if new_action == 'L':
+                self.set_choose_target_state(None,cur_agent.agent_type)
+                self.action_step_num = 0
+            # old_action = actions_history[time_step - 1]
+            if choose_target_state is None and len(actions_history) > 0:
+                choose_target_state = deepcopy(cur_sim)
+                self.set_choose_target_state(cur_sim, cur_agent.agent_type)
+                for d in data_set:
+                    tmp_agent = (choose_target_state.agents[0])
+                    tmp_agent.reset_memory()
+                    parameters = d['parameter']
+                    tmp_agent.set_parameters(choose_target_state, parameters[0], parameters[1], parameters[2])
+                    tmp_agent = choose_target_state.move_a_agent(tmp_agent, True)  # f(p)
+                    target = tmp_agent.get_memory()
+                    p_action = tmp_agent.get_action_probability(actions_history[0])
+                    route_actions = tmp_agent.route_actions
 
-                if p_action > self.PF_add_threshold:
-                    weight[index] *= self.PF_weight
-                else:
-                    weight[index] /= self.PF_weight
-                    if weight[index] < self.PF_del_threshold:
-                        del(data_set[index])
-                        del (weight[index])
-                        false_data_set.append(estimated_data)
+                    if route_actions is not None:
+                        if p_action > self.PF_add_threshold and route_actions[
+                                                                0:len(actions_history)] == actions_history:
+                            w = self.PF_weight
+                            d['target'] = target
+                            d['weight'] = w
+                            d['action_probability'] = p_action
+                            d['route'] = tmp_agent.route_actions
+                        else:
+                            w = 0  # 1 / self.PF_weight
+                            false_data_set.append(d['parameter'])
+                            remove_pf.append(d)
 
-        tmp_sim = deepcopy(cur_sim)
+        for d in remove_pf:
+            data_set.remove(d)
+        if len(actions_history)>0 :
+            for i in range(self.generated_data_number - len(data_set)):
+                particle_filter = {}
+                tmp_agent = (choose_target_state.agents[0])
+                tmp_agent.reset_memory()
+                # Generating random values for parameters
+                tmp_radius = random.uniform(radius_min, radius_max)  # 'radius'
+                tmp_angle = random.uniform(angle_min, angle_max)    # 'angle'
+                tmp_level = random.uniform(level_min, level_max)  # 'level'
 
-        for i in range(self.generated_data_number - len(data_set)):
+                if [tmp_level, tmp_radius, tmp_angle] not in false_data_set:
 
-            # Generating random values for parameters
-            tmp_radius = random.uniform(radius_min, radius_max)  # 'radius'
-            tmp_angle = random.uniform(angle_min, angle_max)    # 'angle'
-            tmp_level = random.uniform(level_min, level_max)  # 'level'
-            if [tmp_level, tmp_radius, tmp_angle] not in false_data_set:
+                    tmp_agent.set_parameters(choose_target_state, tmp_level, tmp_radius, tmp_angle)
 
-                tmp_agent.set_parameters(tmp_sim, tmp_level, tmp_radius, tmp_angle)
+                    tmp_agent = choose_target_state.move_a_agent(tmp_agent, True)  # f(p)
+                    target = tmp_agent.get_memory()
 
-                tmp_agent = tmp_sim.move_a_agent(tmp_agent, True)  # f(p)
-                p_action = tmp_agent.get_action_probability(new_action)
+                    p_action = tmp_agent.get_action_probability(actions_history[0])
+                    route_actions = tmp_agent.route_actions
 
-                data_set.append([tmp_level, tmp_radius, tmp_angle])
+                    if route_actions is not None:
+                        if p_action > self.PF_add_threshold and route_actions[0:len(actions_history)] == actions_history:
+                            w = self.PF_weight
+                        else:
+                            w = 0 #1 / self.PF_weight
 
-                if p_action > self.PF_add_threshold:
-                    w = self.PF_weight
-                else:
-                    w = 1 / self.PF_weight
+                        particle_filter['target'] = target
 
-                # testing previous step
-                old_sim = deepcopy(tmp_agent.state_history[time_step - 1])
-                old_action = tmp_agent.actions_history[time_step - 1]
-                tmp_agent = old_sim.move_a_agent(tmp_agent, True)  # f(p)
-                p_action = tmp_agent.get_action_probability(old_action)
+                        particle_filter['parameter'] = [tmp_level, tmp_radius, tmp_angle]
+                        # particle_filter['weight'] = w
+                        # particle_filter['load_state'] = choose_target_state
+                        # particle_filter['action_probability'] = p_action
+                        particle_filter['route'] = tmp_agent.route_actions
 
-                if p_action > self.PF_add_threshold:
+                        # print(target)
+                        # print [tmp_level, tmp_radius, tmp_angle]
+                        # print(p_action)
 
-                    weight.append(w * self.PF_weight)
-                else:
-                    weight.append(w * 1/self.PF_weight)
+                        if w > 0:
+                            data_set.append(particle_filter)
+
+
+
+                    # # testing previous step
+                    # old_sim = deepcopy(tmp_agent.state_history[time_step - 1])
+                    # old_action = tmp_agent.actions_history[time_step - 1]
+                    # tmp_agent = old_sim.move_a_agent(tmp_agent, True)  # f(p)
+                    # p_action = tmp_agent.get_action_probability(old_action)
+                    #
+                    # if p_action > self.PF_add_threshold:
+                    #
+                    #     weight.append(w * self.PF_weight)
+                    # else:
+                    #     weight.append(w * 1/self.PF_weight)
+        # print(data_set)
 
         return
 
+    ####################################################################################################################
     def get_parameter(self, parameter, index):
         #TODO: Level = 0, angle = 1, radius = 2? Perhaps there should be a nicer way to do this
 
@@ -406,7 +488,7 @@ class ParameterEstimation:
             return parameter.radius
     
     ####################################################################################################################
-    def  calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
+    def calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
         # p is parameter estimation value at time step t-1 and D is pair of (p,f(p))
         # f(p) is the probability of action which is taken by unknown agent with true parameters at time step t
         # (implementation of Algorithm 2 in the paper for updating parameter value)
@@ -492,7 +574,6 @@ class ParameterEstimation:
             
             return Parameter(parameter_estimate[0], parameter_estimate[1], parameter_estimate[2])
         
-
     ####################################################################################################################
     def calculate_EGO(self, agent_type, time_step):  # Exact Global Optimisation
 
@@ -721,48 +802,73 @@ class ParameterEstimation:
 
         estimated_parameter = None
 
+        last_parameters_value = 0
+
+        if cur_agent.agent_type == 'l1':
+            last_parameters_value = deepcopy(self.l1_estimation.get_last_estimation())
+
+        if cur_agent.agent_type == 'l2':
+            last_parameters_value = deepcopy(self.l2_estimation.get_last_estimation())
+
+        if cur_agent.agent_type == 'f1':
+            last_parameters_value = deepcopy(self.f1_estimation.get_last_estimation())
+
+        if cur_agent.agent_type == 'f2':
+            last_parameters_value = deepcopy(self.f2_estimation.get_last_estimation())
+
         if self.parameter_estimation_mode == 'PF':
             self.generate_data(current_sim, time_step, action, cur_agent)
             current_data_set = list()
-            current_weight = list()
+            # current_weight = list()
             if cur_agent.agent_type == 'l1':
                 current_data_set = self.l1_estimation.data_set
-                current_weight = self.l1_estimation.weight
-
+            #     current_weight = self.l1_estimation.weight
+            #
             if cur_agent.agent_type == 'l2':
                 current_data_set = self.l2_estimation.data_set
-                current_weight = self.l2_estimation.weight
-
+            #     current_weight = self.l2_estimation.weight
+            #
             if cur_agent.agent_type == 'f1':
                 current_data_set = self.f1_estimation.data_set
-                current_weight = self.f1_estimation.weight
-
+            #     current_weight = self.f1_estimation.weight
+            #
             if cur_agent.agent_type == 'f2':
                 current_data_set = self.f2_estimation.data_set
-                current_weight = self.f2_estimation.weight
+            #     current_weight = self.f2_estimation.weight
+            #
+            # if current_data_set == []:
+            #     return None
+            #
+            # print(current_data_set)
+            # print('--------------------------')
+            # print(current_weight)
+            # print('--------------------------')
+            #
+            parameters = []
+            for ds in current_data_set:
+                parameters.append(ds["parameter"])
 
-            if current_data_set == []:
-                return None
+            # print parameters
+            a_data_set = np.transpose(np.array(parameters))
 
-            print(current_data_set)
-            print('--------------------------')
-            print(current_weight)
-            print('--------------------------')
+            if a_data_set != []:
+                # a_weights = np.array(current_weight)
+                #
+                levels = a_data_set [0, :]
+                ave_level = np.average(levels) #, weights=a_weights)
+                #
+                angle = a_data_set[1, :]
+                ave_angle = np.average(angle) #, weights=a_weights)
+                #
+                radius = a_data_set[2, :]
+                ave_radius = np.average(radius) #, weights=a_weights)
+                new_parameter = Parameter(ave_level, ave_angle, ave_radius)
+                print 'new_parameter' , ave_level, ave_angle, ave_radius
+                # new_parameter = deepcopy(self.l1_estimation.get_last_estimation())
 
-            a_data_set = np.transpose(np.array(current_data_set))
-            a_weights = np.array(current_weight)
-
-            levels = a_data_set [0, :]
-            ave_level = np.average(levels, weights=a_weights)
-
-            angle = a_data_set[1, :]
-            ave_angle = np.average(angle, weights=a_weights)
-
-            radius = a_data_set[2, :]
-            ave_radius = np.average(radius, weights=a_weights)
-            new_parameter = Parameter(ave_level, ave_angle, ave_radius)
-
-            return new_parameter
+                return new_parameter
+            else :
+                return last_parameters_value
 
         else:
 
@@ -779,19 +885,6 @@ class ParameterEstimation:
                 x_train.append(D[i][0:3])
                 y_train.append(D[i][3])
 
-            last_parameters_value = 0
-
-            if cur_agent.agent_type == 'l1':
-                last_parameters_value = deepcopy(self.l1_estimation.get_last_estimation())
-
-            if cur_agent.agent_type == 'l2':
-                last_parameters_value = deepcopy(self.l2_estimation.get_last_estimation())
-
-            if cur_agent.agent_type == 'f1':
-                last_parameters_value = deepcopy(self.f1_estimation.get_last_estimation())
-
-            if cur_agent.agent_type == 'f2':
-                last_parameters_value = deepcopy(self.f2_estimation.get_last_estimation())
 
             # D = (p,f(p)) , f(p) = P(a|H_t_1,teta,p)
             if self.parameter_estimation_mode == 'AGA':
@@ -862,12 +955,14 @@ class ParameterEstimation:
 
     ###################################################################################################################
     def process_parameter_estimations(self, time_step,  agent_direction, action, agent_index,
-                                      actions_history, state_history):
+                                      actions_history, previous_state):
 
         new_parameters_estimation = None
         selected_types = None
 
-        tmp_sim = deepcopy(state_history[time_step]) # current state
+
+        # tmp_sim = deepcopy(state_history[time_step]) # current state
+        tmp_sim = previous_state
         self.sim = tmp_sim
         (x, y) = tmp_sim.agents[agent_index].get_position()  # Position in the world e.g. 2,3
         self.estimated_agent = agent.Agent(x, y, agent_direction, None, agent_index)
@@ -878,13 +973,14 @@ class ParameterEstimation:
         if self.type_selection_mode == 'BS':
             selected_types = self.UCB_selection(time_step)  # returns l1, l2, f1, f2
 
+        selected_types = ['l1']
         # Estimate the parameters
         for selected_type in selected_types:
             # Generates an Agent object
             tmp_agent = deepcopy(self.estimated_agent)
             tmp_agent.agent_type = selected_type
             tmp_agent.actions_history = actions_history
-            tmp_agent.state_history = state_history
+            tmp_agent.previous_state = previous_state
 
             # Return new parameters, applying formulae stated in paper Section 1AGA_O_2.2 - list of length 3
             new_parameters_estimation = self.parameter_estimation(time_step, tmp_agent, tmp_sim, action)
@@ -900,8 +996,9 @@ class ParameterEstimation:
                 action_prob = tmp_agent.get_action_probability(action)
                 print 'action' , action, 'action_prob' , action_prob
 
-                if time_step > 0:
-                    self.update_internal_state(tmp_sim)
+                # TODO: CHANGE IT
+                # if time_step > 0:
+                #     self.update_internal_state(tmp_sim)
 
                 # Determine which list to append new parameter estimation and action prob to
                 if selected_type == 'l1':
@@ -921,6 +1018,7 @@ class ParameterEstimation:
                     self.f2_estimation.type_probability = action_prob * self.f2_estimation.get_last_type_probability()
 
         self.normalize_type_probabilities()
+        self.action_step_num += 1
 
         return new_parameters_estimation
 

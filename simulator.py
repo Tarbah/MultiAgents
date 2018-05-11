@@ -150,39 +150,6 @@ class Simulator:
 
         return True
         
-    ####################################################################################################################
-    def copy(self):
-
-        copy_items = []
-
-        for i in range(len(self.items)):
-            copy_item = self.items[i].copy()
-            copy_items.append(copy_item)
-
-        copy_agents = list()
-
-        for agent in self.agents:
-            copy_agent = agent.copy()
-            copy_agents.append(copy_agent)
-
-        copy_obstacles = []
-        for obs in self.obstacles:
-            copy_obstacle = obs.copy()
-            copy_obstacles.append(copy_obstacle)
-
-        tmp_sim = Simulator()
-        tmp_sim.dim_h = self.dim_h
-        tmp_sim.dim_w = self.dim_w
-        tmp_sim.agents = copy_agents
-        tmp_sim.items = copy_items
-        if self.main_agent is not None:
-            copy_main_agent = self.main_agent.copy()
-            tmp_sim.main_agent = copy_main_agent
-
-        tmp_sim.obstacles = copy_obstacles
-        tmp_sim.update_the_map()
-
-        return tmp_sim
 
     ####################################################################################################################
     def create_log_file(self,path):
@@ -235,7 +202,22 @@ class Simulator:
             return 'E'
         if dir == '3':
             return 'S'
+    ####################################################################################################################
+    def convert_route_to_action(self, route):
+        #  This function is to find the first action afte finding the path by  A Star
+        actions = []
 
+        for dir in route:
+
+            if dir == '0':
+                actions.append('W')
+            if dir == '1':
+                actions.append('N')
+            if dir == '2':
+                actions.append('E')
+            if dir == '3':
+                actions.append('S')
+        return actions
     ###############################################################################################################
 
     def items_left(self):
@@ -577,6 +559,7 @@ class Simulator:
 
                 route = a.pathFind(x_agent, y_agent, x_destination, y_destination)
                 self.mark_route_map(route,x_agent, y_agent)
+                a_agent.route_actions = self.convert_route_to_action(route)
 
                 if len(route) == 0:
                     a_agent.set_actions_probability(0.2, 0.2, 0.2, 0.2, 0.2)

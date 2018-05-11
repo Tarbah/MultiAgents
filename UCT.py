@@ -259,17 +259,18 @@ class UCT:
             return move
 
     ################################################################################################################
-    def simulate_action(self,state, action):
+    def simulate_action(self,state, action, agants_parameter_estimation):
 
-        sim = state.simulator.copy()
+        sim = deepcopy(state.simulator)
         next_state = State(sim)
 
         # Run the A agent to get the actions probabilities
 
         for i in range(len(sim.agents)):
             if self.do_estimation:
-                selected_type = sim.agents[i].estimated_parameter.get_sampled_probability()
-                agents_estimated_values = sim.agents[i].estimated_parameter.get_parameters_for_selected_type(selected_type)
+                estimated_parameter = agants_parameter_estimation[i]
+                selected_type = estimated_parameter.get_sampled_probability()
+                agents_estimated_values = estimated_parameter.get_parameters_for_selected_type(selected_type)
                 sim.agents[i].set_parameters(sim, agents_estimated_values.level, agents_estimated_values.radius, agents_estimated_values.angle)
 
             sim.agents[i] = sim.move_a_agent(sim.agents[i])
@@ -301,7 +302,7 @@ class UCT:
         return root_node
 
     ################################################################################################################
-    def search(self,main_time_step,node):
+    def search(self, main_time_step, node, agants_parameter_estimation):
 
         state = node.state
 
@@ -315,7 +316,7 @@ class UCT:
         # print ('---action:',action)
         # print_Q_table(node)
 
-        (next_state, reward) = self.simulate_action(node.state, action)
+        (next_state, reward) = self.simulate_action(node.state, action, agants_parameter_estimation)
 
         # next_state.simulator.draw_map()
         next_node = None
@@ -340,7 +341,7 @@ class UCT:
                 next_node = node.add_child_one_state(action,next_state)
 
         discount_factor = 0.95
-        q = reward + discount_factor * self.search(main_time_step, next_node)
+        q = reward + discount_factor * self.search(main_time_step, next_node ,agants_parameter_estimation)
 
         node.update(action, q)
         node.visits += 1
@@ -348,7 +349,7 @@ class UCT:
         return q
 
     ####################################################################################################################
-    def monte_carlo_planning(self,main_time_step, search_tree, simulator):
+    def monte_carlo_planning(self,main_time_step, search_tree, simulator, agants_parameter_estimation):
         global root
 
         current_state = State(simulator)
@@ -356,7 +357,7 @@ class UCT:
         if search_tree is None:
             root_node = Node(depth=0, state=current_state)
         else:
-            root_node = self.find_new_root(search_tree , current_state)
+            root_node = self.find_new_root(search_tree, current_state)
             # print "----- Beginning of monte_carlo_planning ---- "
             # print "root node children:", len(root_node.childNodes)
 
@@ -373,7 +374,7 @@ class UCT:
             # print_Q_table(node)
             # print_nodes(node.childNodes)
             # print('=================================================================')
-            self.search(main_time_step, node)
+            self.search(main_time_step, node, agants_parameter_estimation)
 
             time_step += 1
 
@@ -388,7 +389,7 @@ class UCT:
         return best_selected_action, node
 
     ####################################################################################################################
-    def m_agent_planning(self,time_step,search_tree,sim):
+    def m_agent_planning(self, time_step, search_tree, sim, agants_parameter_estimation):
         global totalItems
 
         tmp_sim = deepcopy(sim)
@@ -398,7 +399,7 @@ class UCT:
         if search_tree is None:
             totalItems = tmp_sim.items_left()
 
-        next_move, search_tree = self.monte_carlo_planning(time_step, search_tree,tmp_sim)
+        next_move, search_tree = self.monte_carlo_planning(time_step, search_tree, tmp_sim , agants_parameter_estimation)
 
         return next_move, search_tree
 
