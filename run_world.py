@@ -6,11 +6,11 @@ from copy import deepcopy
 import os
 import datetime
 import pickle
-
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import parameter_estimation
+
 def plot_data_set(main_sim , estimated_parameter):
 
     d = estimated_parameter[0].l1_estimation.data_set
@@ -79,7 +79,7 @@ PF_del_threshold = None
 PF_weight = None
 
 now = datetime.datetime.now()
-sub_dir = now.strftime("%Y-%m-%d %H:%M")
+# sub_dir = now.strftime("%Y-%m-%d %H:%M")
 sub_dir = str(now.day) + "_"+ str(now.hour)+ "_" + str(now.minute)
 current_folder = "outputs/"+ sub_dir + '/'
 if not os.path.exists(current_folder):
@@ -129,6 +129,12 @@ for k, v in info.items():
     if 'PF_weight' in k:
         PF_weight = float(v[0][0])
 
+    if 'do_estimation' in k:
+        if v[0][0] == 'False':
+            do_estimation = False
+        else:
+            do_estimation = True
+
     if 'sim_path' in k:
         sim_path = dir + str(v[0][0]).strip()
 
@@ -177,21 +183,22 @@ for i in range(len(main_sim.agents)):
 while main_sim.items_left() > 0:
 
     print 'main run count: ', time_step
-    tmp_sim = deepcopy(main_sim)
 
     for i in range(len(main_sim.agents)):
         main_sim.agents[i].old_direction = main_sim.agents[i].direction
-        # main_sim.agents[i].state_history.append(tmp_sim)
-        main_sim.agents[i].previous_state = tmp_sim
+       #main_sim.agents[i].state_history.append(tmp_sim)
+        # main_sim.agents[i].previous_state = tmp_sim
+        # temp_agent = deepcopy(main_sim.agents[i])
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
     if main_sim.main_agent is not None:
-        main_sim.main_agent.previous_state = tmp_sim
+        # main_sim.main_agent.previous_state = tmp_sim
         # tmp_sim = main_sim.copy()
+        # tmp_sim = deepcopy(main_sim)
         if not reuseTree:
-            main_agent_next_action, search_tree = uct.m_agent_planning(0, None, tmp_sim,agants_parameter_estimation)
+            main_agent_next_action, search_tree = uct.m_agent_planning(0, None, main_sim,agants_parameter_estimation)
         else:
-            main_agent_next_action, search_tree = uct.m_agent_planning(time_step, search_tree, tmp_sim,agants_parameter_estimation)
+            main_agent_next_action, search_tree = uct.m_agent_planning(time_step, search_tree, main_sim,agants_parameter_estimation)
 
         # print 'main_agent_direction: ', main_agent.get_agent_direction()
         print 'main_agent_next_action: ', main_agent_next_action
@@ -199,8 +206,8 @@ while main_sim.items_left() > 0:
         r = uct.do_move(main_sim, main_agent_next_action)
 
     ## DEBUG
-    # for agent_i in range(len(main_sim.agents)):
-    #     print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
+    for agent_i in range(len(main_sim.agents)):
+        print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
 
     main_sim.update_all_A_agents()
     main_sim.do_collaboration()
@@ -240,8 +247,6 @@ end_time = time.time()
 #
 # for i in range(len(main_sim.agents)):
 #     print agants_parameter_estimation['estimated_parameters'][i]
-
-
 
 def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimated_parameter):
 

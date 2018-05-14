@@ -4,6 +4,7 @@ import item
 import obstacle
 import position
 import a_star
+
 from copy import deepcopy
 
 from numpy.random import choice
@@ -123,6 +124,45 @@ class Simulator:
         for i in range(self.dim_h):
             self.the_map.append(list(row))
 
+    ####################################################################################################################
+
+    def copy(self, for_UCT = True):
+
+        copy_items = []
+
+        for i in range(len(self.items)):
+            copy_item = self.items[i].copy()
+            copy_items.append(copy_item)
+
+        copy_agents = list()
+
+        for agent in self.agents:
+            if for_UCT:
+                (x, y) = agent.get_position()
+
+                copy_agent = agent.Agent(x, y, agent.direction, agent.agent_type, agent.index)
+            else:
+                copy_agent = agent.copy()
+            copy_agents.append(copy_agent)
+
+        copy_obstacles = []
+        for obs in self.obstacles:
+            copy_obstacle = obs.copy()
+            copy_obstacles.append(copy_obstacle)
+
+        tmp_sim = Simulator()
+        tmp_sim.dim_h = self.dim_h
+        tmp_sim.dim_w = self.dim_w
+        tmp_sim.agents = copy_agents
+        tmp_sim.items = copy_items
+        if self.main_agent is not None:
+            copy_main_agent = self.main_agent.copy()
+            tmp_sim.main_agent = copy_main_agent
+
+        tmp_sim.obstacles = copy_obstacles
+        tmp_sim.update_the_map()
+
+        return tmp_sim
     ####################################################################################################################
     def equals(self, other_simulator):
 
@@ -511,23 +551,7 @@ class Simulator:
 
         else:  # If there is no target we should choose a target based on visible items and agents.
 
-            ## TODO: Temporarily removed agent rotating to choose a target
-            ## TODO: This code is also not fully correct. After last pop, we will have len(direction) = 0
-            ## TODO: Also, perhaps we should not allow an agent to rotate to all directions in a single time step?
-            ## TODO: That would be the same as a full angular visibility?
-            # directions = [0 * np.pi / 2, np.pi / 2, 2 * np.pi / 2, 3 * np.pi / 2]
 
-            # while len(directions) > 0:
-
-            #     a_agent.visible_agents_items(self.items, self.agents)
-            #     target = a_agent.choose_target(self.items, self.agents)
-
-            #     if target.get_position() != (-1, -1):
-            #         destination = target
-            #         break
-
-            #     else:  # rotate agent to find an agent
-            #         a_agent.direction = directions.pop()
 
             a_agent.visible_agents_items(self.items, self.agents)
             target = a_agent.choose_target(self.items, self.agents)
