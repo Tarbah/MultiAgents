@@ -71,7 +71,7 @@ generated_data_number = None
 reuseTree = None
 max_depth = None
 sim_path = None
-do_estimation = False
+do_estimation = True
 # Multiple State Per Action (MSPA)/ One State Per Action (OSPA)
 mcts_mode = None
 PF_add_threshold = None
