@@ -22,7 +22,6 @@ level_min = 0
 
 types = ['l1', 'l2', 'f1', 'f2']
 
-
 class Parameter:
     def __init__(self, level, angle, radius):
         self.level = level
@@ -51,7 +50,6 @@ class TypeEstimation:
         self.false_data_set = []
         self.choose_target_state = None
         # self.weight = []
-
 
     def add_estimation_history(self,probability, level, angle, radius):
         new_parameter = Parameter(level, angle, radius)
@@ -100,7 +98,7 @@ class ParameterEstimation:
         self.action_step_num = 0
         # type_selection_mode are: all types selection 'AS', Posterior Selection 'PS' , Bandit Selection 'BS'
         self.type_selection_mode = None
-
+        self.load_states = []
         # Parameter estimation mode is AGA if it is Approximate Gradient Ascent ,
         # ABU if it is Approximate Bayesian Updating
         self.parameter_estimation_mode = None
@@ -340,14 +338,15 @@ class ParameterEstimation:
             if choose_target_state is not None:
                 for i in range(len(data_set)):
                     particle_filter = data_set[i]
-                    print particle_filter['route']
-                    print self.action_step_num
-                    print new_action
+                    # print particle_filter['route']
+                    # print self.action_step_num
+                    # print new_action
                     if len(particle_filter['route']) > self.action_step_num :
                         if particle_filter['route'][self.action_step_num] != new_action:
                             false_data_set.append(particle_filter['parameter'])
                             remove_pf.append(particle_filter)
         return remove_pf
+
     # ####################################################################################################################
     def generate_data(self,  cur_sim,  time_step, new_action, cur_agent):
         # print 'direction in estimation', tmp_agent.direction
@@ -378,24 +377,34 @@ class ParameterEstimation:
 
         remove_pf = []
         if new_action != 'L':
-            remove_pf = self.choosing_false_parameters(false_data_set,choose_target_state,new_action,data_set,time_step)
+            remove_pf = self.choosing_false_parameters(false_data_set, choose_target_state, new_action, data_set, time_step)
 
         actions_history = cur_agent.actions_history
-
+        load_info = {}
         if time_step == 0:
             choose_target_state = deepcopy(cur_sim)
             self.set_choose_target_state(cur_sim ,cur_agent.agent_type)
+            load_info['choose_target_state'] = choose_target_state
+            load_info['loaded_item'] = None
+            self.load_states.append(load_info)
         else:
             if new_action == 'L':
                 self.set_choose_target_state(None,cur_agent.agent_type)
+
                 self.action_step_num = 0
+
             # old_action = actions_history[time_step - 1]
             if choose_target_state is None and len(actions_history) > 0:
                 choose_target_state = deepcopy(cur_sim)
+                self.load_states[-1]['loaded_item'] = deepcopy(cur_sim.agents[0].last_loaded_item)
+                load_info['choose_target_state'] = choose_target_state
+                load_info['loaded_item'] = None
+                self.load_states.append(load_info)
                 self.set_choose_target_state(cur_sim, cur_agent.agent_type)
                 for d in data_set:
                     tmp_agent = (choose_target_state.agents[0])
                     tmp_agent.reset_memory()
+
                     parameters = d['parameter']
                     tmp_agent.set_parameters(choose_target_state, parameters[0], parameters[1], parameters[2])
                     tmp_agent = choose_target_state.move_a_agent(tmp_agent, True)  # f(p)
@@ -418,8 +427,10 @@ class ParameterEstimation:
 
         for d in remove_pf:
             data_set.remove(d)
-        if len(actions_history)>0 :
-            for i in range(self.generated_data_number - len(data_set)):
+        if len(actions_history) > 0:
+            j = 0
+            #while j < (self.generated_data_number - len(data_set)):
+            for i in range (self.generated_data_number - len(data_set)):
                 particle_filter = {}
                 tmp_agent = (choose_target_state.agents[0])
                 tmp_agent.reset_memory()
@@ -456,27 +467,37 @@ class ParameterEstimation:
                         # print [tmp_level, tmp_radius, tmp_angle]
                         # print(p_action)
 
-                        if w > 0:
+                        if w > 0 and self.check_previous_target(tmp_agent, data_set):
+                        #if w > 0:
                             data_set.append(particle_filter)
+                            j +=1
 
 
 
-                    # # testing previous step
-                    # old_sim = deepcopy(tmp_agent.state_history[time_step - 1])
-                    # old_action = tmp_agent.actions_history[time_step - 1]
-                    # tmp_agent = old_sim.move_a_agent(tmp_agent, True)  # f(p)
-                    # p_action = tmp_agent.get_action_probability(old_action)
-                    #
-                    # if p_action > self.PF_add_threshold:
-                    #
-                    #     weight.append(w * self.PF_weight)
-                    # else:
-                    #     weight.append(w * 1/self.PF_weight)
         # print(data_set)
 
         return
 
     ####################################################################################################################
+    def check_previous_target(self,data_set,tmp_agent):
+        if_add = True
+        remove_parameters = []
+        for l in self.load_states:
+            previous_load_state = l['choose_target_state']
+            if l['loaded_item'] is not None:
+                loaded_item_pos = l['loaded_item'].get_position()
+                for data in data_set:
+                    par = data['parameter']
+                    tmp_agent.set_parameters(previous_load_state, par[0], par[1], par[2])
+                    tmp_agent = previous_load_state.move_a_agent(tmp_agent, True)  # f(p)
+                    target = tmp_agent.get_memory()
+                    if loaded_item_pos != target:
+                        remove_parameters.append(data)
+                        return False
+        return True
+
+    ####################################################################################################################
+
     def get_parameter(self, parameter, index):
         #TODO: Level = 0, angle = 1, radius = 2? Perhaps there should be a nicer way to do this
 
@@ -959,7 +980,6 @@ class ParameterEstimation:
 
         new_parameters_estimation = None
         selected_types = None
-
 
         # tmp_sim = deepcopy(state_history[time_step]) # current state
         tmp_sim = previous_state

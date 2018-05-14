@@ -11,6 +11,53 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import parameter_estimation
+def plot_data_set(main_sim , estimated_parameter):
+
+    d = estimated_parameter[0].l1_estimation.data_set
+    parameters = []
+    for ds in d:
+        parameters.append(ds["parameter"])
+
+    true_level = main_sim.agents[0].level
+    true_angle = main_sim.agents[0].angle
+    true_radius = main_sim.agents[0].radius
+    a_data_set = np.transpose(np.array(parameters))
+
+    levels = a_data_set[0, :]
+    angle = a_data_set[1, :]
+    radius = a_data_set[2, :]
+    fig = plt.figure(1)
+#    w = main_sim.agents[0].estimated_parameter.l1_estimation.weight
+    N = len(levels)
+
+    colors = np.random.rand(N)
+    print colors
+    area = (10) ** 2  # 0 to 15 point radii
+    w = [i for i in range(len( levels))]
+    plt.subplot(3, 1, 1)
+    plt.scatter(w, levels, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_level for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Level dataset')
+    ax.legend(loc="upper right", shadow=True, fontsize='x-large')
+    plt.subplot(3, 1, 2)
+    plt.scatter(w, angle, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_angle for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('Angle dataset')
+
+    plt.subplot(3, 1, 3)
+    plt.scatter(w, radius, s=area, c='r', alpha=0.5)
+    plt.plot([i for i in range(2)], [true_radius for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
+             linewidth=1)
+    ax = plt.gca()
+    ax.set_ylabel('radius dataset')
+    ax.set_xlabel('weight')
+    plt.show()
+
+    #fig.savefig("./plots/dataset.jpg")
 
 
 iMaxStackSize = 2000
@@ -24,7 +71,7 @@ generated_data_number = None
 reuseTree = None
 max_depth = None
 sim_path = None
-do_estimation = True
+do_estimation = False
 # Multiple State Per Action (MSPA)/ One State Per Action (OSPA)
 mcts_mode = None
 PF_add_threshold = None
@@ -33,9 +80,8 @@ PF_weight = None
 
 now = datetime.datetime.now()
 sub_dir = now.strftime("%Y-%m-%d %H:%M")
-
-current_folder = "outputs/"\
-                 # + sub_dir + '/'
+sub_dir = str(now.day) + "_"+ str(now.hour)+ "_" + str(now.minute)
+current_folder = "outputs/"+ sub_dir + '/'
 if not os.path.exists(current_folder):
     os.mkdir(current_folder, 0755)
 
@@ -43,6 +89,7 @@ dir = ""
 if len(sys.argv) > 1 :
     dir = str(sys.argv[1])
 
+#dir = "inputs/2/"
 path = dir + 'config.csv'
 
 info = defaultdict(list)
@@ -87,8 +134,6 @@ for k, v in info.items():
 
     if 'mcts_mode' in k:
         mcts_mode = str(v[0][0]).strip()
-
-
 
 uct = UCT.UCT(reuseTree, iteration_max, max_depth, do_estimation, mcts_mode)
 main_sim = simulator.Simulator()
@@ -170,10 +215,13 @@ while main_sim.items_left() > 0:
                                                                      p_agent.actions_history,
                                                                      p_agent.previous_state)
 
+   # print agants_parameter_estimation[0].l1_estimation.data_set
+
     # ## DEBUG
     # for agent_i in range(len(main_sim.agents)):
     #     print "agent " + str(agent_i) + " next action:" + main_sim.agents[agent_i].next_action
     time_step += 1
+    # plot_data_set(main_sim,agants_parameter_estimation)
 
     print('***********************************************************************************************************')
 
@@ -193,48 +241,6 @@ end_time = time.time()
 # for i in range(len(main_sim.agents)):
 #     print agants_parameter_estimation['estimated_parameters'][i]
 
-def plot_data_set(main_sim , estimated_parameter):
-
-    d = estimated_parameter.l1_estimation.data_set
-    true_level = main_sim.agents[0].level
-    true_angle = main_sim.agents[0].angle
-    true_radius = main_sim.agents[0].radius
-    a_data_set = np.transpose(np.array(d))
-
-    levels = a_data_set[0, :]
-    angle = a_data_set[1, :]
-    radius = a_data_set[2, :]
-    fig = plt.figure(1)
-    w = main_sim.agents[0].estimated_parameter.l1_estimation.weight
-    N = len(w)
-
-    colors = np.random.rand(N)
-    print colors
-    area = (10) ** 2  # 0 to 15 point radii
-
-    plt.subplot(3, 1, 1)
-    plt.scatter(w, levels, s=area, c='r', alpha=0.5)
-    plt.plot([i for i in range(2)], [true_level for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
-             linewidth=1)
-    ax = plt.gca()
-    ax.set_ylabel('Level dataset')
-    ax.legend(loc="upper right", shadow=True, fontsize='x-large')
-    plt.subplot(3, 1, 2)
-    plt.scatter(w, angle, s=area, c='r', alpha=0.5)
-    plt.plot([i for i in range(2)], [true_angle for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
-             linewidth=1)
-    ax = plt.gca()
-    ax.set_ylabel('Angle dataset')
-
-    plt.subplot(3, 1, 3)
-    plt.scatter(w, radius, s=area, c='r', alpha=0.5)
-    plt.plot([i for i in range(2)], [true_radius for i in range(2)], label='PF', linestyle='-', color='cornflowerblue',
-             linewidth=1)
-    ax = plt.gca()
-    ax.set_ylabel('radius dataset')
-    ax.set_xlabel('weight')
-
-    fig.savefig("./plots/dataset.jpg")
 
 
 def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimated_parameter):
@@ -277,7 +283,6 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimate
     systemDetails['PF_del_threshold'] = PF_del_threshold
     systemDetails['PF_add_threshold'] = PF_add_threshold
     systemDetails['PF_weight'] = PF_weight
-
 
     agentDictionary = {}
 
@@ -383,7 +388,7 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimate
     pickle.dump(dataList,pickleFile)
     print "writing over "
 
-#plot_data_set(main_sim)
+#plot_data_set(main_sim , agants_parameter_estimation)
 print_result(main_sim, time_step, begin_time, end_time,mcts_mode,agants_parameter_estimation)
 
 

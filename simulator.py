@@ -4,6 +4,7 @@ import item
 import obstacle
 import position
 import a_star
+from copy import deepcopy
 
 from numpy.random import choice
 from collections import defaultdict
@@ -363,6 +364,7 @@ class Simulator:
         self.items[destination_item_index].loaded = True
         (agent_x, agent_y) = agent.get_position()
         self.items[destination_item_index].remove_agent(agent_x, agent_y)
+        agent.last_loaded_item = deepcopy(agent.item_to_load)
         agent.item_to_load = -1
 
         # Empty the memory to choose new target
@@ -411,6 +413,7 @@ class Simulator:
     ################################################################################################################
     def update(self, a_agent_index):
         reward = 0
+        loaded_item = None
         a_agent = self.agents[a_agent_index]
         if a_agent.next_action == 'L' and a_agent.item_to_load != -1:
             destination = a_agent.item_to_load
@@ -419,6 +422,7 @@ class Simulator:
 
                 # load item and and remove it from map  and get the direction of agent when reaching the item.
                 a_agent = self.load_item(a_agent, destination.index)
+                loaded_item = self.items[destination.index]
                 reward += 1
             else:
                 if not self.items[destination.index].is_agent_in_loaded_list(a_agent):
@@ -436,7 +440,7 @@ class Simulator:
 
         self.agents[a_agent_index] = a_agent
         self.update_the_map()
-        return reward
+        return reward #, loaded_item
 
     ################################################################################################################
     def destination_loaded_by_other_agents(self, agent):

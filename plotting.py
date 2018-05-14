@@ -237,8 +237,8 @@ def plot_history_of_estimation():
     ax = plt.gca()
     ax.set_ylabel('Level ')
     ax.set_xlabel('Step numbers')
-
-    fig.savefig("./plots/history_of_estimation.jpg")
+    plt.show()
+    #fig.savefig("./plots/history_of_estimation.jpg")
 
 def plot_errors_in_history_estimation(level,angle,radius):
     global ave_aga_levels
@@ -295,8 +295,8 @@ def plot_errors_in_history_estimation(level,angle,radius):
         ax = plt.gca()
         ax.set_ylabel('radius Error')
         ax.set_xlabel('Step numbers')
-
-        fig.savefig("./plots/errors_in_history_estimation.jpg")
+        plt.show()
+        # fig.savefig("./plots/errors_in_history_estimation.jpg")
 
 def plot_errors_in_last_estimation():
     AGA_ave_level = 0
@@ -360,8 +360,8 @@ def plot_errors_in_last_estimation():
     ax.set_xticks(ind + width)
     ax.set_xticklabels(('PF', 'ABU', 'AGA'))
     ax.legend((rects1[0], rects2[0], rects3[0]), ('level', 'angle', 'radius'))
-
-    fig.savefig("./plots/errors_in_last_estimation.jpg")
+    plt.show()
+    # fig.savefig("./plots/errors_in_last_estimation.jpg")
 
 
 def plot_MonteCarlo():
@@ -390,13 +390,13 @@ def plot_MonteCarlo():
     ax.set_xticks(ind+width)
     ax.set_xticklabels(('ABU','AGA','PF'))
     ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
-
-    fig.savefig("./plots/MonteCarlo.jpg")
+    plt.show()
+    # fig.savefig("./plots/MonteCarlo.jpg")
 
 
 read_files()
 extract_information()
 plot_history_of_estimation()
 plot_errors_in_last_estimation()
-plot_errors_in_history_estimation()
-plot_MonteCarlo()
+# plot_errors_in_history_estimation()
+# plot_MonteCarlo()

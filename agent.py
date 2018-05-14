@@ -28,6 +28,7 @@ class Agent:
         self.estimated_parameter = None
 
         self.item_to_load = -1
+        self.last_loaded_item = -1
         self.actions_probability = {'L': 0.01, 'N': 0.01, 'E': 0.01, 'S': 0.01, 'W': 0.01}
         self.visible_agents = []
         self.visible_items = []
