@@ -36,6 +36,7 @@ class Agent:
         self.actions_history = []
         self.state_history = []
         self.state_dim = []
+        self.previous_state = None
 
 
     ####################################################################################################################
@@ -108,7 +109,7 @@ class Agent:
         (x, y) = self.position
 
         copy_agent = Agent(x, y, self.direction, self.agent_type, self.index)
-        copy_agent.level = self.level
+
 
         (memory_x, memory_y) = self.memory.get_position()
 
@@ -117,7 +118,7 @@ class Agent:
         copy_agent.actions_history = self.actions_history
         copy_agent.state_history = self.state_history
 
-        copy_agent.estimated_parameter = self.estimated_parameter
+
         copy_agent.direction = self.direction
         copy_agent.level = self.level
         copy_agent.radius = self.radius

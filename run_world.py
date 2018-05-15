@@ -180,17 +180,21 @@ for i in range(len(main_sim.agents)):
     agants_parameter_estimation.append(param_estim)
 
 
-while main_sim.items_left() > 0:
-
+while main_sim.items_left() > 0 :
+# while time_step < 110:
     print 'main run count: ', time_step
+
 
     for i in range(len(main_sim.agents)):
         main_sim.agents[i].old_direction = main_sim.agents[i].direction
+
        #main_sim.agents[i].state_history.append(tmp_sim)
-        # main_sim.agents[i].previous_state = tmp_sim
+        main_sim.agents[i].previous_state =  main_sim.copy()
         # temp_agent = deepcopy(main_sim.agents[i])
+
         main_sim.agents[i] = main_sim.move_a_agent(main_sim.agents[i])
 
+    print('***********************************************************************************************************')
     if main_sim.main_agent is not None:
         # main_sim.main_agent.previous_state = tmp_sim
         # tmp_sim = main_sim.copy()
@@ -206,11 +210,17 @@ while main_sim.items_left() > 0:
         r = uct.do_move(main_sim, main_agent_next_action)
 
     ## DEBUG
-    for agent_i in range(len(main_sim.agents)):
-        print "agent " + str(agent_i) + " heading:" + main_sim.agents[agent_i].get_agent_direction()
+
+    # for agent_i in range(len(main_sim.agents)):
+    #     print "agent " + str(agent_i)
+    #     print " heading:" + main_sim.agents[agent_i].get_agent_direction()
+    #     print 'agent position:', main_sim.agents[agent_i].get_position()
+    #     print 'target:', main_sim.agents[agent_i].memory.get_position()
+    #     print 'Next action:',main_sim.agents[agent_i].next_action
 
     main_sim.update_all_A_agents()
     main_sim.do_collaboration()
+
 
     if do_estimation:
         for i in range(len(agants_parameter_estimation)):
@@ -237,7 +247,7 @@ while main_sim.items_left() > 0:
     main_sim.draw_map()
     main_sim.log_map(logfile)
 
-    # real_sim.draw_map_with_level()
+    # main_sim.draw_map_with_level()
 
     if main_sim.items_left() == 0:
         break

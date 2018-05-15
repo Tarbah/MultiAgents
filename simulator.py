@@ -136,11 +136,16 @@ class Simulator:
 
         copy_agents = list()
 
-        for agent in self.agents:
+        for cagent in self.agents:
             if for_UCT:
-                (x, y) = agent.get_position()
+                (x, y) = cagent.get_position()
 
-                copy_agent = agent.Agent(x, y, agent.direction, agent.agent_type, agent.index)
+                copy_agent = agent.Agent(x, y, cagent.direction, cagent.agent_type, cagent.index)
+                copy_agent.level = cagent.level
+                copy_agent.radius = cagent.radius
+                copy_agent.angle = cagent.angle
+                copy_agent.co_radius = cagent.co_radius
+                copy_agent.co_angle = cagent.co_angle
             else:
                 copy_agent = agent.copy()
             copy_agents.append(copy_agent)
@@ -243,6 +248,7 @@ class Simulator:
             return 'E'
         if dir == '3':
             return 'S'
+
     ####################################################################################################################
     def convert_route_to_action(self, route):
         #  This function is to find the first action afte finding the path by  A Star
@@ -264,8 +270,12 @@ class Simulator:
     def items_left(self):
         items_count= 0
         for i in range(0,len(self.items)):
+
             if not self.items[i].loaded:
+
                 items_count += 1
+
+
         return items_count
 
     ###############################################################################################################
@@ -366,7 +376,7 @@ class Simulator:
                     line_str += ' . '
 
                 elif xy == 1:
-                    line_str += str(self.items[item_index].level)
+                    line_str += str(self.items[item_index].index)
 
                 elif xy == 2:
                     line_str += ' S '
@@ -401,6 +411,9 @@ class Simulator:
     ################################################################################################################
     def load_item(self, agent, destination_item_index):
 
+        # print 'loaded item information by agent:' ,agent.index
+        # print 'position:' ,self.items[destination_item_index].get_position()
+        # print 'index: ',destination_item_index
         self.items[destination_item_index].loaded = True
         (agent_x, agent_y) = agent.get_position()
         self.items[destination_item_index].remove_agent(agent_x, agent_y)
@@ -409,6 +422,7 @@ class Simulator:
 
         # Empty the memory to choose new target
         agent.reset_memory()
+        # print '1'
 
         return agent
 
@@ -455,7 +469,9 @@ class Simulator:
         reward = 0
         loaded_item = None
         a_agent = self.agents[a_agent_index]
+
         if a_agent.next_action == 'L' and a_agent.item_to_load != -1:
+            # print 'loading :', a_agent.item_to_load.get_position()
             destination = a_agent.item_to_load
 
             if destination.level <= a_agent.level:  # If there is a an item nearby loading process starts
@@ -528,6 +544,7 @@ class Simulator:
                 item.loaded = True
                 for agent in item.agents_load_item:
                     self.agents[agent.index].reset_memory()
+                    print '2'
                 item.agents_load_item = list()
                 c_reward += 1
 
@@ -544,6 +561,7 @@ class Simulator:
 
         if self.destination_loaded_by_other_agents(a_agent):  # item is loaded by other agents so reset the memory to choose new target.
             a_agent.reset_memory()
+            print 4
 
         # If the target is selected before we have it in memory variable and we can use it
         if a_agent.memory.get_position() != (-1, -1) and location != a_agent.memory: #here

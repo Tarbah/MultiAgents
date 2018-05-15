@@ -9,4 +9,4 @@ mcts_mode,OSPA
 iteration_max , 50
 max_depth , 50
 sim_path,Test Files/sim_2_agents.csv
-do_estimation,False
+do_estimation,True
