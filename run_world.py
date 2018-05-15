@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import parameter_estimation
+import psutil
 
 def plot_data_set(main_sim , estimated_parameter):
 
@@ -59,7 +60,7 @@ def plot_data_set(main_sim , estimated_parameter):
 
     #fig.savefig("./plots/dataset.jpg")
 
-
+memory_usage = 0
 iMaxStackSize = 2000
 sys.setrecursionlimit(iMaxStackSize)
 types = ['l1', 'l2', 'f1', 'f2']
@@ -162,6 +163,8 @@ main_agent = main_sim.main_agent
 main_sim.draw_map()
 main_sim.log_map(logfile)
 
+used_mem_before = psutil.virtual_memory().used
+
 search_tree = None
 
 time_step = 0
@@ -254,11 +257,14 @@ while main_sim.items_left() > 0 :
     print "left items", main_sim.items_left()
 
 end_time = time.time()
+used_mem_after = psutil.virtual_memory().used
+memory_usage = used_mem_after - used_mem_before
+
 #
 # for i in range(len(main_sim.agents)):
 #     print agants_parameter_estimation['estimated_parameters'][i]
 
-def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimated_parameter):
+def print_result(main_sim,  time_steps, begin_time, end_time,mcts_mode,estimated_parameter):
 
     file = open(current_folder + "/results.txt", 'w')
     pickleFile = open(current_folder + "/pickleResults.txt", 'wb')
@@ -288,6 +294,8 @@ def print_result(main_sim,  time_steps,  begin_time, end_time,mcts_mode,estimate
     systemDetails['timeSteps'] = time_steps
     systemDetails['beginTime'] = begin_time
     systemDetails['endTime'] = end_time
+    systemDetails['memory_usage'] = memory_usage
+
     systemDetails['estimationMode'] = parameter_estimation_mode
     systemDetails['typeSelectionMode'] = type_selection_mode
     systemDetails['iterationMax'] = iteration_max
