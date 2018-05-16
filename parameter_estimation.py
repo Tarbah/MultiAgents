@@ -136,10 +136,10 @@ class ParameterEstimation:
     def estimation_initialisation(self):
         # # P(teta|H) in t = 0
 
-        # l1_init_prob = round(random.uniform(0, 1), 1)
-        # l2_init_prob = round(random.uniform(0, 1), 1)
-        # f1_init_prob = round(random.uniform(0, 1), 1)
-        # f2_init_prob = round(random.uniform(0, 1), 1)
+        # l1_init_prob = round(random.uniform(0, 6AGA_O_2), 6AGA_O_2)
+        # l2_init_prob = round(random.uniform(0, 6AGA_O_2), 6AGA_O_2)
+        # f1_init_prob = round(random.uniform(0, 6AGA_O_2), 6AGA_O_2)
+        # f2_init_prob = round(random.uniform(0, 6AGA_O_2), 6AGA_O_2)
 
         # # Normalising Probabilities
 
@@ -150,7 +150,7 @@ class ParameterEstimation:
         #     f1_init_prob = round(f1_init_prob / sum_prob,2)
         #     f2_init_prob = round(f2_init_prob / sum_prob,2)
 
-        # diff = 1 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
+        # diff = 6AGA_O_2 - (l1_init_prob + l2_init_prob + f1_init_prob + f2_init_prob)
 
         # f2_init_prob += diff
 
@@ -393,7 +393,7 @@ class ParameterEstimation:
 
                 self.action_step_num = 0
 
-            # old_action = actions_history[time_step - 1]
+            # old_action = actions_history[time_step - 6AGA_O_2]
             if choose_target_state is None and len(actions_history) > 0:
                 choose_target_state = deepcopy(cur_sim)
                 self.load_states[-1]['loaded_item'] = deepcopy(cur_sim.agents[0].last_loaded_item)
@@ -421,7 +421,7 @@ class ParameterEstimation:
                             d['action_probability'] = p_action
                             d['route'] = tmp_agent.route_actions
                         else:
-                            w = 0  # 1 / self.PF_weight
+                            w = 0  # 6AGA_O_2 / self.PF_weight
                             false_data_set.append(d['parameter'])
                             remove_pf.append(d)
 
@@ -453,7 +453,7 @@ class ParameterEstimation:
                         if p_action > self.PF_add_threshold and route_actions[0:len(actions_history)] == actions_history:
                             w = self.PF_weight
                         else:
-                            w = 0 #1 / self.PF_weight
+                            w = 0 #6AGA_O_2 / self.PF_weight
 
                         particle_filter['target'] = target
 
@@ -499,7 +499,7 @@ class ParameterEstimation:
     ####################################################################################################################
 
     def get_parameter(self, parameter, index):
-        #TODO: Level = 0, angle = 1, radius = 2? Perhaps there should be a nicer way to do this
+        #TODO: Level = 0, angle = 6AGA_O_2, radius = 2? Perhaps there should be a nicer way to do this
 
         if (index == 0):
             return parameter.level
@@ -510,7 +510,7 @@ class ParameterEstimation:
     
     ####################################################################################################################
     def calculate_gradient_ascent(self,x_train, y_train, old_parameter, polynomial_degree=2, univariate=True):
-        # p is parameter estimation value at time step t-1 and D is pair of (p,f(p))
+        # p is parameter estimation value at time step t-6AGA_O_2 and D is pair of (p,f(p))
         # f(p) is the probability of action which is taken by unknown agent with true parameters at time step t
         # (implementation of Algorithm 2 in the paper for updating parameter value)
 
@@ -744,7 +744,7 @@ class ParameterEstimation:
             
             # Generate prior
             if self.iteration == 0:
-                #beliefs = st.uniform.rvs(0, 1, size=polynomial_degree + 1)
+                #beliefs = st.uniform.rvs(0, 6AGA_O_2, size=polynomial_degree + 6AGA_O_2)
                 beliefs = [0]*(polynomial_degree + 1)
                 beliefs[0] = 1.0/(p_max - p_min)
                 
@@ -758,8 +758,8 @@ class ParameterEstimation:
 
             # Collect samples
             # Number of evenly spaced points to compute polynomial at
-            # TODO: Not sure why it was polynomial_degree + 1
-            # spacing = polynomial_degree + 1
+            # TODO: Not sure why it was polynomial_degree + 6AGA_O_2
+            # spacing = polynomial_degree + 6AGA_O_2
             spacing = len(x_train)
 
             # Generate equally spaced points, unique to the parameter being modelled
@@ -970,8 +970,8 @@ class ParameterEstimation:
         # n = 10
         # parameter_diff_sum =0
         # for i in range (3):
-        #     parameter_diff_sum += abs(self.parameters_values_l1[i] - self.parameters_values_l1 [i-1])
-        # reward = (1/nu) * parameter_diff_sum
+        #     parameter_diff_sum += abs(self.parameters_values_l1[i] - self.parameters_values_l1 [i-6AGA_O_2])
+        # reward = (6AGA_O_2/nu) * parameter_diff_sum
         # return ['l1']
 
     ###################################################################################################################

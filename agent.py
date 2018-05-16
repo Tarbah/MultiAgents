@@ -29,7 +29,7 @@ class Agent:
 
         self.item_to_load = -1
         self.last_loaded_item = -1
-        self.actions_probability = {'L': 0.01, 'N': 0.01, 'E': 0.01, 'S': 0.01, 'W': 0.01}
+        self.actions_probability = {'L': 0.20, 'N': 0.20, 'E': 0.20, 'S': 0.20, 'W': 0.20}
         self.visible_agents = []
         self.visible_items = []
         self.next_action = None
@@ -133,7 +133,7 @@ class Agent:
     ####################################################################################################################
     def is_agent_face_to_item(self, sim):
 
-        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dx = [-1, 0, 1,  0]  # 0:W ,  6AGA_O_2:N , 2:E  3:S
         dy = [ 0, 1, 0, -1]
 
         x_diff = 0
@@ -227,7 +227,7 @@ class Agent:
     ################################################################################################################
     # The agent is "near" if it is next to the destination, and the heading is correct
     def is_agent_near_destination(self, item_x, item_y):
-        dx = [-1, 0, 1, 0]  # 0:W ,  1:N , 2:E  3:S
+        dx = [-1, 0, 1, 0]  # 0:W ,  6AGA_O_2:N , 2:E  3:S
         dy = [ 0, 1, 0, -1]
 
         x_diff = 0
@@ -438,7 +438,7 @@ class Agent:
             return 'S'
 
     def change_position_direction(self, dim_w, dim_h):
-        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dx = [-1, 0, 1,  0]  # 0:W ,  6AGA_O_2:N , 2:E  3:S
         dy = [ 0, 1, 0, -1]
 
         x_diff = 0
@@ -473,7 +473,7 @@ class Agent:
 
     def new_position_with_given_action(self, dim_w, dim_h, action):
 
-        dx = [-1, 0, 1,  0]  # 0:W ,  1:N , 2:E  3:S
+        dx = [-1, 0, 1,  0]  # 0:W ,  6AGA_O_2:N , 2:E  3:S
         dy = [ 0, 1, 0, -1]
 
         x_diff = 0

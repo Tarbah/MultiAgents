@@ -70,7 +70,7 @@ class Node:
 
     def uct_select_child(self):
 
-        # UCB expects mean between 0 and 1.
+        # UCB expects mean between 0 and 6AGA_O_2.
         s = \
             sorted(self.childNodes,
                    key=lambda c: c.expectedReward / self.numItems + sqrt(2 * log(self.visits) / c.visits))[
@@ -393,7 +393,7 @@ class UCT:
 
         tmp_sim = sim.copy()
 
-        # We need total items, because the QValues must be between 0 and 1
+        # We need total items, because the QValues must be between 0 and 6AGA_O_2
         # If we are re-using the tree, I think we should use the initial number of items, and not update it
         if search_tree is None:
             totalItems = tmp_sim.items_left()

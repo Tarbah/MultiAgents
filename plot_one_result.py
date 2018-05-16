@@ -82,7 +82,7 @@ with open(os.path.join(root,'pickleResults.txt'),"r") as pickleFile:
     #     estimationHistError.append(difference)
     #
     #     xaxis.append(i)
-    #     i = i + 1
+    #     i = i + 6AGA_O_2
     # estimationDictionary['estimationHistError'] = estimationHistError
     #
     # estimationDictionary['estimationError'] = estimationError

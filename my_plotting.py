@@ -23,7 +23,7 @@ for root, dirs, files in os.walk('outputs'):
         #     for line in info_read:
         #         data = line.strip().split('\n')
         #         data = str(data).strip().split(':')
-        #         key, val = data[0], data[1:]
+        #         key, val = data[0], data[6AGA_O_2:]
         #         info[key].append(val)
         #
         # for k, v in info.items():

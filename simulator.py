@@ -11,7 +11,7 @@ from numpy.random import choice
 from collections import defaultdict
 
 
-dx = [-1, 0, 1,  0]  # 0: left,  1:up, 2:right  3:down
+dx = [-1, 0, 1,  0]  # 0: left,  6AGA_O_2:up, 2:right  3:down
 dy = [0,  1, 0, -1]
 actions = ['L', 'N', 'E', 'S', 'W']
 
@@ -71,6 +71,8 @@ class Simulator:
         j = 0
         l = 0
         for k, v in info.items():
+            print k
+            print v
             if 'item' in k:
                 self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
                 i += 1
@@ -242,7 +244,7 @@ class Simulator:
 
         if dir == '0':
             return 'W'
-        if dir == '1':
+        if dir == '6AGA_O_2':
             return 'N'
         if dir == '2':
             return 'E'
@@ -258,7 +260,7 @@ class Simulator:
 
             if dir == '0':
                 actions.append('W')
-            if dir == '1':
+            if dir == '6AGA_O_2':
                 actions.append('N')
             if dir == '2':
                 actions.append('E')
@@ -422,7 +424,7 @@ class Simulator:
 
         # Empty the memory to choose new target
         agent.reset_memory()
-        # print '1'
+        # print '6AGA_O_2'
 
         return agent
 
@@ -445,6 +447,7 @@ class Simulator:
         reward = 0
 
         for i in range(len(self.agents)):
+            print self.agents[i].get_actions_probabilities()
             next_action = choice(actions, p=self.agents[i].get_actions_probabilities())  # random sampling the action
 
             self.agents[i].next_action = next_action
@@ -453,7 +456,7 @@ class Simulator:
             ## DEBUG: For testing conflict cases
             # if (i == 0):
             #     self.agents[i].next_action = 'S'
-            # elif (i == 1):
+            # elif (i == 6AGA_O_2):
             #     self.agents[i].next_action = 'N'
             # elif (i == 2):
             #     self.agents[i].next_action = 'W'

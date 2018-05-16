@@ -7,6 +7,7 @@ import numpy as np
 
 results = list()
 max_len_hist = 0
+max_time_steps = 0
 AGA_errors = list()
 ABU_errors = list()
 PF_errors = list()
@@ -21,8 +22,11 @@ AGA_estimationHist = list()
 ABU_estimationHist = list()
 PF_estimationHist = list()
 
-AGA_comp_time = list()
-ABU_comp_time = list()
+O_AGA_comp_time = list()
+M_AGA_comp_time = list()
+
+O_ABU_comp_time = list()
+M_ABU_comp_time = list()
 PF_comp_time = list()
 
 O_AGA_timeSteps = []
@@ -45,9 +49,67 @@ ave_pf_levels = []
 ave_pf_angle = []
 ave_pf_radius = []
 
+ust_info = []
+
+
+def read_data_for_UCT():
+    for root, dirs, files in os.walk('output16'):
+        if 'pickleResults.txt' in files:
+            print root
+            with open(os.path.join(root,'pickleResults.txt'), "r") as pickleFile:
+
+                UCT_Dictionary = {}
+                dataList = pickle.load(pickleFile)
+
+                data = dataList[1]
+                systemDetails = dataList[0]
+
+                # Simulator Information
+                UCT_Dictionary['simWidth'] = systemDetails['simWidth']
+                UCT_Dictionary['simHeight'] = systemDetails['simHeight']
+                UCT_Dictionary['agentsCounts'] = systemDetails['agentsCounts']
+                UCT_Dictionary['itemsCounts'] = systemDetails['itemsCounts']
+                UCT_Dictionary['iterationMax'] = systemDetails['iterationMax']
+                UCT_Dictionary['maxDepth'] = systemDetails['maxDepth']
+                UCT_Dictionary['mcts_mode'] = systemDetails['mcts_mode']
+
+                beginTime = systemDetails['beginTime']
+                endTime = systemDetails['endTime']
+                UCT_Dictionary['computationalTime'] = int(endTime) - int(beginTime)
+                UCT_Dictionary['estimationMode'] = systemDetails['estimationMode']
+                UCT_Dictionary['timeSteps'] = systemDetails['timeSteps']
+                ust_info.append(UCT_Dictionary)
+
+
+def extract_uct_inf():
+    global ust_info
+    global max_time_steps
+    max_time_steps = 0
+    for result in ust_info:
+        if int(result['timeSteps']) > max_time_steps :
+            max_time_steps = int( result['timeSteps'])
+
+        if result['estimationMode'] == 'AGA':
+
+            if result['mcts_mode'] == 'MSPA':
+                M_AGA_timeSteps.append(result['timeSteps'])
+                M_AGA_comp_time.append(result['computationalTime'])
+            else:
+                O_AGA_timeSteps.append(result['timeSteps'])
+                O_AGA_comp_time.append(result['computationalTime'])
+
+        if result['estimationMode'] == 'ABU':
+
+            if result['mcts_mode'] == 'MSPA':
+                M_ABU_timeSteps.append(result['timeSteps'])
+                M_ABU_comp_time.append(result['computationalTime'])
+            else:
+                O_ABU_timeSteps.append(result['timeSteps'])
+                O_ABU_comp_time.append(result['computationalTime'])
+
 
 def read_files():
-    for root, dirs, files in os.walk('outputs'):
+    for root, dirs, files in os.walk('Output_2agents_size10'):
         if 'pickleResults.txt' in files:
             print root
             with open(os.path.join(root,'pickleResults.txt'),"r") as pickleFile:
@@ -133,24 +195,28 @@ def extract_information():
 
             AGA_estimationHist.append(result['historyParameters'])
             AGA_timeSteps.append(result['timeSteps'])
-            AGA_comp_time.append(result['computationalTime'])
+
 
             if result['mcts_mode']=='MSPA':
                 M_AGA_timeSteps.append(result['timeSteps'])
+                M_AGA_comp_time.append(result['computationalTime'])
             else:
                 O_AGA_timeSteps.append(result['timeSteps'])
+                O_AGA_comp_time.append(result['computationalTime'])
 
         if result['estimationMode'] == 'ABU':
             ABU_errors.append(result['estimationError'])
             # ABU_estimationHistError.append(result['estimationHistError'])
             ABU_estimationHist.append(result['historyParameters'])
             ABU_timeSteps.append(result['timeSteps'])
-            ABU_comp_time.append(result['computationalTime'])
+
 
             if result['mcts_mode']=='MSPA':
                 M_ABU_timeSteps.append(result['timeSteps'])
+                M_ABU_comp_time.append(result['computationalTime'])
             else:
                 O_ABU_timeSteps.append(result['timeSteps'])
+                O_ABU_comp_time.append(result['computationalTime'])
 
         if result['estimationMode'] == 'PF':
             PF_errors.append(result['estimationError'])
@@ -381,22 +447,123 @@ def plot_MonteCarlo():
     MSPA = [np.mean(M_AGA_timeSteps),np.mean(M_ABU_timeSteps),np.mean(M_PF_timeSteps)]
     rects2 = ax.bar(ind+ width, MSPA, width, color='b')
 
-
-
-
     ax.set_title('MonteCarlo')
     ax.set_ylabel('Time Steps')
     ax.set_xlabel('Estimation Method')
     ax.set_xticks(ind+width)
-    ax.set_xticklabels(('ABU','AGA','PF'))
+    ax.set_xticklabels(('AGA','ABU','PF'))
     ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
     plt.show()
     # fig.savefig("./plots/MonteCarlo.jpg")
 
 
-read_files()
-extract_information()
-plot_history_of_estimation()
-plot_errors_in_last_estimation()
+def plot_MonteCarlo_time():
+
+    N = 2
+    ind = np.arange(N)  # the x locations for the groups
+    width = 0.10       # the width of the bars
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+
+    OSPA = [np.mean(O_AGA_comp_time),np.mean(O_ABU_comp_time)] # ,np.mean(O_PF_timeSteps)]
+    rects1 = ax.bar(ind, OSPA, width, color='r')
+
+
+    MSPA = [np.mean(M_AGA_comp_time),np.mean(M_ABU_comp_time)]#,np.mean(M_PF_timeSteps)]
+    rects2 = ax.bar(ind+ width, MSPA, width, color='b')
+
+
+    ax.set_title('MonteCarlo')
+    ax.set_ylabel('Computational Time')
+    ax.set_xlabel('Estimation Method')
+    ax.set_xticks(ind+width)
+    ax.set_xticklabels(('AGA','ABU')) #,'PF'))
+    ax.legend((rects1[0], rects2[0]), ('One State Per Action','Multiple State Per Action'))
+    plt.show()
+    # fig.savefig("./plots/MonteCarlo.jpg")
+
+def multiple_agents():
+    global ust_info
+
+    algorithms = ["uct", "uct-h"]
+    algorithmsLabels = ["UCT", "UCT-H"]
+
+    algorithmsSymbol = ["o", "v"]
+
+    nAgents = [1, 2, 3]
+    max_time_steps = 6
+
+    # nSamples = 1
+
+    data = np.zeros((len(nAgents), len(algorithms), len(range(max_time_steps))))
+    count = [0,0,0,0,0,0]
+    print data
+
+    dataMean = np.zeros((len(nAgents), len(algorithms)))
+    dataUpCi = np.zeros((len(nAgents), len(algorithms)))
+
+    u = 0
+    u_data = [[]] * len(nAgents)
+    h_data = [[]] * len(nAgents)
+
+    for u in ust_info:
+        agent_count = int(u["agentsCounts"])
+        print agent_count
+        print u['timeSteps']
+
+
+        if u["mcts_mode"]=='MSPA':
+            index = count[(agent_count-1) * 2]
+            data[agent_count-1,0,index] = u['timeSteps']
+            count[(agent_count - 1) * 2] +=1
+
+        if u["mcts_mode"]=='OSPA':
+            index = count[((agent_count - 1) * 2) + 1]
+            data[agent_count-1,1,index] = u['timeSteps']
+            count[((agent_count - 1) * 2) + 1] +=1
+
+    print data[0, 0, 0:count[(0 * 2) + 0]]
+    ro = ""
+
+    # for u in
+    # #
+    stddev = np.std(data, ddof=1)
+    for n in range(len(nAgents)):
+
+        for a in range(len(algorithms)):
+            print data[n, a, :]
+            dataMean[n, a] = np.mean(data[n, a, 0:count[(n* 2) + a ]])
+            dataUpCi[n, a] = np.std(data[n, a, 0:count[(n* 2) + a ]], ddof=1)
+    # #
+    plt.figure(figsize=(4, 3.0))
+
+    for a in range(len(algorithms)):
+         plt.errorbar(nAgents, dataMean[:, a], yerr=[m - n for m, n in zip(dataUpCi[:, a], dataMean[:, a])],
+                      label=algorithmsLabels[a], marker=algorithmsSymbol[a])
+         plt.errorbar(nAgents,dataMean[:,a], label=algorithmsLabels[a])
+
+    plt.legend(loc=1)
+
+    plt.xlim([0, 5])
+    plt.xlabel("Number of Agents")
+    plt.ylabel("Number of Iterations")
+
+    plt.savefig("nAgents-15.pdf", bbox_inches='tight')
+
+
+    plt.show()
+
+
+
+# read_files()
+# extract_information()
+# plot_history_of_estimation()
+# plot_errors_in_last_estimation()
 # plot_errors_in_history_estimation()
+read_data_for_UCT()
+multiple_agents()
 # plot_MonteCarlo()
+# plot_MonteCarlo_time()
+
