@@ -54,6 +54,7 @@ class Simulator:
         """
         # Load and store csv file
         info = defaultdict(list)
+        print path
         with open(path) as info_read:
             for line in info_read:
                 if not self.is_comment(line):
@@ -71,8 +72,8 @@ class Simulator:
         j = 0
         l = 0
         for k, v in info.items():
-            print k
-            print v
+            # print k
+            # print v
             if 'item' in k:
                 self.items.append(item.item(v[0][0], v[0][1], v[0][2], i))
                 i += 1
@@ -447,7 +448,7 @@ class Simulator:
         reward = 0
 
         for i in range(len(self.agents)):
-            print self.agents[i].get_actions_probabilities()
+            # print self.agents[i].get_actions_probabilities()
             next_action = choice(actions, p=self.agents[i].get_actions_probabilities())  # random sampling the action
 
             self.agents[i].next_action = next_action
